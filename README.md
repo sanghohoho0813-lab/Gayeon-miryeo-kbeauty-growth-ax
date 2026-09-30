@@ -18,6 +18,7 @@ npm install
 npm run dev          # Demo 모드 (기본)
 npm run typecheck
 npm run build
+npm run verify:db    # (선택) 로컬 Postgres로 migration + RLS 55개 시나리오 검증
 ```
 Live 전환은 **SETUP.md** 참고.
 
@@ -34,7 +35,10 @@ UI (src/app, src/components)
        └ live-source.ts  (Supabase, RLS)
  └ buildModel (src/lib/model.ts) → analytics.ts (RULE / STATISTICAL)
 ```
-- Schema / RLS: `supabase/migrations/001~004`
+- Schema / RLS: `supabase/migrations/001~005` (005 필수), 검증: `supabase/tests/`
+- Evidence 계산(Money KPI·Baseline 비교): `src/lib/evidence.ts` → 실증 화면 + 주간 리포트(`/ax/reports/weekly`, 인쇄·PDF)
+- 판매 파일 가져오기(CSV/XLSX, 열 자동 인식): `src/lib/import.ts`
+- 구성원 관리 API(Live, 서버 전용 키): `src/app/api/org/members/route.ts`
 - Customer Event Bridge: `src/lib/customer-events.ts`
 - Device View (PC / Mobile / PC+Mobile): `src/components/device/DeviceView.tsx`
 - Canonical 7 Theme: `src/app/globals.css`, `src/components/providers/SettingsProvider.tsx`

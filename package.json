@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:db": "bash supabase/tests/run.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
@@ -15,6 +16,7 @@
     "next": "^15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "read-excel-file": "^9.3.10",
     "recharts": "^2.15.0"
   },
   "devDependencies": {

@@ -52,7 +52,7 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
 export function Sidebar() {
   const { role } = useSession();
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col lg:flex" style={{ background: "var(--sidebar-bg)", borderRight: "1px solid var(--sidebar-border)" }}>
+    <aside data-print="hide" className="fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col lg:flex" style={{ background: "var(--sidebar-bg)", borderRight: "1px solid var(--sidebar-border)" }}>
       <Link href="/ax" className="px-7 pb-4 pt-6">
         <div className="font-display text-[1.45rem] font-bold leading-tight" style={{ color: "var(--sidebar-active-text)" }}>MIRYEO</div>
         <div className="mt-0.5 text-[1rem] font-semibold tracking-wide" style={{ color: "var(--wordmark)" }}>Business AX</div>

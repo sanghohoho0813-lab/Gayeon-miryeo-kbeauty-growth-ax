@@ -18,7 +18,7 @@ const ITEMS = [
 export function MobileBottomNav() {
   const pathname = usePathname();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden" style={{ borderColor: "var(--border)" }} aria-label="하단 메뉴">
+    <nav data-print="hide" className="fixed inset-x-0 bottom-0 z-30 border-t bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden" style={{ borderColor: "var(--border)" }} aria-label="하단 메뉴">
       <ul className="flex">
         {ITEMS.map((item) => {
           const active = isActivePath(pathname, item.href);

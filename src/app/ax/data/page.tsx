@@ -3,24 +3,24 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Download, FileUp, Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, StatusBadge } from "@/components/ax/Cards";
 import { Tabs } from "@/components/ax/Tabs";
+import { SalesImport } from "@/components/ax/SalesImport";
 import { EmptyState } from "@/components/ax/States";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { toast } from "@/components/ax/Toast";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
-import { parseCSV, type RowResult } from "@/lib/csv";
 import { formatPrice } from "@/lib/analytics";
 import { todayISO } from "@/lib/date";
 import { isLive } from "@/lib/config";
-import type { B2BAccount, Channel, ChannelType, Product, ProductCategory, ProductionPlan, SalesRecord, SkinConcern, Texture } from "@/lib/types";
+import type { B2BAccount, Channel, ChannelType, Product, ProductCategory, ProductionPlan, SkinConcern, Texture } from "@/lib/types";
 
 const TABS = [
-  { id: "sales", label: "판매 입력·CSV" },
+  { id: "sales", label: "판매 입력·파일" },
   { id: "products", label: "상품" },
   { id: "channels", label: "채널" },
   { id: "production", label: "OEM 생산" },
@@ -73,8 +73,6 @@ function SalesTab() {
   const channels = m.snapshot.channels.filter((c) => c.active);
   const products = m.snapshot.products;
   const [f, setF] = useState({ saleDate: todayISO(), productId: products[0]?.id ?? "", channelId: channels[0]?.id ?? "", units: "", revenue: "" });
-  const [rows, setRows] = useState<RowResult<Omit<SalesRecord, "id">>[] | null>(null);
-  const [fileName, setFileName] = useState("");
   const recent = [...m.snapshot.sales].filter((s) => s.source !== "seed").sort((a, b) => b.saleDate.localeCompare(a.saleDate)).slice(0, 8);
 
   const computeRevenue = (productId: string, channelId: string, units: number) => {
@@ -82,37 +80,6 @@ function SalesTab() {
     const c = channels.find((x) => x.id === channelId);
     return p ? Math.round(units * p.price * (1 - (c?.avgDiscountRate ?? 0))) : 0;
   };
-
-  const onFile = (file?: File) => {
-    if (!file) return;
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const table = parseCSV(String(reader.result ?? ""));
-      const [header, ...body] = table;
-      const idx = (k: string) => header?.findIndex((h) => h.toLowerCase() === k) ?? -1;
-      const [iDate, iSku, iCh, iUnits, iRev] = ["sale_date", "sku", "channel", "units", "revenue"].map(idx);
-      const missing = [["sale_date", iDate], ["sku", iSku], ["channel", iCh], ["units", iUnits]].filter(([, i]) => i === -1).map(([k]) => k);
-      if (!header || missing.length) { toast(`필수 열이 없습니다: ${missing.join(", ") || "헤더"}`, "error"); setRows(null); return; }
-      setRows(body.map((raw, n) => {
-        const errors: string[] = [];
-        const date = raw[iDate];
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date ?? "")) errors.push("날짜 형식(YYYY-MM-DD)");
-        const product = products.find((p) => p.sku === raw[iSku]);
-        if (!product) errors.push(`SKU 없음: ${raw[iSku] ?? ""}`);
-        const channel = channels.find((c) => c.name === raw[iCh] || c.id === raw[iCh]);
-        if (!channel) errors.push(`채널 없음: ${raw[iCh] ?? ""}`);
-        const units = Number(raw[iUnits]);
-        if (!Number.isInteger(units) || units < 0) errors.push("수량은 0 이상 정수");
-        const revRaw = iRev >= 0 ? raw[iRev] : "";
-        const revenue = revRaw ? Number(revRaw) : product && channel ? computeRevenue(product.id, channel.id, units) : 0;
-        if (revRaw && (!Number.isFinite(revenue) || revenue < 0)) errors.push("매출 숫자 오류");
-        return { line: n + 2, raw, errors, value: errors.length ? undefined : { productId: product!.id, channelId: channel!.id, saleDate: date, units, revenue, source: "csv" as const } };
-      }));
-    };
-    reader.readAsText(file);
-  };
-  const valid = rows?.filter((r) => r.value) ?? [];
 
   if (products.length === 0 || channels.length === 0) return <EmptyState title="판매 입력 전에 상품과 채널을 먼저 등록하세요" action={<Link href="/ax/data?tab=products" className="btn-primary">상품 등록</Link>} />;
 
@@ -145,48 +112,7 @@ function SalesTab() {
         )}
       </DataCard>
 
-      <DataCard title="CSV 가져오기" action={<a href="/samples/sales_template.csv" download className="btn-secondary !min-h-[40px] text-[0.86rem]"><Download size={15} aria-hidden /> 샘플 CSV</a>}>
-        <ol className="mb-4 flex flex-wrap gap-2 text-[0.8rem] font-semibold">
-          {["1 Upload", "2 Preview", "3 Validation", "4 Confirm"].map((s, i) => (
-            <li key={s} className="badge" style={i <= (rows ? 2 : 0) ? { background: "var(--primary-soft)", color: "var(--primary)" } : { background: "var(--surface-muted)", color: "var(--text-secondary)" }}>{s}</li>
-          ))}
-        </ol>
-        <label className="flex min-h-[140px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-6 text-center transition-colors hover:bg-surface-muted" style={{ borderColor: "var(--border)" }}>
-          <FileUp size={28} className="text-ink-soft" aria-hidden />
-          <span className="font-semibold">{fileName || "판매 CSV 선택"}</span>
-          <span className="text-[0.82rem] text-ink-soft">열: sale_date, sku, channel(채널명), units, revenue(선택)</span>
-          <input type="file" accept=".csv,text/csv" className="sr-only" onChange={(e) => onFile(e.target.files?.[0])} />
-        </label>
-        {rows && (
-          <div className="mt-4">
-            <div className="flex flex-wrap gap-2 text-[0.86rem]">
-              <StatusBadge tone="success">정상 {valid.length}행</StatusBadge>
-              <StatusBadge tone={rows.length - valid.length ? "danger" : "neutral"}>오류 {rows.length - valid.length}행</StatusBadge>
-            </div>
-            <div className="table-scroll mt-3 max-h-[260px] overflow-y-auto rounded-xl border" style={{ borderColor: "var(--border)" }}>
-              <table className="text-[0.82rem]">
-                <thead><tr className="bg-surface-muted text-left"><th className="px-3 py-2">행</th><th className="px-3 py-2">값</th><th className="px-3 py-2">검증</th></tr></thead>
-                <tbody>
-                  {rows.slice(0, 50).map((r) => (
-                    <tr key={r.line} className="border-t" style={{ borderColor: "var(--border)" }}>
-                      <td className="px-3 py-1.5">{r.line}</td>
-                      <td className="px-3 py-1.5">{r.raw.join(" | ")}</td>
-                      <td className="px-3 py-1.5" style={{ color: r.errors.length ? "var(--danger)" : "var(--success)" }}>{r.errors.length ? r.errors.join(", ") : "OK"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-3 flex gap-2">
-              <button className="btn-primary" disabled={busy || valid.length === 0} onClick={async () => { if (await save(`${valid.length}행을 저장했습니다`, (s) => s.addSales(valid.map((r) => r.value!)))) { setRows(null); setFileName(""); } }}>
-                정상 {valid.length}행 저장 (Confirm)
-              </button>
-              <button className="btn-secondary" onClick={() => { setRows(null); setFileName(""); }}>취소</button>
-            </div>
-            <p className="mt-2 text-[0.8rem] text-ink-soft">오류 행은 저장되지 않습니다. 기존 데이터는 변경되지 않습니다 (추가만).</p>
-          </div>
-        )}
-      </DataCard>
+      <SalesImport />
     </div>
   );
 }

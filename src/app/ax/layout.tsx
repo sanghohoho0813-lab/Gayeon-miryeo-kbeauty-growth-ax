@@ -19,9 +19,9 @@ export default function AxLayout({ children }: { children: React.ReactNode }) {
       <DataProvider>
         <div className="min-h-screen bg-bg">
           <Sidebar />
-          <div className="lg:pl-[280px]">
+          <div className="lg:pl-[280px] print:!pl-0">
             <UtilityHeader />
-            <main className="@container px-4 pb-24 pt-6 lg:px-8 lg:pb-12">
+            <main className="@container px-4 pb-24 pt-6 lg:px-8 lg:pb-12 print:!p-0">
               <AxGate>{children}</AxGate>
             </main>
           </div>

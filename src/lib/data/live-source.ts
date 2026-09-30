@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DataSnapshot, DataSource } from "./source";
 import type {
   B2BAccount, Channel, CustomerEvent, CustomerProfile, ExportRecord, GrowthAction, ActionEvent,
-  Inventory, Product, ProductionPlan, ProofEvent, SalesRecord, TechAsset,
+  Inventory, KpiBaseline, Product, ProductionPlan, ProofEvent, SalesRecord, TechAsset,
 } from "../types";
 
 /* LIVE 저장소 — Supabase만 사용. 오류는 그대로 throw → 화면에서 Error State.
@@ -52,6 +52,11 @@ const toProof = (r: Row): ProofEvent => ({
 });
 const toTech = (r: Row): TechAsset => ({ id: r.id, kind: r.kind, title: r.title ?? undefined, status: r.status, referenceNo: r.reference_no ?? undefined, note: r.note ?? undefined, updatedAt: r.updated_at });
 
+const toBaseline = (r: Row): KpiBaseline => ({
+  id: r.id, kpiKey: r.kpi_key, value: Number(r.value), unit: r.unit, periodFrom: r.period_from, periodTo: r.period_to, method: r.method,
+  source: r.source, note: r.note, lockedBy: r.locked_by ?? "-", lockedAt: r.locked_at, supersededAt: r.superseded_at,
+});
+
 const TECH_KINDS = ["특허", "벤처기업확인", "연구개발 조직", "기술인증", "실증자료"] as const;
 
 export function createLiveSource(sb: SupabaseClient, orgId: string, userId: string | null): DataSource {
@@ -62,7 +67,7 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
   return {
     mode: "live",
     async loadAx(): Promise<DataSnapshot> {
-      const [o, products, inventory, production, channels, sales, b2b, exports, customers, events, actions, aevents, proofs, tech] = await Promise.all([
+      const [o, products, inventory, production, channels, sales, b2b, exports, customers, events, actions, aevents, proofs, tech, baselines] = await Promise.all([
         sb.from("organizations").select("*").eq("id", org).single(),
         sb.from("products").select("*").eq("organization_id", org).order("created_at"),
         sb.from("inventory").select("*").eq("organization_id", org),
@@ -77,12 +82,14 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
         sb.from("action_events").select("*").eq("organization_id", org).order("created_at"),
         sb.from("proof_events").select("*").eq("organization_id", org).order("created_at"),
         sb.from("tech_assets").select("*").eq("organization_id", org),
+        sb.from("kpi_baselines").select("*").eq("organization_id", org).order("locked_at"),
       ]);
+      if (baselines.error) throw new Error(`${baselines.error.message} — supabase/migrations/005 적용 여부를 확인하세요`);
       if (o.error) throw new Error(o.error.message);
       const techRows = must<Row[]>(tech).map(toTech);
       const techAssets = TECH_KINDS.map((kind) => techRows.find((t) => t.kind === kind) ?? { id: `new-${kind}`, kind, status: "미확인" as const, updatedAt: new Date().toISOString() });
       return {
-        org: { name: o.data.name, pilotStartedOn: o.data.pilot_started_on },
+        org: { name: o.data.name, pilotStartedOn: o.data.pilot_started_on, axOwnerName: o.data.ax_owner_name ?? null },
         products: must<Row[]>(products).map(toProduct),
         inventory: must<Row[]>(inventory).map(toInventory),
         production: must<Row[]>(production).map(toProduction),
@@ -97,6 +104,7 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
         actionEvents: must<Row[]>(aevents).map(toActionEvent),
         proofEvents: must<Row[]>(proofs).map(toProof),
         techAssets,
+        baselines: must<Row[]>(baselines).map(toBaseline),
         loadedAt: new Date().toISOString(),
       };
     },
@@ -193,7 +201,15 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
       const map: Row = {};
       if ("name" in patch) map.name = patch.name;
       if ("pilotStartedOn" in patch) map.pilot_started_on = patch.pilotStartedOn;
+      if ("axOwnerName" in patch) map.ax_owner_name = patch.axOwnerName;
       must(await sb.from("organizations").update(map).eq("id", org).select("id"));
+    },
+    async lockBaseline(b) {
+      const { error } = await sb.rpc("lock_baseline", {
+        org, p_kpi: b.kpiKey, p_value: b.value, p_unit: b.unit, p_from: b.periodFrom ?? null, p_to: b.periodTo ?? null,
+        p_method: b.method, p_source: b.source, p_note: b.note ?? null, p_locked_by: b.lockedBy,
+      });
+      if (error) throw new Error(error.message);
     },
     async trackEvent(e) {
       const { error } = await sb.from("customer_events").insert({ organization_id: org, session_id: e.sessionId, event_type: e.eventType, product_id: e.productId ?? null, payload: e.payload ?? {} });

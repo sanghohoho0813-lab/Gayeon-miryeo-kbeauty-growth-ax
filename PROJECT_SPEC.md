@@ -61,7 +61,7 @@ Customer Platform의 고객행동도 회사 고유 데이터 자산으로 충분
 |---|---|---|---|---|
 | COST | 재고위험 발견 → 대응 Action 착수까지 시간 | REQUIRED / UNKNOWN | growth_actions.created_at → action_events(IN_PROGRESS) | DO NOT INVENT |
 | REVENUE | Finder 완료 → Passport 저장 전환율 | REQUIRED / UNKNOWN | customer_events finder_complete / passport_save | DO NOT INVENT |
-| SCALE | 담당자 1인당 관리 SKU·채널 수 / AX 경유 처리 비율 | REQUIRED / UNKNOWN | organization_members × products, action_events | DO NOT INVENT |
+| SCALE | 주당 완료 Action (시스템 측정, D-016) · 보조: 1인당 관리 SKU·채널 수 / AX 경유 처리 비율(자기기록) | REQUIRED / UNKNOWN | organization_members × products, action_events | DO NOT INVENT |
 
 ## 7. PRIMARY CONVERSION GOAL
 

@@ -9,6 +9,7 @@ import type {
   ExportRecord,
   GrowthAction,
   GrowthActionCandidate,
+  KpiBaseline,
   ActionEvent,
   Inventory,
   OrgSettings,
@@ -38,6 +39,8 @@ export interface DataSnapshot {
   actionEvents: ActionEvent[];
   proofEvents: ProofEvent[];
   techAssets: TechAsset[];
+  /** 활성 + 이력(superseded) 전체 */
+  baselines: KpiBaseline[];
   loadedAt: string;
 }
 
@@ -76,6 +79,7 @@ export interface DataSource {
 
   upsertTechAsset(t: TechAsset): Promise<void>;
   updateOrg(patch: Partial<OrgSettings>): Promise<void>;
+  lockBaseline(b: Omit<KpiBaseline, "id" | "lockedAt" | "supersededAt">): Promise<void>;
 
   trackEvent(e: TrackInput): Promise<void>;
   saveBeautyResult(sessionId: string, profile: BeautyProfile, productIds: string[], reasons: Record<string, string>): Promise<void>;

@@ -7,6 +7,7 @@ import { BookOpen, Check, Lightbulb, RotateCcw, X } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, StatusBadge } from "@/components/ax/Cards";
 import { ThemePickerPanel } from "@/components/ax/ThemePicker";
+import { MembersCard } from "@/components/ax/MembersCard";
 import { RoleMenu } from "@/components/ax/UtilityHeader";
 import { Modal } from "@/components/ax/Modal";
 import { toast } from "@/components/ax/Toast";
@@ -16,6 +17,7 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { ALL_PERMISSIONS, can, PERMISSION_LABEL, ROLE_LABEL } from "@/lib/permissions";
 import { isLive, liveConfigured, DATA_MODE } from "@/lib/config";
 import { formatDateKR, formatDateTimeKR, todayISO } from "@/lib/date";
+import { DEMO_MEMBERS_KEY } from "@/lib/members";
 import type { Role, TechAsset, TechAssetStatus } from "@/lib/types";
 
 const FONT_OPTIONS: { id: FontScale; label: string; desc: string }[] = [
@@ -33,13 +35,14 @@ export default function SettingsPage() {
   const { fontScale, setFontScale, reduceMotion, setReduceMotion, resetTutorial } = useSettings();
   const [confirmReset, setConfirmReset] = useState(false);
   const [pilot, setPilot] = useState(m.snapshot.org.pilotStartedOn ?? "");
+  const [axOwner, setAxOwner] = useState(m.snapshot.org.axOwnerName ?? "");
   const owner = can(role, "manage_org");
 
   return (
     <div className="mx-auto max-w-[1100px]">
       <PageHeader title="설정" description="화면·역할·데이터·실증 운영·기술자산을 관리합니다." />
 
-      <div className="grid gap-6 @4xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 @4xl:grid-cols-2">
         <DataCard title="화면 — 테마 (Canonical 7)" tourId="settings-display">
           <ThemePickerPanel bare />
           <p className="mt-3 text-[0.82rem] text-ink-soft">본문·표·폼은 테마와 무관하게 중립색으로 유지됩니다. 선택한 테마는 고객 화면 브랜드 색과 Mobile 미리보기에도 함께 반영됩니다.</p>
@@ -73,12 +76,12 @@ export default function SettingsPage() {
         </div>
 
         <DataCard title="역할 · 권한" className="@4xl:col-span-2">
-          <div className="grid gap-5 @3xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-5 @3xl:grid-cols-2">
             <div>
               <div className="font-semibold">현재: {ROLE_LABEL[role]} ({role}){isLive ? ` · ${userEmail}` : " · Demo"}</div>
               <p className="mt-1 text-[0.86rem] text-ink-soft">{isLive ? "역할은 organization_members에서 OWNER가 관리합니다." : "Demo에서는 역할을 바꿔 메뉴·민감정보·버튼 차이를 확인할 수 있습니다."}</p>
               <div className="mt-3"><RoleMenu inline /></div>
-              <p className="mt-3 text-[0.82rem] text-ink-soft">AX OWNER(실증 책임자)는 로그인 역할과 별개입니다: <b>REQUIRED / UNASSIGNED</b></p>
+              <p className="mt-3 text-[0.82rem] text-ink-soft">AX OWNER(실증 책임자)는 로그인 역할과 별개입니다: <b>{m.snapshot.org.axOwnerName || "REQUIRED / UNASSIGNED"}</b></p>
             </div>
             <div className="table-scroll">
               <table className="!min-w-[420px] text-[0.86rem]">
@@ -126,6 +129,14 @@ export default function SettingsPage() {
           </div>
           <button className="btn-ghost mt-2 !min-h-[36px] text-[0.85rem]" disabled={!owner} onClick={() => setPilot(todayISO())}>오늘로 설정</button>
           <p className="mt-2 text-[0.82rem] text-ink-soft">{owner ? "지정 후 실증·Evidence 화면에 Week 진행이 표시됩니다." : "대표(OWNER)만 지정할 수 있습니다."}</p>
+          <label className="field-label mt-4" htmlFor="ax-owner">AX OWNER (실증 책임자 이름·직책)</label>
+          <div className="flex gap-2">
+            <input id="ax-owner" className="field" placeholder="예: 운영팀장 홍길동" value={axOwner} disabled={!owner} onChange={(e) => setAxOwner(e.target.value)} />
+            <button className="btn-primary" disabled={!owner || axOwner.trim() === (m.snapshot.org.axOwnerName ?? "")} onClick={async () => {
+              try { await run((s) => s.updateOrg({ axOwnerName: axOwner.trim() || null })); toast("AX OWNER를 저장했습니다"); } catch (e) { toast(e instanceof Error ? e.message : "실패", "error"); }
+            }}>저장</button>
+          </div>
+          <p className="mt-2 text-[0.82rem] text-ink-soft">주 1회 Evidence 점검·Baseline 확인을 책임지는 사람입니다. <Link href="/ax/reports#baseline" className="font-semibold underline">Baseline 잠금 →</Link></p>
           <div className="mt-4 rounded-xl bg-surface-muted p-3 text-[0.86rem]">
             <div className="font-semibold">AI 연결 상태</div>
             <ul className="mt-1 space-y-0.5 text-ink-soft">
@@ -145,10 +156,7 @@ export default function SettingsPage() {
           </ul>
         </DataCard>
 
-        <DataCard title="사용자" className="@4xl:col-span-2">
-          <p className="text-[0.92rem]">{isLive ? `${userEmail} · ${ROLE_LABEL[role]}` : `${actorName} — Demo 모드는 로그인 없이 역할 전환으로 시연합니다.`}</p>
-          <p className="mt-1 text-[0.84rem] text-ink-soft">구성원 초대·역할 변경: Supabase Dashboard → organization_members (SETUP.md). 앱 내 초대 화면은 2차 범위.</p>
-        </DataCard>
+        <MembersCard />
       </div>
 
       <Modal open={confirmReset} onClose={() => setConfirmReset(false)} title="Demo 데이터를 초기화할까요?">
@@ -157,7 +165,7 @@ export default function SettingsPage() {
           <button className="btn-secondary" onClick={() => setConfirmReset(false)}>취소</button>
           <button className="btn-primary" style={{ background: "var(--danger)" }} onClick={async () => {
             await source?.reset();
-            try { localStorage.removeItem("miryeo-beauty-wishlist"); localStorage.removeItem("miryeo-beauty-last-result"); localStorage.removeItem("miryeo-beauty-recently-viewed"); localStorage.removeItem("miryeo-beauty-concerns"); } catch { /* noop */ }
+            try { localStorage.removeItem("miryeo-beauty-wishlist"); localStorage.removeItem("miryeo-beauty-last-result"); localStorage.removeItem("miryeo-beauty-recently-viewed"); localStorage.removeItem("miryeo-beauty-concerns"); localStorage.removeItem(DEMO_MEMBERS_KEY); } catch { /* noop */ }
             setConfirmReset(false);
             toast("Demo를 초기화했습니다");
           }}>초기화</button>

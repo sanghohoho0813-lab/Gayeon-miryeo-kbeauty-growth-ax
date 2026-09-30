@@ -7,7 +7,7 @@ type ToastMsg = { id: number; text: string; tone: "success" | "error" };
 const EVT = "miryeo-toast";
 
 export function toast(text: string, tone: "success" | "error" = "success") {
-  window.dispatchEvent(new CustomEvent<ToastMsg>(EVT, { detail: { id: Date.now(), text, tone } }));
+  window.dispatchEvent(new CustomEvent<ToastMsg>(EVT, { detail: { id: Date.now() + Math.random(), text, tone } }));
 }
 
 export function ToastHost() {
@@ -15,14 +15,14 @@ export function ToastHost() {
   useEffect(() => {
     const on = (e: Event) => {
       const d = (e as CustomEvent<ToastMsg>).detail;
-      setItems((v) => [...v, d]);
+      setItems((v) => [...v.filter((x) => x.text !== d.text), d].slice(-3)); // 같은 문구 병합, 최대 3개
       setTimeout(() => setItems((v) => v.filter((x) => x.id !== d.id)), 3200);
     };
     window.addEventListener(EVT, on);
     return () => window.removeEventListener(EVT, on);
   }, []);
   return (
-    <div className="pointer-events-none fixed bottom-20 left-1/2 z-[100] flex -translate-x-1/2 flex-col items-center gap-2 lg:bottom-8" aria-live="polite">
+    <div data-print="hide" className="pointer-events-none fixed bottom-20 left-1/2 z-[100] flex -translate-x-1/2 flex-col items-center gap-2 lg:bottom-8" aria-live="polite">
       {items.map((t) => (
         <div key={t.id} className="modal-in pointer-events-auto flex items-center gap-2 rounded-xl px-4 py-3 text-[0.92rem] font-semibold text-white shadow-lg" style={{ background: t.tone === "success" ? "#171B20" : "var(--danger)" }}>
           {t.tone === "success" ? <CheckCircle2 size={18} aria-hidden /> : <XCircle size={18} aria-hidden />}

@@ -248,6 +248,28 @@ export interface TechAsset {
 export interface OrgSettings {
   name: string;
   pilotStartedOn?: string | null;
+  /** 실증 책임자 (로그인 역할과 별개). 비어 있으면 REQUIRED / UNASSIGNED */
+  axOwnerName?: string | null;
+}
+
+/** Money KPI 3 — PROJECT_SPEC 기준 */
+export type KpiKey = "COST" | "REVENUE" | "SCALE";
+export type BaselineSource = "SYSTEM" | "SELF_REPORT" | "DOCUMENT";
+
+/** 잠근 기준값. 수정하지 않고 새로 잠그면 이전 행은 supersededAt이 기록되어 이력으로 남는다. */
+export interface KpiBaseline {
+  id: string;
+  kpiKey: KpiKey;
+  value: number;
+  unit: string;
+  periodFrom?: string | null;
+  periodTo?: string | null;
+  method: string;
+  source: BaselineSource;
+  note?: string | null;
+  lockedBy: string;
+  lockedAt: string;
+  supersededAt?: string | null;
 }
 
 export type Role = "OWNER" | "ADMIN" | "STAFF";

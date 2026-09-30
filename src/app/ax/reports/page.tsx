@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ExternalLink, Plus, XCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2, ExternalLink, FileText, Lock, Plus, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, StatusBadge, type Tone } from "@/components/ax/Cards";
 import { AiReadyButton, AI_SPECS } from "@/components/ax/AiReady";
@@ -14,11 +14,13 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { isLive } from "@/lib/config";
 import { daysBetween, formatDateKR, formatDateTimeKR } from "@/lib/date";
-import { formatPct } from "@/lib/analytics";
+import { BaselineHistory, BaselineLockModal, BASELINE_SOURCE_LABEL } from "@/components/ax/BaselineLock";
+import { formatChange, formatKpiValue, lastDays, measureMoneyKpis, type MoneyKpiMeasure } from "@/lib/evidence";
 import type { ProofEvent } from "@/lib/types";
 
 type EvStatus = "BASELINE REQUIRED" | "측정중" | "증거 축적중" | "RESULT CONFIRMED";
 const EV_TONE: Record<EvStatus, Tone> = { "BASELINE REQUIRED": "warning", 측정중: "info", "증거 축적중": "primary", "RESULT CONFIRMED": "success" };
+const KIND_LABEL = { COST: "COST", REVENUE: "REVENUE", SCALE: "SCALE" } as const;
 
 const PLAN = [
   { weeks: [0, 0], title: "Week 0 — Baseline Lock", desc: "실데이터 1~2종 입력 · KPI 측정방식 확정 · AX OWNER 지정" },
@@ -32,30 +34,22 @@ export default function ReportsPage() {
   const { run } = useData();
   const { role, actorName } = useSession();
   const [manual, setManual] = useState(false);
+  const [lockKpi, setLockKpi] = useState<MoneyKpiMeasure | null>(null);
   const proofs = [...m.snapshot.proofEvents].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const confirmed = proofs.filter((p) => p.status === "RESULT_CONFIRMED").length;
   const pilotStart = m.snapshot.org.pilotStartedOn;
   const week = pilotStart ? Math.max(0, Math.floor(daysBetween(pilotStart, m.today) / 7)) : null;
 
-  // COST KPI 측정: Action 생성 → 실행 착수 리드타임 (action_events 기준)
-  const leadHours = m.snapshot.actions.map((a) => {
-    const start = m.snapshot.actionEvents.find((e) => e.growthActionId === a.id && e.toStatus === "IN_PROGRESS");
-    return start ? (Date.parse(start.createdAt) - Date.parse(a.createdAt)) / 3_600_000 : null;
-  }).filter((h): h is number => h !== null);
-  const avgLead = leadHours.length ? leadHours.reduce((s, h) => s + h, 0) / leadHours.length : null;
+  const range = lastDays(28, m.today);
+  const money = measureMoneyKpis(m.snapshot, range);
   const doneActions = m.actions.filter((a) => a.status === "DONE").length;
-
-  const kpis: { kind: string; name: string; measured: string; point: string; status: EvStatus }[] = [
-    { kind: "COST", name: "재고위험·Action 대응 리드타임", measured: avgLead == null ? "측정값 없음" : `평균 ${avgLead < 1 ? `${Math.round(avgLead * 60)}분` : `${avgLead.toFixed(1)}시간`} (${leadHours.length}건)`, point: "Action 생성 → 실행 착수", status: leadHours.length ? "측정중" : "BASELINE REQUIRED" },
-    { kind: "REVENUE", name: "Finder → Passport 저장 전환율", measured: m.customer.conversionRecent == null ? "측정값 없음" : `${formatPct(m.customer.conversionRecent, false)} (최근 7일)`, point: "customer_events 세션 기준", status: m.customer.finderSessionsRecent ? "측정중" : "BASELINE REQUIRED" },
-    { kind: "SCALE", name: "AX 경유 처리 비율 / 1인당 관리 SKU", measured: `완료 Action ${doneActions}건 · SKU ${m.snapshot.products.length}개`, point: "action_events + 담당자 자기기록", status: doneActions ? "증거 축적중" : "BASELINE REQUIRED" },
-  ];
+  const axOwner = m.snapshot.org.axOwnerName?.trim();
 
   const operating: [string, string, EvStatus][] = [
     ["Action 실행률", `${doneActions}/${m.actions.length} 완료`, doneActions ? "증거 축적중" : "측정중"],
     ["Customer Event 축적", `${m.customer.totalCount.toLocaleString()}건 (실제 발생 ${m.customer.liveCount})`, m.customer.liveCount ? "증거 축적중" : "측정중"],
     ["재고위험 대응", `재고 관련 Proof ${proofs.filter((p) => p.eventType === "INVENTORY_RISK_RESPONSE").length}건`, "측정중"],
-    ["업무시간 (판매·재고 취합)", "담당자 자기기록 필요", "BASELINE REQUIRED"],
+    ["Money KPI Baseline", `${money.filter((k) => k.baseline).length}/3 잠금`, money.every((k) => k.baseline) ? "증거 축적중" : "BASELINE REQUIRED"],
   ];
   const enterprise: [string, string, EvStatus][] = [
     ["표준화된 Workflow", "Action 5단계 + Proof Event 구조 운영", m.snapshot.actionEvents.length ? "증거 축적중" : "측정중"],
@@ -69,7 +63,7 @@ export default function ReportsPage() {
       <PageHeader
         title="실증·Evidence"
         description="판단 → 실행 → 결과를 Proof Event로 남기고, 12주 동안 Operating / Enterprise Value Evidence를 축적합니다. Baseline이 없으면 개선률을 만들지 않습니다."
-        actions={<><AiReadyButton spec={AI_SPECS.report} /><StatusBadge tone={isLive ? "success" : "warning"}>{isLive ? "LIVE" : "DEMO — 실증 자료로 사용 불가"}</StatusBadge></>}
+        actions={<><Link href="/ax/reports/weekly" className="btn-secondary !min-h-[40px] text-[0.86rem]"><FileText size={15} aria-hidden /> 주간 리포트</Link><AiReadyButton spec={AI_SPECS.report} /><StatusBadge tone={isLive ? "success" : "warning"}>{isLive ? "LIVE" : "DEMO — 실증 자료로 사용 불가"}</StatusBadge></>}
       />
 
       <div className="grid gap-6 @4xl:grid-cols-3">
@@ -93,27 +87,58 @@ export default function ReportsPage() {
           <p className="mt-1 text-[0.9rem] text-ink-soft">결과 확정 {confirmed} · 측정중 {proofs.filter((p) => p.status === "RECORDED").length}</p>
         </DataCard>
         <DataCard title="AX OWNER">
-          <div className="text-[1.2rem] font-bold" style={{ color: "var(--warning)" }}>REQUIRED / UNASSIGNED</div>
-          <p className="mt-1 text-[0.9rem] text-ink-soft">실증 책임자 지정 필요 (AX_COACH_PLAN)</p>
+          {axOwner ? (
+            <>
+              <div className="text-[1.2rem] font-bold">{axOwner}</div>
+              <p className="mt-1 text-[0.9rem] text-ink-soft">실증 책임자 · 주 1회 Evidence 점검</p>
+            </>
+          ) : (
+            <>
+              <div className="text-[1.2rem] font-bold" style={{ color: "var(--warning)" }}>REQUIRED / UNASSIGNED</div>
+              <p className="mt-1 text-[0.9rem] text-ink-soft">실증 책임자 지정 필요 (AX_COACH_PLAN)</p>
+              {can(role, "manage_org") && <Link href="/ax/settings#pilot" className="btn-secondary mt-3 !min-h-[40px] text-[0.86rem]">지정하기 <ArrowRight size={15} aria-hidden /></Link>}
+            </>
+          )}
         </DataCard>
       </div>
 
-      <DataCard className="mt-6" title="MONEY KPI 3">
+      <DataCard className="mt-6" id="baseline" title="MONEY KPI 3 — Baseline 대비">
         <div className="grid gap-3 @4xl:grid-cols-3">
-          {kpis.map((k) => (
-            <div key={k.kind} className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
-              <div className="flex items-center justify-between gap-2"><span className="text-[0.8rem] font-bold text-ink-soft">{k.kind} KPI</span><StatusBadge tone={EV_TONE[k.status]}>{k.status}</StatusBadge></div>
-              <div className="mt-1.5 font-bold leading-snug">{k.name}</div>
-              <dl className="mt-3 space-y-1 text-[0.86rem]">
-                <div className="flex justify-between gap-2"><dt className="text-ink-soft">BASELINE</dt><dd className="font-semibold" style={{ color: "var(--warning)" }}>REQUIRED / UNKNOWN</dd></div>
-                <div className="flex justify-between gap-2"><dt className="text-ink-soft">현재 측정</dt><dd className="tabular text-right font-semibold">{k.measured}</dd></div>
-                <div className="flex justify-between gap-2"><dt className="text-ink-soft">측정 지점</dt><dd className="text-right">{k.point}</dd></div>
-                <div className="flex justify-between gap-2"><dt className="text-ink-soft">TARGET</dt><dd className="font-semibold">DO NOT INVENT</dd></div>
-              </dl>
-            </div>
-          ))}
+          {money.map((k) => {
+            const status: EvStatus = !k.baseline ? "BASELINE REQUIRED" : k.current == null ? "측정중" : "증거 축적중";
+            return (
+              <div key={k.key} data-testid={`kpi-${k.key}`} className="flex flex-col rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
+                <div className="flex items-center justify-between gap-2"><span className="text-[0.8rem] font-bold text-ink-soft">{KIND_LABEL[k.key]} KPI</span><StatusBadge tone={EV_TONE[status]}>{status}</StatusBadge></div>
+                <div className="mt-1.5 font-bold leading-snug">{k.name}</div>
+                <dl className="mt-3 space-y-1.5 text-[0.86rem]">
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-ink-soft">BASELINE</dt>
+                    {k.baseline ? (
+                      <dd className="text-right"><span className="tabular font-semibold">{formatKpiValue(k.baseline.value, k.unit)}</span><span className="block text-[0.78rem] text-ink-soft">{k.baseline.periodFrom ? `${formatDateKR(k.baseline.periodFrom)}~${formatDateKR(k.baseline.periodTo)} · ` : ""}{BASELINE_SOURCE_LABEL[k.baseline.source]}</span></dd>
+                    ) : <dd className="font-semibold" style={{ color: "var(--warning)" }}>REQUIRED / UNKNOWN</dd>}
+                  </div>
+                  <div className="flex justify-between gap-2"><dt className="text-ink-soft">현재 (최근 28일)</dt><dd className="text-right"><span className="tabular font-semibold">{formatKpiValue(k.current, k.unit)}</span><span className="block text-[0.78rem] text-ink-soft">{k.sampleLabel}</span></dd></div>
+                  <div className="flex justify-between gap-2">
+                    <dt className="text-ink-soft">Baseline 대비</dt>
+                    <dd className="tabular text-right font-semibold" style={k.change ? { color: k.change.improved ? "var(--success)" : "var(--danger)" } : undefined}>
+                      {k.change ? `${formatChange(k.change, k.unit)} ${k.change.improved ? "개선" : "악화"}` : <span className="font-normal text-ink-soft">{k.baseline ? "측정값 대기" : "Baseline 잠금 후 표시"}</span>}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-2"><dt className="text-ink-soft">방향</dt><dd>{k.direction === "lower" ? "낮을수록 좋음" : "높을수록 좋음"}</dd></div>
+                  <div className="flex justify-between gap-2"><dt className="text-ink-soft">TARGET</dt><dd className="font-semibold">DO NOT INVENT</dd></div>
+                </dl>
+                <p className="mt-2 text-[0.78rem] text-ink-soft">측정: {k.method}</p>
+                <BaselineHistory items={k.history} />
+                {can(role, "manage_org") && (
+                  <button className="btn-secondary mt-auto !min-h-[40px] text-[0.85rem]" style={{ marginTop: "0.9rem" }} onClick={() => setLockKpi(k)}>
+                    <Lock size={15} aria-hidden /> {k.baseline ? "다시 잠금 (이력 보존)" : "Baseline 잠금"}
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <p className="mt-3 text-[0.8rem] text-ink-soft">현재 측정값은 {isLive ? "Supabase 실데이터" : "DEMO 기준값 + 이 브라우저에서 발생한 행동"} 기준입니다. Baseline 확정 전에는 개선률을 표시하지 않습니다.</p>
+        <p className="mt-3 text-[0.8rem] text-ink-soft">현재 측정값은 {isLive ? "Supabase 실데이터" : "DEMO 기준값 + 이 브라우저에서 발생한 행동"} 기준입니다. Baseline 잠금 전에는 개선률을 표시하지 않으며, 표본이 적으면 변화율은 참고용입니다.{!can(role, "manage_org") && " Baseline 잠금은 대표(OWNER) 권한입니다."}</p>
       </DataCard>
 
       <DataCard className="mt-6" id="proofs" title="Proof Event — 판단·실행·결과" action={can(role, "execute_action") && <button className="btn-secondary !min-h-[40px] text-[0.86rem]" onClick={() => setManual(true)}><Plus size={15} aria-hidden /> 수동 Proof 기록</button>}>
@@ -176,6 +201,7 @@ export default function ReportsPage() {
         <p className="mt-3 text-[0.8rem] text-ink-soft">정량 Before/After는 Baseline 확정 후 실측값으로만 표시합니다.</p>
       </DataCard>
 
+      {lockKpi && <BaselineLockModal kpi={lockKpi} range={range} onClose={() => setLockKpi(null)} />}
       {manual && <ManualProof onClose={() => setManual(false)} onSave={async (p) => {
         try { await run((s) => s.createProof({ ...p, actorName, dataSource: "MANUAL", status: "RECORDED" })); toast("수동 Proof를 기록했습니다"); setManual(false); } catch (e) { toast(e instanceof Error ? e.message : "실패", "error"); }
       }} />}

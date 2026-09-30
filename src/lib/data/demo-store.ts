@@ -42,6 +42,7 @@ function seed(): DemoDB {
     actionEvents: [],
     proofEvents: [],
     techAssets: demoTechAssets(),
+    baselines: [],
   };
 }
 
@@ -64,6 +65,7 @@ function read(): DemoDB {
     if (raw) {
       const parsed = JSON.parse(raw) as DemoDB;
       if (parsed.version === 2) {
+        parsed.baselines ??= []; // PASS 2에서 추가된 필드
         const rebased = rebase(parsed);
         if (rebased.seededOn !== JSON.parse(raw).seededOn) write(rebased, false);
         return rebased;
@@ -161,6 +163,12 @@ export const demoSource: DataSource = {
   setProductFeatured: (productId, until) => mutate((db) => void (db.products = db.products.map((p) => (p.id === productId ? { ...p, featuredUntil: until } : p)))),
   upsertTechAsset: (t) => mutate((db) => void (db.techAssets = upsertBy(db.techAssets, { ...t, updatedAt: new Date().toISOString() }, (x) => x.id))),
   updateOrg: (patch) => mutate((db) => void (db.org = { ...db.org, ...patch })),
+  lockBaseline: (b) =>
+    mutate((db) => {
+      const now = new Date().toISOString();
+      db.baselines = db.baselines.map((x) => (x.kpiKey === b.kpiKey && !x.supersededAt ? { ...x, supersededAt: now } : x));
+      db.baselines.push({ ...b, id: newId("bl"), lockedAt: now, supersededAt: null });
+    }),
   trackEvent: (e) =>
     mutate((db) => {
       db.customerEvents.push({ id: newId("ev"), sessionId: e.sessionId, eventType: e.eventType, productId: e.productId ?? null, payload: e.payload, createdAt: new Date().toISOString(), origin: "live" });

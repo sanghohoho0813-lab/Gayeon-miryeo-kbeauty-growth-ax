@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogIn } from "lucide-react";
@@ -14,6 +14,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>();
+  const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
+
+  // 초대 메일 링크로 들어온 경우: 세션이 URL에서 복원되면 첫 비밀번호 설정
+  useEffect(() => {
+    if (!isLive || !liveConfigured || !window.location.search.includes("invited=1")) return;
+    const sb = getSupabase()!;
+    sb.auth.getSession().then(({ data }) => { if (data.session) setInvitedEmail(data.session.user.email ?? ""); });
+    const { data: sub } = sb.auth.onAuthStateChange((_e, session) => { if (session) setInvitedEmail(session.user.email ?? ""); });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   if (!isLive) {
     return (
@@ -29,6 +39,35 @@ export default function LoginPage() {
       <Shell>
         <h1 className="text-[1.35rem] font-bold">Supabase 설정 필요</h1>
         <p className="mt-2 text-[0.95rem] text-[#4A5361]">NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY를 설정하세요 (SETUP.md).</p>
+      </Shell>
+    );
+  }
+
+  if (invitedEmail !== null) {
+    return (
+      <Shell>
+        <h1 className="text-[1.35rem] font-bold">초대를 수락했습니다</h1>
+        <p className="mt-1 text-[0.92rem] text-[#4A5361]">{invitedEmail} — 다음 로그인부터 사용할 비밀번호를 지정하세요.</p>
+        <form
+          className="mt-5 space-y-3"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (password.length < 8) { setErr("비밀번호는 8자 이상"); return; }
+            setBusy(true);
+            setErr(undefined);
+            const { error } = await getSupabase()!.auth.updateUser({ password });
+            setBusy(false);
+            if (error) setErr(error.message);
+            else router.replace("/ax");
+          }}
+        >
+          <div>
+            <label className="field-label" htmlFor="new-password">새 비밀번호 (8자 이상)</label>
+            <input id="new-password" type="password" autoComplete="new-password" required className="field" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </div>
+          {err && <p className="text-[0.88rem]" style={{ color: "var(--danger)" }} role="alert">{err}</p>}
+          <button className="btn-primary w-full" disabled={busy}>비밀번호 저장하고 시작</button>
+        </form>
       </Shell>
     );
   }

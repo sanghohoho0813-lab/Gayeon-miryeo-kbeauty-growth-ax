@@ -54,3 +54,28 @@
 
 ## D-013 Presentation Mode 보류 (PLUS)
 - WHY: CORE 우선. RECOMMENDATIONS.md에 기록.
+
+## D-014 Baseline은 덮어쓰지 않고 이력으로 보존 (PASS 2)
+- WHY: 증빙 신뢰성. 기준값을 사후에 바꾸면 효과 주장이 무효. 재잠금은 OWNER + 사유 필수, 이전 행은 superseded.
+- `lock_baseline()` RPC(security invoker)로 superseded + insert를 한 트랜잭션에서 처리.
+
+## D-015 Growth Action 상태 전이·승인 권한을 DB에서도 강제 (PASS 2)
+- WHY: 앱 버튼 숨김만으로는 API 직접 호출을 막지 못함. `guard_action_update` 트리거: 허용 전이만, 승인/보류는 OWNER·ADMIN.
+- Action 생성은 NEW만, Proof 직접 생성은 RECORDED만 (확정은 OWNER update).
+
+## D-016 SCALE KPI를 시스템 측정 가능한 "주당 완료 Action"으로 확정
+- WHY: 기존 정의(AX 경유 처리 비율)는 분모가 자기기록이라 자동 측정 불가. 시스템 지표를 주 KPI로, 비율은 보조 자기기록으로.
+- REVISIT WHEN: 고객이 다른 SCALE 지표를 지정할 때.
+
+## D-017 판매 파일 가져오기 = 열 자동 인식 + 사용자 확인 (CSV/XLSX)
+- WHY: 실제 쇼핑몰·자체 집계 파일은 열 이름이 제각각. 별칭 자동 매핑 후 사람이 확인·수정. EUC-KR CSV 자동 재해석.
+- 중복 의심 행(같은 날짜·상품·채널·수량·매출)은 기본 제외, 사용자가 명시적으로 포함 가능.
+- 라이브러리: read-excel-file(MIT, 동적 import). 구형 .xls는 미지원.
+
+## D-018 구성원 초대는 서버 Route + service role (Live 전용)
+- WHY: 초대(auth.admin)는 service role이 필요. 키는 서버 Route Handler에서만 읽고, 호출자 토큰·역할(OWNER)을 먼저 검증.
+- OWNER 계정 변경·이전은 앱에서 하지 않음 (Supabase에서 직접). 키 미설정 시 USER ACTION 안내 + SQL 대안.
+
+## D-019 익명 고객 이벤트 insert 정책 수정 (버그 수정)
+- 003의 `exists (select from organizations)` 조건은 anon에게 organizations 조회 권한이 없어 **항상 거부**됨 → Live에서 고객 이벤트가 전혀 기록되지 않는 결함.
+- 005에서 security definer 함수(`org_exists`, `product_in_org`)로 교체. 로컬 Postgres 검증으로 발견·확인.

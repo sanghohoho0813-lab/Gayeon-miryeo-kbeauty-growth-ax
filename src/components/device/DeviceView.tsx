@@ -191,10 +191,10 @@ function Stage({ children, mode }: { children: ReactNode; mode: DeviceMode }) {
   return (
     <div data-testid="dual-view">
       {watcher}
-      <div className="min-w-0" style={{ marginRight: "33.333vw", overflowX: "clip" }}>
+      <div data-print="full" className="min-w-0" style={{ marginRight: "33.333vw", overflowX: "clip" }}>
         {children}
       </div>
-      <aside
+      <aside data-print="hide"
         className="fixed right-0 top-0 z-[25] flex h-[100dvh] flex-col border-l"
         style={{ width: "33.333vw", background: "#E9ECF1", borderColor: "#DDE1E7" }}
         aria-label="Mobile 실제 화면 미리보기"
