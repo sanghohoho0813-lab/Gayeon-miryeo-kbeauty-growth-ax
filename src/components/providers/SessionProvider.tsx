@@ -18,6 +18,8 @@ interface SessionValue {
   status: SessionStatus;
   error?: string;
   role: Role;
+  /** Live에서 organization_members 확인 전에는 false — 역할 기반 메뉴·표시를 보류한다 (기본값 STAFF를 보여주지 않음) */
+  roleReady: boolean;
   actorName: string;
   userEmail?: string;
   orgId?: string;
@@ -101,12 +103,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<SessionValue>(() => {
     if (!isLive) {
-      return { status: "ready", role: demoRole, actorName: `${ROLE_LABEL[demoRole]} (Demo)`, orgId: "demo", source: demoSource, setDemoRole, signOut, refreshMembership: () => undefined };
+      return { status: "ready", role: demoRole, roleReady: true, actorName: `${ROLE_LABEL[demoRole]} (Demo)`, orgId: "demo", source: demoSource, setDemoRole, signOut, refreshMembership: () => undefined };
     }
     const role = membership?.role ?? "STAFF";
     const sb = getSupabase();
     return {
-      status, error, role,
+      status, error, role, roleReady: status === "ready" && !!membership,
       actorName: session?.user.email ?? "-",
       userEmail: session?.user.email,
       orgId: membership?.orgId,

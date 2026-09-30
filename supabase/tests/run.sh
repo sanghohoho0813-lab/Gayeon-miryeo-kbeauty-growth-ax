@@ -8,8 +8,9 @@ PSQL=${PSQL:-"psql -X -q -v ON_ERROR_STOP=1"}
 $PSQL -d postgres -c "drop database if exists $DB" -c "create database $DB"
 run() { echo "── $1"; $PSQL -d "$DB" -o /dev/null -f "$1" 2>&1 | sed -e 's/^psql:[^ ]* NOTICE:  /  /'; test "${PIPESTATUS[0]}" -eq 0; }
 run supabase/tests/00_supabase_stub.sql
-for f in supabase/migrations/00{1,2,3,5}_*.sql; do run "$f"; done
+for f in supabase/migrations/00{1,2,3,5,6}_*.sql; do run "$f"; done
 run supabase/tests/10_rls_test.sql
+run supabase/tests/20_event_guard_test.sql
 run supabase/migrations/004_seed_demo_optional.sql
-echo "── idempotency (003 이후 재실행 가능 여부: 005)"; run supabase/migrations/005_pilot_v2_pass2.sql
+echo "── idempotency: 005·006 재실행"; run supabase/migrations/005_pilot_v2_pass2.sql; run supabase/migrations/006_event_guard.sql
 echo "VERIFY OK"

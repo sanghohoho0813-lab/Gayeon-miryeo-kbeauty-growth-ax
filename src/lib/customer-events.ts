@@ -37,7 +37,16 @@ export function getPublicSource(): DataSource | null {
   return publicSource;
 }
 
+// 같은 이벤트가 짧은 시간에 반복되면(더블클릭·재렌더) 1건만 기록. 서버에도 세션별 분당 한도가 있다 (006_event_guard).
+const DEDUPE_MS = 1500;
+const recent = new Map<string, number>();
+
 export function track(eventType: CustomerEventType, productId?: string | null, payload?: Record<string, unknown>): void {
+  const key = `${eventType}|${productId ?? ""}|${JSON.stringify(payload ?? {})}`;
+  const now = Date.now();
+  if ((recent.get(key) ?? 0) > now - DEDUPE_MS) return;
+  recent.set(key, now);
+  if (recent.size > 200) recent.clear();
   const src = getPublicSource();
   if (!src) {
     console.warn("[MIRYEO] Live 이벤트 기록 설정(NEXT_PUBLIC_MIRYEO_ORG_ID)이 없어 이벤트를 저장하지 않았습니다:", eventType);

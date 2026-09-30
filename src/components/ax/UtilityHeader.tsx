@@ -31,7 +31,8 @@ function useClickOutside<T extends HTMLElement>(open: boolean, close: () => void
 }
 
 export function RoleMenu({ inline = false }: { inline?: boolean }) {
-  const { role, setDemoRole, userEmail, signOut } = useSession();
+  const { role, roleReady, setDemoRole, userEmail, signOut } = useSession();
+  const roleLabel = roleReady ? ROLE_LABEL[role] : "확인 중";
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(open, () => setOpen(false));
@@ -53,10 +54,10 @@ export function RoleMenu({ inline = false }: { inline?: boolean }) {
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="pressable flex min-h-[44px] items-center gap-2 rounded-xl px-1.5 hover:bg-surface-muted" data-tour="role">
         <span className="flex h-9 w-9 items-center justify-center rounded-full text-[0.85rem] font-bold text-white" style={{ background: "var(--primary)" }} aria-hidden>
-          {ROLE_LABEL[role].slice(0, 1)}
+          {roleLabel.slice(0, 1)}
         </span>
         <span className="hidden text-left leading-tight @4xl:block">
-          <span className="block text-[0.85rem] font-semibold">{ROLE_LABEL[role]}{isLive ? "" : " (Demo)"}</span>
+          <span className="block text-[0.85rem] font-semibold">{roleLabel}{isLive ? "" : " (Demo)"}</span>
           <span className="block max-w-[12rem] truncate text-[0.72rem] text-ink-soft">{isLive ? userEmail : "역할 바꿔 보기"}</span>
         </span>
         <ChevronDown size={15} className="text-ink-soft" aria-hidden />
@@ -74,7 +75,7 @@ export function RoleMenu({ inline = false }: { inline?: boolean }) {
             </>
           ) : (
             <>
-              <div className="px-2 pb-2 text-[0.85rem]"><div className="font-semibold">{userEmail}</div><div className="text-ink-soft">{ROLE_LABEL[role]} · {role}</div></div>
+              <div className="px-2 pb-2 text-[0.85rem]"><div className="font-semibold">{userEmail}</div><div className="text-ink-soft">{roleReady ? `${ROLE_LABEL[role]} · ${role}` : "역할 확인 중"}</div></div>
               <button onClick={async () => { await signOut(); router.replace("/login"); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-[0.92rem] hover:bg-surface-muted" style={{ color: "var(--danger)" }}>
                 <LogOut size={16} aria-hidden /> 로그아웃
               </button>

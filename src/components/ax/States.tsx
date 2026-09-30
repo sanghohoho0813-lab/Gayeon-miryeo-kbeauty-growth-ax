@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AlertTriangle, Database, Inbox, RefreshCw } from "lucide-react";
@@ -32,8 +33,12 @@ export function ErrorState({ title = "데이터를 불러오지 못했습니다"
 }
 
 export function LoadingState() {
+  // 네트워크 오류 시 supabase-js가 자동 재시도(수 초)하므로, 길어지면 상황을 알려준다
+  const [slow, setSlow] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setSlow(true), 5000); return () => clearTimeout(t); }, []);
   return (
     <div className="space-y-5" aria-busy="true" aria-label="불러오는 중">
+      {slow && <p className="rounded-xl bg-surface-muted px-4 py-3 text-[0.9rem] text-ink-soft" role="status">데이터 연결이 지연되고 있습니다. 자동으로 다시 시도하는 중입니다…</p>}
       <div className="h-9 w-72 animate-pulse rounded-xl bg-surface-muted" />
       <div className="grid gap-4 @md:grid-cols-2 @4xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => <div key={i} className="h-36 animate-pulse rounded-2xl bg-surface-muted" />)}

@@ -1,5 +1,6 @@
 "use client";
 
+import { isLive } from "@/lib/config";
 import Link from "next/link";
 import { use, useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, ExternalLink, Heart, Sparkles } from "lucide-react";
@@ -44,7 +45,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const goPurchase = (l: PurchaseLink) => {
     track("outbound_purchase_click", product.id, { channel: l.label, hasUrl: !!l.url });
     if (l.url) window.open(l.url, "_blank", "noopener,noreferrer");
-    else setNotice(`${l.label} 구매 링크는 연결 예정입니다. (현재 Demo — 이동 의향은 기록되었습니다)`);
+    else setNotice(`${l.label} 구매 링크는 연결 예정입니다.${isLive ? "" : " (Demo)"} 관심은 기록되었습니다.`);
   };
 
   return (

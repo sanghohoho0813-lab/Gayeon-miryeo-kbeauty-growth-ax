@@ -3,11 +3,12 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Download, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, StatusBadge } from "@/components/ax/Cards";
 import { Tabs } from "@/components/ax/Tabs";
 import { SalesImport } from "@/components/ax/SalesImport";
+import { ProductImport } from "@/components/ax/ProductImport";
 import { EmptyState } from "@/components/ax/States";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { toast } from "@/components/ax/Toast";
@@ -127,6 +128,7 @@ function ProductsTab() {
   const [edit, setEdit] = useState<Product | null>(null);
   if (!can(role, "edit_master")) return <NeedRole perm="상품 등록·수정" />;
   return (
+    <>
     <div className="grid gap-6 @4xl:grid-cols-5">
       <DataCard title={`상품 (${m.snapshot.products.length})`} className="@4xl:col-span-2" action={<button className="btn-primary !min-h-[40px] text-[0.86rem]" onClick={() => setEdit(emptyProduct())}><Plus size={16} aria-hidden /> 새 상품</button>}>
         <ul className="max-h-[520px] space-y-1.5 overflow-y-auto">
@@ -137,7 +139,6 @@ function ProductsTab() {
             </button></li>
           ))}
         </ul>
-        <a href="/samples/products_template.csv" download className="mt-3 inline-flex items-center gap-1 text-[0.86rem] font-semibold" style={{ color: "var(--primary)" }}><Download size={14} aria-hidden /> 상품 CSV 템플릿 (일괄 등록은 CONDITIONAL)</a>
       </DataCard>
       <DataCard title={edit ? (edit.id.startsWith("new-") ? "새 상품 등록" : `수정 — ${edit.name}`) : "상품 선택"} className="@4xl:col-span-3">
         {!edit ? <EmptyState title="왼쪽에서 상품을 선택하거나 새 상품을 등록하세요" /> : (
@@ -145,6 +146,8 @@ function ProductsTab() {
         )}
       </DataCard>
     </div>
+    <ProductImport />
+    </>
   );
 }
 

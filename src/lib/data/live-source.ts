@@ -2,6 +2,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DataSnapshot, DataSource } from "./source";
+import { uuidv4 } from "./source";
 import type {
   B2BAccount, Channel, CustomerEvent, CustomerProfile, ExportRecord, GrowthAction, ActionEvent,
   Inventory, KpiBaseline, Product, ProductionPlan, ProofEvent, SalesRecord, TechAsset,
@@ -216,9 +217,12 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
       if (error) throw new Error(error.message);
     },
     async saveBeautyResult(sessionId, profile, productIds, reasons) {
-      const prof = await sb.from("beauty_profiles").insert({ organization_id: org, session_id: sessionId, concerns: profile.concerns, care_goal: profile.careGoal, texture: profile.texture, routine_level: profile.routineLevel, budget: profile.budget }).select("id").single();
+      // 익명 고객은 beauty_profiles를 조회할 수 없다(RLS) → insert 후 select(RETURNING)하면 거부된다.
+      // id를 클라이언트에서 만들고 결과를 돌려받지 않는다.
+      const profileId = uuidv4();
+      const prof = await sb.from("beauty_profiles").insert({ id: profileId, organization_id: org, session_id: sessionId, concerns: profile.concerns, care_goal: profile.careGoal, texture: profile.texture, routine_level: profile.routineLevel, budget: profile.budget });
       if (prof.error) throw new Error(prof.error.message);
-      const { error } = await sb.from("beauty_recommendations").insert({ organization_id: org, session_id: sessionId, beauty_profile_id: prof.data.id, product_ids: productIds, reasons, saved_to_passport: true });
+      const { error } = await sb.from("beauty_recommendations").insert({ organization_id: org, session_id: sessionId, beauty_profile_id: profileId, product_ids: productIds, reasons, saved_to_passport: true });
       if (error) throw new Error(error.message);
     },
     async reset() {

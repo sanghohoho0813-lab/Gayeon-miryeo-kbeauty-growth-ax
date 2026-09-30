@@ -10,8 +10,9 @@ import { isLive, DATA_SOURCE_LABEL } from "@/lib/config";
 
 export function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const { role } = useSession();
-  const groups: NavGroup[] = AX_NAV.map((g) => ({ ...g, items: g.items.filter((i) => !i.requires || can(role, i.requires)) })).filter((g) => g.items.length);
+  const { role, roleReady } = useSession();
+  // 역할 확인 전에는 권한이 필요한 메뉴를 숨긴 채 표시하지 않고, 확인 후 한 번에 그린다
+  const groups: NavGroup[] = AX_NAV.map((g) => ({ ...g, items: g.items.filter((i) => !i.requires || (roleReady && can(role, i.requires))) })).filter((g) => g.items.length);
   return (
     <nav aria-label="주요 메뉴">
       {groups.map((group) => (
@@ -50,7 +51,7 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function Sidebar() {
-  const { role } = useSession();
+  const { role, roleReady } = useSession();
   return (
     <aside data-print="hide" className="fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col lg:flex" style={{ background: "var(--sidebar-bg)", borderRight: "1px solid var(--sidebar-border)" }}>
       <Link href="/ax" className="px-7 pb-4 pt-6">
@@ -63,7 +64,7 @@ export function Sidebar() {
       <div className="mx-4 mb-4 rounded-xl px-3.5 py-3" style={{ background: "var(--sidebar-active-bg)" }}>
         <div className="flex items-center justify-between gap-2 text-[0.82rem] font-semibold" style={{ color: "var(--sidebar-active-text)" }}>
           <span className="flex items-center gap-1.5"><Database size={14} aria-hidden /> {DATA_SOURCE_LABEL}</span>
-          <span className="flex items-center gap-1" style={{ color: "var(--sidebar-text)" }}><ShieldCheck size={13} aria-hidden /> {ROLE_LABEL[role]}</span>
+          <span className="flex items-center gap-1" style={{ color: "var(--sidebar-text)" }}><ShieldCheck size={13} aria-hidden /> {roleReady ? ROLE_LABEL[role] : "확인 중"}</span>
         </div>
         <p className="mt-1 text-[0.74rem] leading-snug" style={{ color: "var(--sidebar-heading)" }}>
           {isLive ? "Supabase 실제 데이터" : "시연용 Demo — 실제 실적 아님"} · Powered by 미래AI랩

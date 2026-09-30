@@ -88,6 +88,21 @@ export interface DataSource {
   reset(): Promise<void>;
 }
 
+/** DB uuid 컬럼용 v4 UUID (비보안 컨텍스트에서도 동작) */
+export function uuidv4(): string {
+  const c = globalThis.crypto;
+  if (c && "randomUUID" in c) {
+    try { return c.randomUUID(); } catch { /* insecure context */ }
+  }
+  const b = new Uint8Array(16);
+  if (c?.getRandomValues) c.getRandomValues(b);
+  else for (let i = 0; i < 16; i++) b[i] = Math.floor(Math.random() * 256);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
 export function newId(prefix = "id"): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     try {
