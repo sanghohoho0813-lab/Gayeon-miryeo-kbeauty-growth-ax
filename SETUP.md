@@ -12,10 +12,11 @@ Demo 모드: Seed + 브라우저 저장소. 설정 > Demo 초기화로 원상복
 
 ### [SUPABASE]
 1. Supabase Project 생성(또는 기존 Project 확인)
-2. SQL Editor에서 순서대로 실행: `001_base_schema.sql` → `002_indexes.sql` → `003_rls.sql` → **`005_pilot_v2_pass2.sql`**
+2. SQL Editor에서 순서대로 실행: `001_base_schema.sql` → `002_indexes.sql` → `003_rls.sql` → **`005_pilot_v2_pass2.sql`** → **`006_event_guard.sql`**
    - **005는 필수**: Baseline Lock, Action 상태 가드, 고객 이벤트 익명 기록 정책 수정(003만으로는 고객 이벤트가 기록되지 않음), Realtime 등록
    - `004_seed_demo_optional.sql`은 동작 확인용 (실운영 DB에는 선택)
-   - 이미 001~003을 적용했다면 005만 추가 실행하면 됨 (재실행 안전)
+   - **006 권장(고객 화면 공개 전 필수)**: 익명 이벤트 한도·서버 시각 강제
+   - 이미 적용한 번호 이후만 추가 실행하면 됨 (005·006 재실행 안전)
 3. Authentication > Users에서 OWNER 계정 생성 (email + password)
 
 ### [ENV] (`.env.local` 또는 Vercel Environment Variables)
@@ -48,8 +49,12 @@ values ('<org id>', '<auth user id>', 'STAFF'); -- OWNER / ADMIN / STAFF
 3. 데이터 관리 > 판매 입력·파일: 쇼핑몰/자체 엑셀(.xlsx·.csv) 그대로 업로드 → 열 매핑 확인 → 저장
 4. 매주: 실증·Evidence > 주간 리포트 → 인쇄 / PDF 저장
 
-## E. DB 검증 (개발자용, 로컬 Postgres)
-`npm run verify:db` — 로컬 Postgres에 Supabase 흉내 환경(auth stub, anon/authenticated 역할)을 만들고 001~005 + RLS 55개 시나리오를 실행. **실제 Supabase DB에는 실행하지 않는다.**
+## E. 검증 도구 (개발자용 — 실제 Supabase DB에는 실행하지 않는다)
+- `npm run verify:db` — 로컬 Postgres에 auth stub을 만들고 001~006 + RLS·트리거 65개 시나리오 실행
+- `bash supabase/tests/live-e2e/run.sh` — 로컬 Supabase 호환 스택으로 앱을 **Live 모드로 빌드·실행**하고 브라우저 E2E 45단계 실행
+  - 전제: Postgres 16 실행 중, Supabase Auth 바이너리(`GOTRUE_BIN`, `github.com/supabase/auth`를 Go로 빌드), `npm i --no-save playwright-core`, Chromium(`CHROMIUM_PATH`)
+  - 구성: `stack.sh`(DB·Auth·게이트웨이·SMTP 수신), `gateway.mjs`(PostgREST 호환 최소 구현 — 검증 전용), `e2e.mjs`(Phase A/B)
+  - 끝나면 `.next`가 Live 빌드이므로 `npm run build`로 다시 빌드
 
 ## F. 확인 체크
 - Live에서 Supabase 오류 시 Error 화면이 떠야 정상 (Demo 숫자로 대체하지 않음)

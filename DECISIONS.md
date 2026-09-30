@@ -79,3 +79,24 @@
 ## D-019 익명 고객 이벤트 insert 정책 수정 (버그 수정)
 - 003의 `exists (select from organizations)` 조건은 anon에게 organizations 조회 권한이 없어 **항상 거부**됨 → Live에서 고객 이벤트가 전혀 기록되지 않는 결함.
 - 005에서 security definer 함수(`org_exists`, `product_in_org`)로 교체. 로컬 Postgres 검증으로 발견·확인.
+
+## D-020 Live 검증은 로컬 Supabase 호환 스택으로 (PASS 3)
+- WHY: 실제 Supabase 자격증명이 없어도 Live 경로(인증·RLS·초대 메일·오류 처리)를 브라우저로 끝까지 검증하기 위해.
+- 구성: Supabase Auth(GoTrue)를 소스에서 빌드한 실제 서버 + PostgREST 호환 게이트웨이(이 앱이 쓰는 범위만, 요청마다 JWT 검증 후 role·claims 설정 → 실제 RLS 적용) + SMTP 수신.
+- 한계: 게이트웨이는 PostgREST 자체가 아니며 Realtime은 흉내 내지 않음 → 실제 Supabase 연결 후 1회 재확인 필요.
+
+## D-021 익명 쓰기는 RETURNING 없이 (버그 수정)
+- 익명 고객은 beauty_profiles를 조회할 수 없으므로 insert+select는 RLS로 거부됨. id를 클라이언트에서 만들고 결과를 돌려받지 않는다. Live E2E로 발견.
+
+## D-022 익명 이벤트 보호 (migration 006)
+- 세션당 분당 60건, 조직당 분당 3,000건, Finder 결과 세션당 시간당 20건, payload 4KB, session_id 8~64자. 기록 시각은 서버 시각으로 강제(과거 날짜 주입으로 KPI 조작 방지). 로그인 구성원 입력은 한도 미적용.
+- 한도는 `event_limits()` 한 곳에서 조정.
+
+## D-023 역할 확인 전에는 역할 기반 메뉴·표시를 보류 (roleReady)
+- 기본값 STAFF를 잠깐 보여주면 대표가 '직원'으로 보이고 메뉴가 깜빡임. 확인 중 표시 후 한 번에 그린다.
+
+## D-024 Next.js 16 업그레이드
+- WHY: next 15.x 내장 postcss 취약점(npm audit) 해소. 업그레이드 후 audit 0건, 전체 회귀(Demo·Live·DB) 통과. 빌드는 Turbopack 기본.
+
+## D-025 상품 일괄 등록 = SKU upsert, 빈 칸은 기존 값 유지
+- WHY: 부분 수정 파일(가격만 바꾼 목록 등)을 올려도 다른 항목이 지워지지 않도록. 새 상품은 공개 열이 없으면 비공개.

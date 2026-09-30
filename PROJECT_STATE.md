@@ -1,8 +1,21 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-09-30 (PILOT V2 PASS 2)
+LAST UPDATED: 2026-09-30 (PILOT V2 PASS 3)
 DELIVERY STAGE: PILOT Foundation (Contract Kickoff)
-CURRENT PASS: 2 — Week 0 운영 도구(Baseline Lock·주간 리포트·파일 가져오기·구성원 초대) + DB 실검증 완료. Live 연결은 USER ACTION 대기
+CURRENT PASS: 3 — Live 경로를 로컬 Supabase 호환 스택에서 브라우저 E2E로 검증, 결함 3건 수정, 익명 이벤트 보호, 상품 일괄 등록, Next 16. 실제 Supabase 연결은 USER ACTION 대기
+
+## PASS 3 변경 요약
+| 항목 | 상태 |
+|---|---|
+| 로컬 Supabase 호환 스택: Supabase Auth(소스 빌드) + PostgREST 호환 게이트웨이 + SMTP 수신 | 구축 (`supabase/tests/live-e2e/`) |
+| Live 모드 브라우저 E2E 45단계 (로그인·조직 생성·실데이터·익명 고객·Action·Proof·Baseline·초대 메일·역할별 화면·장애) | **VERIFIED (로컬 스택)** |
+| 결함 수정: 익명 고객 Finder 결과 저장이 RLS로 거부 (insert+select) | FIXED + VERIFIED |
+| 결함 수정: 역할 확인 전 대표가 '직원'으로 보이고 메뉴가 줄어듦 | FIXED + VERIFIED |
+| 결함 수정: Live에서 구매 링크 미등록 안내에 'Demo' 표기 | FIXED |
+| DB 장애 시: 자동 재시도(~15초) 중 안내 → Error 화면, Demo 대체 없음 | VERIFIED |
+| migration 006: 익명 이벤트 한도·서버 시각 강제·크기 제한 | VERIFIED (DB 10개 시나리오) |
+| 상품 일괄 등록 CSV/XLSX (SKU upsert, 빈 칸 유지) | Demo·Live VERIFIED |
+| Next.js 16.3.7 업그레이드 (npm audit 0건) | 전체 회귀 통과 |
 
 ## PASS 2 변경 요약
 | 항목 | 상태 |
@@ -63,7 +76,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 이벤트 8종: view_product, wishlist_add/remove, finder_start, finder_complete, recommendation_view, passport_save, outbound_click
 - 익명 session_id, 개인정보 미수집 (D-006)
 - Demo: localStorage + storage/custom 이벤트로 PC·Mobile 즉시 동기화 → **VERIFIED**
-- Live: anon insert RLS → DB 정책 **VERIFIED (로컬 Postgres)**, 실제 Supabase 연결은 NOT VERIFIED
+- Live: 익명 이벤트 기록 → 로컬 Supabase 호환 스택 브라우저 E2E **VERIFIED**, 한도(006) VERIFIED. 실제 Supabase·Realtime은 NOT VERIFIED
 
 ## 4. EVIDENCE / AX COACH
 - Closed Loop: Customer Event → Interest Rule → Growth Action → Human 상태 전환 → Result(KPI after) → Proof Event → OWNER 확정 → 성과·증빙 → **Demo VERIFIED**
@@ -73,7 +86,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 
 ## 5. SYSTEM CORE
 - DataSource 인터페이스(Demo / Live) — Demo VERIFIED, Live 구현 완료·NOT VERIFIED
-- Supabase migration 001~005 — 로컬 Postgres 16에서 적용·재실행·RLS 55개 시나리오 VERIFIED. 실제 Supabase 프로젝트 적용은 NOT VERIFIED
+- Supabase migration 001~006 — 로컬 Postgres 16에서 적용·재실행·RLS·트리거 65개 시나리오 VERIFIED, Supabase Auth 실서버와 함께 E2E VERIFIED. 실제 Supabase 프로젝트 적용은 NOT VERIFIED
 - RLS: STAFF의 B2B/수출/고객 차단, 승인·보류 OWNER/ADMIN(트리거), proof 확정 OWNER, baseline·tech_assets·조직설정 OWNER, anon은 이벤트 기록·공개 상품만
 - SERVICE ROLE key: `/api/org/members` 서버 Route에서만 사용 (선택). 클라이언트 번들 검사: 키 값·서버 코드 없음
 
@@ -83,13 +96,13 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 높이 < 약 880px이면 frame이 비율 축소 (내부 viewport 390 유지) — KNOWN
 
 ## 7. QA
-- typecheck / build PASS, Route QA 23 route × 8 viewport overflow·console error 0, Acceptance 31/31 + PASS 2 33/33, DB 55/55 → `QA_REPORT.md`
+- Next 16 기준 typecheck / build PASS, Route QA 23×8 이상 0, Demo Acceptance 31/31 · PASS2 33/33 · PASS3 11/11, Live E2E 45/45, DB 65/65 → `QA_REPORT.md`
 
 ## 8. USER ACTION QUEUE
 | # | 구분 | 작업 | 상태 |
 |---|---|---|---|
 | 1 | SUPABASE | Project 생성 | WAITING |
-| 2 | SUPABASE | migration 001→002→003→**005** 실행 (004 선택) | WAITING |
+| 2 | SUPABASE | migration 001→002→003→**005→006** 실행 (004 선택) | WAITING |
 | 3 | SUPABASE | OWNER 계정 생성 → `/login` → 조직 만들기 | WAITING |
 | 4 | ENV | `NEXT_PUBLIC_DATA_MODE=live`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | WAITING |
 | 5 | ENV | `NEXT_PUBLIC_MIRYEO_ORG_ID` (조직 생성 후) | WAITING |
@@ -106,13 +119,14 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - Demo seed 특성상 Rule Action이 다수(약 11건) 열림, B2B·수출 추세 음수 표시 가능
 - 토스트가 연속 동작 시 여러 개 쌓임 (기능 영향 없음)
 - 구성원 초대: Live 실검증 전 (Supabase 초대 메일·Redirect 설정 필요)
-- `npm audit`: next 15.x 내장 postcss 취약점 2건 — 수정은 Next 16 메이저 업그레이드 (R-10)
+- Realtime(고객 이벤트 즉시 반영)은 로컬 스택에 없어 NOT VERIFIED — Live에서는 새로고침/재방문 시 반영은 확인됨
+- 로컬 게이트웨이는 PostgREST 호환 최소 구현 — 실제 Supabase 연결 후 1회 재확인 필요
 - Demo seed 고객 이벤트는 세션이 흩어져 있어 주간 REVENUE 전환율이 0%로 보일 수 있음 (Demo 한정)
 - 기술자산 상태 기본값 "미확인"
 
 ## 10. NEXT PRIORITY
-1. (USER ACTION 1~6 완료 시) **Live 연결 실검증**: 로그인 → 조직 → 상품 → 고객 이벤트(anon) → Action → Proof → Baseline → 초대, 역할별 계정 3개로 확인
-2. 실제 판매 엑셀 수령 → 열 별칭 보강, 상품 일괄 등록(R-11)
-3. 고객 화면 공개 전 anon 이벤트 속도 제한(R-12)
-4. Next 16 업그레이드 + 전체 회귀 QA (R-10)
+1. (USER ACTION 1~6 완료 시) **실제 Supabase 연결 확인**: `e2e.mjs`와 같은 순서로 1회 (특히 Realtime, 초대 메일 Redirect URL)
+2. 실제 판매·상품 엑셀 수령 → 열 별칭 보강 → 첫 실데이터 입력 지원 (Week 0)
+3. 고객 화면 공개 준비: 실제 제품 정보·구매 링크 확인, 봇 방지(R-14) 필요성 판단
+4. Week 1~4 운영 지원: 주간 리포트 기반 점검 루틴
 5. (승인 시) LLM 경영 요약 — D-012
