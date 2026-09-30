@@ -1,72 +1,51 @@
-# MIRYEO K-Beauty Growth AX
+# MIRYEO K-Beauty Growth AX — PILOT
 
-가연인터내셔널의 K-Beauty 브랜드 **MIRYEO(미려)** 를 위한 AX MVP.
-판매·재고·생산·채널·고객 데이터를 하나로 연결하고, AI가 다음 성장 행동을 제안하는 운영 시스템입니다.
+가연인터내셔널 / MIRYEO의 **AX + Customer Platform** 실증 운영 MVP.
+
+```
+Customer Event → AX Decision(RULE) → Human Action → Result → Proof Event → Evidence
+```
 
 | 영역 | 경로 | 대상 |
-| --- | --- | --- |
-| **MIRYEO Business AX** | `/ax` | 대표·직원용 내부 운영 시스템 |
-| **MIRYEO AI Beauty** | `/beauty` | 소비자용 제품 탐색·AI 추천 플랫폼 |
+|---|---|---|
+| MIRYEO Business AX | `/ax` | 대표·관리자·직원 (OWNER / ADMIN / STAFF) |
+| MIRYEO AI Beauty | `/beauty` | 고객 (익명 세션, 개인정보 미수집) |
+| 로그인 (Live) | `/login` | 구성원 |
 
 ## 실행
-
 ```bash
 npm install
-npm run dev     # http://localhost:3000
-npm run build   # 프로덕션 빌드
+npm run dev          # Demo 모드 (기본)
+npm run typecheck
+npm run build
 ```
+Live 전환은 **SETUP.md** 참고.
 
-## 기술 스택
+## Data Mode (정확한 동작)
+- `NEXT_PUBLIC_DATA_MODE=demo` (기본): Demo Seed + 브라우저 저장소. 화면에 DEMO 표시, Demo 초기화 가능.
+- `NEXT_PUBLIC_DATA_MODE=live`: **Supabase만** 사용. 비어 있으면 Empty State, 오류면 Error State. **Demo로 자동 fallback 하지 않음.** Supabase 환경변수가 없으면 설정 오류 화면.
 
-- Next.js 15 (App Router) · TypeScript · Tailwind CSS 4
-- Recharts (차트) · Lucide Icons
-- Supabase (선택) — 환경변수 미설정 시 Demo Seed Data로 자동 fallback
-
-## 데이터 구조
-
+## 구조
 ```
-UI → repository / service layer → Supabase 또는 Demo Seed Data
+UI (src/app, src/components)
+ └ DataProvider / BeautyDataProvider
+    └ DataSource 인터페이스 (src/lib/data/source.ts)
+       ├ demo-store.ts   (Seed + localStorage, PC/Mobile iframe 동기화)
+       └ live-source.ts  (Supabase, RLS)
+ └ buildModel (src/lib/model.ts) → analytics.ts (RULE / STATISTICAL)
 ```
+- Schema / RLS: `supabase/migrations/001~004`
+- Customer Event Bridge: `src/lib/customer-events.ts`
+- Device View (PC / Mobile / PC+Mobile): `src/components/device/DeviceView.tsx`
+- Canonical 7 Theme: `src/app/globals.css`, `src/components/providers/SettingsProvider.tsx`
 
-- Demo 데이터: `src/lib/demo/` (products, sales, inventory, channels, customers)
-- Repository: `src/lib/repository/` — Supabase 테이블이 있으면 사용, 없으면 Demo fallback
-- 분석 엔진: `src/lib/analytics.ts` — 성장률·재고일수·마진율·위험점수·AI Action을 **규칙 기반 코드로 계산**
-- 추천 엔진: `src/lib/beauty-recommend.ts` — 고민·사용감·예산 점수화로 루틴 구성
+## Project Memory
+`PROJECT_SPEC.md` · `PROJECT_STATE.md` · `DECISIONS.md` · `QA_REPORT.md` · `RECOMMENDATIONS.md` · `EVIDENCE_PLAN.md` · `AX_COACH_PLAN.md` · `PROOF_EVENT_SCHEMA.md` · `SETUP.md`
 
-### Supabase 연동
-
-`.env.local`에 아래 값을 설정하면 Demo → Live로 전환됩니다.
-
-```
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-```
-
-예상 테이블: `products`, `sales_records`, `inventory`, `production_plans`,
-`channels`, `b2b_accounts`, `export_records`, `customer_profiles`, `customer_events`
-(필드는 `src/lib/types.ts` 기준)
-
-## 주요 화면
-
-**Business AX** (`/ax`)
-- 대시보드 — KPI 4종, 오늘의 Action, 채널별 매출, SKU 성장 랭킹, 재고 위험 Matrix, AI Insight
-- 상품·재고·생산 — 상품 목록/상세 Drawer, 재고 현황(추천 발주량), OEM 생산, CSV 데이터 가져오기
-- 채널·B2B·수출 — 채널 비교/수익성, B2B 거래처, 권역별 수출
-- AI Growth Center — 우선순위 Action(근거·영향·권장 행동), 재구매 기회, 고객 관심도
-- 실증·리포트 / 기획의도 / 설정 (테마 9종 · 글자 크기 3단계 · 튜토리얼)
-
-**AI Beauty** (`/beauty`)
-- 홈 — Hero, 피부 고민 바로가기, 추천 제품, 루틴 세트, 브랜드 스토리
-- AI Beauty Finder — 6단계 분석 → 맞춤 루틴 추천 → Beauty Passport 저장
-- 제품 목록/상세 — 고민·유형 필터, 구매 채널 안내(Demo)
-- 뷰티 패스포트 — 내 피부 관심사, 추천 루틴, 찜, 최근 본 제품 (localStorage 기반)
+다음 세션에서 "다음 단계 진행해줘"라고 하면 SPEC → STATE → DECISIONS → EVIDENCE_PLAN 순으로 읽고 STATE의 NEXT PRIORITY부터 진행합니다.
 
 ## Demo Data 원칙
-
-- 실제 제품 자료 수령 전까지 모든 제품·채널·거래처는 **(Demo)** 표기
-- 근거 없는 효능·성분·의학적 표현은 사용하지 않음
-- 제품 이미지는 Premium Cosmetic SVG Placeholder — 실제 이미지 수령 시 `ProductVisual` 컴포넌트만 교체
+제품명·채널·거래처·권역은 모두 `Demo` 표기 익명 Placeholder. 효능·성분·평점·리뷰 수·인증·특허 번호를 만들지 않습니다.
 
 ---
-
-가연인터내셔널 · MIRYEO Business AX · **Powered by 미래AI랩**
+가연인터내셔널 · MIRYEO Business AX · Powered by 미래AI랩

@@ -2,12 +2,13 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { demoRepository } from "@/lib/repository";
+import { useBeautyData } from "@/components/beauty/BeautyDataProvider";
+import { Search } from "lucide-react";
 import { BeautyProductCard } from "@/components/beauty/BeautyProductCard";
 import { CONCERNS } from "@/components/beauty/concerns";
 import type { SkinConcern } from "@/lib/types";
 
-const SORTS = ["추천순", "인기순", "신제품순", "낮은 가격순"] as const;
+const SORTS = ["추천순", "신제품순", "낮은 가격순", "높은 가격순"] as const;
 
 function ProductsInner() {
   const searchParams = useSearchParams();
@@ -17,18 +18,21 @@ function ProductsInner() {
   const [category, setCategory] = useState("전체");
   const [sort, setSort] = useState<(typeof SORTS)[number]>("추천순");
 
-  const products = demoRepository.products;
+  const { products } = useBeautyData();
+  const [q, setQ] = useState("");
   const categories = ["전체", ...Array.from(new Set(products.map((p) => p.category)))];
 
   const list = useMemo(() => {
+    const query = q.trim().toLowerCase();
     let result = products.filter(
       (p) =>
         (concern === "전체" || p.concerns.includes(concern)) &&
-        (category === "전체" || p.category === category)
+        (category === "전체" || p.category === category) &&
+        (!query || `${p.name} ${p.category} ${p.line ?? ""} ${p.concerns.join(" ")}`.toLowerCase().includes(query))
     );
     switch (sort) {
-      case "인기순":
-        result = [...result].sort((a, b) => b.reviewCount - a.reviewCount);
+      case "높은 가격순":
+        result = [...result].sort((a, b) => b.price - a.price);
         break;
       case "신제품순":
         result = [...result].sort((a, b) => Number(b.isNew ?? false) - Number(a.isNew ?? false));
@@ -38,20 +42,25 @@ function ProductsInner() {
         break;
       default:
         result = [...result].sort(
-          (a, b) => Number(b.isBest ?? false) - Number(a.isBest ?? false) || b.rating - a.rating
+          (a, b) => Number(b.isBest ?? false) - Number(a.isBest ?? false) || Number(b.isNew ?? false) - Number(a.isNew ?? false)
         );
     }
     return result;
-  }, [products, concern, category, sort]);
+  }, [products, concern, category, sort, q]);
 
   return (
     <div className="pt-8">
-      <h1 className="font-display text-[1.7rem] font-bold md:text-[2rem]" style={{ color: "var(--b-navy)" }}>
+      <h1 className="font-display text-[1.7rem] font-bold @3xl:text-[2rem]" style={{ color: "var(--b-navy)" }}>
         MIRYEO 제품
       </h1>
       <p className="mt-1.5 text-[0.95rem]" style={{ color: "var(--b-text-soft)" }}>
         피부 고민과 제품 유형으로 나에게 맞는 제품을 찾아보세요.
       </p>
+
+      <label className="relative mt-5 flex items-center">
+        <Search size={18} className="absolute left-4" style={{ color: "var(--b-text-soft)" }} aria-hidden />
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="제품명, 고민(수분·진정…), 유형으로 검색" aria-label="제품 검색" className="h-[52px] w-full rounded-2xl border bg-white pl-11 pr-4 text-[0.97rem] outline-none focus:border-[var(--b-navy)]" style={{ borderColor: "var(--b-border)" }} />
+      </label>
 
       {/* 피부 고민 필터 */}
       <div className="mt-6 flex flex-wrap gap-2">
@@ -83,7 +92,7 @@ function ProductsInner() {
         </label>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-4 @3xl:grid-cols-4">
         {list.map((p) => (
           <BeautyProductCard key={p.id} product={p} aiBadge={p.isBest ? "AI 추천" : undefined} />
         ))}

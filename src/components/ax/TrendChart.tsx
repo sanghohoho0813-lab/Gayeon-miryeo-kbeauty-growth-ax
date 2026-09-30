@@ -70,3 +70,24 @@ export function ChannelBars({
     </div>
   );
 }
+
+/** 고객 이벤트 일별 추이 (14일) */
+export function DailyEvents({ data, height = 240 }: { data: { date: string; finder: number; passport: number; wishlist: number; outbound: number }[]; height?: number }) {
+  const rows = data.map((d) => ({ ...d, label: d.date.slice(5).replace("-", ".") }));
+  return (
+    <div style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+          <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="label" tick={{ fontSize: "0.72rem", fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+          <YAxis allowDecimals={false} tick={{ fontSize: "0.72rem", fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} width={40} />
+          <Tooltip contentStyle={tooltipStyle} />
+          <Bar dataKey="finder" name="Finder 완료" stackId="a" fill="var(--chart-1)" />
+          <Bar dataKey="passport" name="Passport 저장" stackId="a" fill="var(--chart-3)" />
+          <Bar dataKey="wishlist" name="찜" stackId="a" fill="var(--chart-5)" />
+          <Bar dataKey="outbound" name="구매채널 이동" stackId="a" fill="var(--chart-4)" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}

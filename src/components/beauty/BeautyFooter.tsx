@@ -7,31 +7,26 @@ export function BeautyFooter() {
         <div className="grid gap-8 md:grid-cols-3">
           <div>
             <div className="font-display text-[1.4rem] font-bold">MIRYEO</div>
-            <p className="mt-2 text-[0.9rem] leading-relaxed text-white/65">
-              AI가 이해하는 나의 피부.
-              <br />
-              MIRYEO가 제안하는 나만의 아름다움.
-            </p>
+            <p className="mt-2 text-[0.9rem] leading-relaxed text-white/70">피부 고민에서 시작하는 루틴 추천.<br />MIRYEO AI Beauty</p>
           </div>
           <div className="text-[0.92rem]">
-            <div className="mb-2.5 font-semibold text-white/85">바로가기</div>
-            <ul className="space-y-1.5 text-white/60">
+            <div className="mb-2.5 font-semibold text-white/90">바로가기</div>
+            <ul className="space-y-1.5 text-white/70">
               <li><Link href="/beauty/finder" className="hover:text-white">AI 뷰티 파인더</Link></li>
               <li><Link href="/beauty/products" className="hover:text-white">제품 둘러보기</Link></li>
               <li><Link href="/beauty/passport" className="hover:text-white">뷰티 패스포트</Link></li>
             </ul>
           </div>
           <div className="text-[0.92rem]">
-            <div className="mb-2.5 font-semibold text-white/85">MIRYEO 약속</div>
-            <ul className="space-y-1.5 text-white/60">
-              <li>AI 기반 피부 데이터 분석</li>
-              <li>클린 &amp; 안전한 성분 기준</li>
-              <li>지속 가능한 아름다움</li>
+            <div className="mb-2.5 font-semibold text-white/90">안내</div>
+            <ul className="space-y-1.5 text-white/70">
+              <li>추천은 선택한 고민·사용감 기준이며 의학적 진단이 아닙니다</li>
+              <li>개인정보 없이 익명으로 이용됩니다</li>
             </ul>
           </div>
         </div>
-        <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-white/15 pt-6 text-[0.8rem] text-white/45 md:flex-row">
-          <span>© 2025 가연인터내셔널 · MIRYEO. Demo MVP — 표시 정보는 데모 데이터입니다.</span>
+        <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-white/15 pt-6 text-[0.8rem] text-white/55 md:flex-row">
+          <span>© {new Date().getFullYear()} MIRYEO · 가연인터내셔널</span>
           <span>AX Platform by 미래AI랩</span>
         </div>
       </div>

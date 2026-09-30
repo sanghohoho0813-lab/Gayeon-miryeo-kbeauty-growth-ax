@@ -1,155 +1,29 @@
 import type { B2BAccount, Channel, ExportRecord } from "../types";
+import { daysAgoISO } from "../date";
 
-/** DEMO DATA — 판매 채널. 실제 채널명은 고객 자료 수령 후 교체. */
+/** DEMO DATA — 채널·거래처·권역은 익명 Demo. 실제 명칭은 고객 자료 수령 후 교체. */
 export const demoChannels: Channel[] = [
-  {
-    id: "ch-direct",
-    name: "미려 직영몰",
-    type: "직영몰",
-    monthRevenue: 910_000_000,
-    prevMonthRevenue: 760_000_000,
-    orders: 12800,
-    avgDiscountRate: 0.05,
-    topSkus: ["p-amp-50", "p-ess-01", "p-amp-30"],
-  },
-  {
-    id: "ch-online",
-    name: "온라인 마켓 (Demo)",
-    type: "온라인몰",
-    monthRevenue: 480_000_000,
-    prevMonthRevenue: 452_000_000,
-    orders: 9400,
-    avgDiscountRate: 0.18,
-    topSkus: ["p-ess-01", "p-msk-01", "p-crm-01"],
-  },
-  {
-    id: "ch-hnb",
-    name: "H&B 스토어 (Demo)",
-    type: "오프라인",
-    monthRevenue: 640_000_000,
-    prevMonthRevenue: 598_000_000,
-    orders: 11200,
-    avgDiscountRate: 0.12,
-    topSkus: ["p-crm-01", "p-cln-01", "p-ess-01"],
-  },
-  {
-    id: "ch-live",
-    name: "라이브 커머스 (Demo)",
-    type: "라이브/인플루언서",
-    monthRevenue: 310_000_000,
-    prevMonthRevenue: 205_000_000,
-    orders: 5600,
-    avgDiscountRate: 0.22,
-    topSkus: ["p-amp-50", "p-msk-01"],
-  },
-  {
-    id: "ch-b2b",
-    name: "B2B 납품",
-    type: "B2B",
-    monthRevenue: 620_000_000,
-    prevMonthRevenue: 540_000_000,
-    orders: 42,
-    avgDiscountRate: 0.35,
-    topSkus: ["p-crm-01", "p-crm-02"],
-  },
-  {
-    id: "ch-export",
-    name: "수출",
-    type: "수출",
-    monthRevenue: 350_000_000,
-    prevMonthRevenue: 248_000_000,
-    orders: 18,
-    avgDiscountRate: 0.4,
-    topSkus: ["p-msk-01", "p-ess-01"],
-  },
+  { id: "ch-direct", name: "직영몰 (Demo)", type: "직영몰", avgDiscountRate: 0.05, active: true },
+  { id: "ch-online", name: "온라인 마켓 (Demo)", type: "온라인몰", avgDiscountRate: 0.18, active: true },
+  { id: "ch-hnb", name: "오프라인 스토어 (Demo)", type: "오프라인", avgDiscountRate: 0.12, active: true },
+  { id: "ch-live", name: "라이브 커머스 (Demo)", type: "라이브/인플루언서", avgDiscountRate: 0.22, active: true },
+  { id: "ch-b2b", name: "B2B 납품 (Demo)", type: "B2B", avgDiscountRate: 0.35, active: true },
+  { id: "ch-export", name: "수출 (Demo)", type: "수출", avgDiscountRate: 0.4, active: true },
 ];
 
-/** DEMO DATA — B2B 거래처 */
-export const demoB2B: B2BAccount[] = [
-  {
-    id: "b2b-01",
-    name: "ABC Corp. (Demo)",
-    status: "거래중",
-    lastOrderAt: "2025-05-14",
-    totalRevenue: 1_840_000_000,
-    mainProducts: ["p-crm-01", "p-cln-01"],
-    nextDelivery: "2025-06-02",
-    note: "분기 정기 납품 · 신규 견적 회신 대기",
-  },
-  {
-    id: "b2b-02",
-    name: "뷰티 유통사 K (Demo)",
-    status: "거래중",
-    lastOrderAt: "2025-05-20",
-    totalRevenue: 960_000_000,
-    mainProducts: ["p-crm-02", "p-amp-50"],
-    nextDelivery: "2025-06-10",
-  },
-  {
-    id: "b2b-03",
-    name: "호텔 어메니티 J (Demo)",
-    status: "협의중",
-    lastOrderAt: "2025-04-08",
-    totalRevenue: 320_000_000,
-    mainProducts: ["p-cln-01"],
-    note: "여름 시즌 물량 협의 중",
-  },
-  {
-    id: "b2b-04",
-    name: "면세 리테일 M (Demo)",
-    status: "거래중",
-    lastOrderAt: "2025-05-25",
-    totalRevenue: 1_120_000_000,
-    mainProducts: ["p-ess-01", "p-msk-01"],
-    nextDelivery: "2025-06-15",
-  },
-  {
-    id: "b2b-05",
-    name: "스파 체인 S (Demo)",
-    status: "휴면",
-    lastOrderAt: "2024-12-18",
-    totalRevenue: 210_000_000,
-    mainProducts: ["p-msk-01"],
-    note: "재거래 제안 검토 대상",
-  },
-];
+export function demoB2B(): B2BAccount[] {
+  return [
+    { id: "b2b-01", name: "거래처 A (Demo)", status: "거래중", lastOrderAt: daysAgoISO(16), totalRevenue: 184_000_000, mainProductIds: ["p-crm-01", "p-cln-01"], nextDelivery: daysAgoISO(-3), note: "정기 납품 (Demo)" },
+    { id: "b2b-02", name: "거래처 B (Demo)", status: "거래중", lastOrderAt: daysAgoISO(10), totalRevenue: 96_000_000, mainProductIds: ["p-crm-02", "p-amp-50"], nextDelivery: daysAgoISO(-11) },
+    { id: "b2b-03", name: "거래처 C (Demo)", status: "협의중", lastOrderAt: daysAgoISO(52), totalRevenue: 32_000_000, mainProductIds: ["p-cln-01"], note: "물량 협의 중 (Demo)" },
+    { id: "b2b-04", name: "거래처 D (Demo)", status: "휴면", lastOrderAt: daysAgoISO(160), totalRevenue: 21_000_000, mainProductIds: ["p-msk-01"], note: "재거래 제안 검토 대상 (Demo)" },
+  ];
+}
 
-/** DEMO DATA — 수출 현황 */
-export const demoExports: ExportRecord[] = [
-  {
-    id: "ex-01",
-    region: "일본",
-    channel: "현지 온라인몰 (Demo)",
-    totalRevenue: 1_450_000_000,
-    mainProducts: ["p-msk-01", "p-ess-01"],
-    lastOrderAt: "2025-05-22",
-    growthRate: 0.31,
-  },
-  {
-    id: "ex-02",
-    region: "동남아시아",
-    channel: "글로벌 이커머스 (Demo)",
-    totalRevenue: 880_000_000,
-    mainProducts: ["p-msk-01", "p-crm-01"],
-    lastOrderAt: "2025-05-18",
-    growthRate: 0.42,
-  },
-  {
-    id: "ex-03",
-    region: "북미",
-    channel: "글로벌 이커머스 (Demo)",
-    totalRevenue: 520_000_000,
-    mainProducts: ["p-amp-50", "p-ess-01"],
-    lastOrderAt: "2025-05-10",
-    growthRate: 0.18,
-  },
-  {
-    id: "ex-04",
-    region: "중화권",
-    channel: "리테일 파트너 (Demo)",
-    totalRevenue: 640_000_000,
-    mainProducts: ["p-ess-01", "p-ton-01"],
-    lastOrderAt: "2025-04-28",
-    growthRate: -0.06,
-  },
-];
+export function demoExports(): ExportRecord[] {
+  return [
+    { id: "ex-01", region: "권역 A (Demo)", channel: "현지 온라인몰 (Demo)", totalRevenue: 145_000_000, mainProductIds: ["p-msk-01", "p-ess-01"], lastOrderAt: daysAgoISO(8), growthRate: 0.31 },
+    { id: "ex-02", region: "권역 B (Demo)", channel: "글로벌 이커머스 (Demo)", totalRevenue: 88_000_000, mainProductIds: ["p-msk-01", "p-crm-01"], lastOrderAt: daysAgoISO(12), growthRate: 0.42 },
+    { id: "ex-03", region: "권역 C (Demo)", channel: "리테일 파트너 (Demo)", totalRevenue: 64_000_000, mainProductIds: ["p-ess-01", "p-ton-01"], lastOrderAt: daysAgoISO(33), growthRate: -0.06 },
+  ];
+}

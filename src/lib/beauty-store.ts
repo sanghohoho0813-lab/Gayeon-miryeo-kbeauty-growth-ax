@@ -6,6 +6,8 @@
 
 import type { BeautyProfile, BeautyRecommendation, SkinConcern } from "./types";
 
+/* Beauty Passport의 개인 UX 저장(브라우저). 행동 이벤트는 customer-events.ts가 Business AX로 전달한다. */
+
 const WISHLIST_KEY = "miryeo-beauty-wishlist";
 const RESULT_KEY = "miryeo-beauty-last-result";
 const VIEWED_KEY = "miryeo-beauty-recently-viewed";

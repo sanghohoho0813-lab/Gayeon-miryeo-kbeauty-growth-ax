@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
-import { demoRepository } from "@/lib/repository";
 import { recommend } from "@/lib/beauty-recommend";
 import { saveResult } from "@/lib/beauty-store";
+import { getPublicSource, getSessionId, track } from "@/lib/customer-events";
+import { useBeautyData } from "@/components/beauty/BeautyDataProvider";
 import { CONCERNS } from "@/components/beauty/concerns";
 import { ProductVisual } from "@/components/shared/ProductVisual";
 import type { BeautyProfile, SkinConcern } from "@/lib/types";
@@ -18,7 +19,10 @@ const ROUTINES = ["가볍게 3단계면 충분해요", "꼼꼼하게 챙기는 �
 const BUDGETS = ["합리적인 가격 위주", "프리미엄 케어 위주", "상관없음"];
 
 export default function FinderPage() {
+  const { products } = useBeautyData();
   const [step, setStep] = useState(0);
+  const started = useRef(false);
+  const completedKey = useRef("");
   const [concerns, setConcerns] = useState<SkinConcern[]>([]);
   const [careGoal, setCareGoal] = useState("");
   const [texture, setTexture] = useState("");
@@ -33,8 +37,19 @@ export default function FinderPage() {
 
   const result = useMemo(() => {
     if (step !== 5) return null;
-    return recommend(profile, demoRepository.products);
-  }, [step, profile]);
+    return recommend(profile, products);
+  }, [step, profile, products]);
+
+  // Customer Event Bridge — 결과 도달 = finder_complete + 추천 노출
+  useEffect(() => {
+    if (!result) return;
+    const ids = result.routine.map((r) => r.product.id);
+    const key = `${concerns.join(",")}|${ids.join(",")}`;
+    if (completedKey.current === key) return;
+    completedKey.current = key;
+    track("finder_complete", null, { concerns, productIds: ids, texture, budget });
+    ids.forEach((id) => track("recommendation_view", id));
+  }, [result, concerns, texture, budget]);
 
   const canNext =
     (step === 0 && concerns.length > 0) ||
@@ -44,6 +59,10 @@ export default function FinderPage() {
     (step === 4 && budget);
 
   function toggleConcern(c: SkinConcern) {
+    if (!started.current) {
+      started.current = true;
+      track("finder_start");
+    }
     setConcerns((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
   }
 
@@ -80,20 +99,20 @@ export default function FinderPage() {
       </ol>
 
       {step < 5 && (
-        <div className="rounded-[28px] border bg-white p-7 md:p-9" style={{ borderColor: "var(--b-border)" }}>
+        <div className="rounded-[28px] border bg-white p-7 @xl:p-9" style={{ borderColor: "var(--b-border)" }}>
           <p className="text-[0.85rem] font-bold" style={{ color: "var(--b-gold)" }}>
             STEP {step + 1}/5
           </p>
 
           {step === 0 && (
             <>
-              <h1 className="font-display mt-2 text-[1.5rem] font-bold md:text-[1.7rem]" style={{ color: "var(--b-navy)" }}>
+              <h1 className="font-display mt-2 text-[1.5rem] font-bold @xl:text-[1.7rem]" style={{ color: "var(--b-navy)" }}>
                 가장 고민되는 피부는 무엇인가요?
               </h1>
               <p className="mt-1 text-[0.9rem]" style={{ color: "var(--b-text-soft)" }}>
                 복수 선택 가능
               </p>
-              <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">
+              <div className="mt-6 grid grid-cols-2 gap-3 @xl:grid-cols-3">
                 {CONCERNS.map((c) => {
                   const on = concerns.includes(c.id);
                   return (
@@ -188,9 +207,9 @@ export default function FinderPage() {
       {/* 결과 */}
       {step === 5 && result && (
         <div className="reveal">
-          <div className="rounded-[28px] p-7 text-center md:p-9" style={{ background: "var(--b-navy)" }}>
+          <div className="rounded-[28px] p-7 text-center @xl:p-9" style={{ background: "var(--b-navy)" }}>
             <p className="text-[0.82rem] font-bold tracking-[0.2em] text-white/60">AI BEAUTY RESULT</p>
-            <h1 className="font-display mt-2 text-[1.6rem] font-bold text-white md:text-[1.85rem]">
+            <h1 className="font-display mt-2 text-[1.6rem] font-bold text-white @xl:text-[1.85rem]">
               오늘의 추천 루틴
             </h1>
             <p className="mx-auto mt-2.5 max-w-lg text-[0.92rem] leading-relaxed text-white/70">
@@ -201,7 +220,7 @@ export default function FinderPage() {
                   · 선호 <strong className="text-white">{texture}</strong>
                 </>
               )}{" "}
-              기준으로 구성했습니다. (Demo 추천)
+              기준으로 구성했습니다. 
             </p>
           </div>
 
@@ -209,11 +228,11 @@ export default function FinderPage() {
             {result.routine.map((r) => (
               <div
                 key={r.product.id}
-                className="flex flex-col gap-5 rounded-[24px] border bg-white p-6 sm:flex-row sm:items-center"
+                className="flex flex-col gap-5 rounded-[24px] border bg-white p-6 @xl:flex-row @xl:items-center"
                 style={{ borderColor: "var(--b-border)" }}
               >
                 <div
-                  className="flex h-[150px] w-full shrink-0 items-center justify-center rounded-2xl sm:w-[130px]"
+                  className="flex h-[150px] w-full shrink-0 items-center justify-center rounded-2xl @xl:w-[130px]"
                   style={{ background: "var(--b-surface-warm)" }}
                 >
                   <div className="h-[115px]">
@@ -253,11 +272,11 @@ export default function FinderPage() {
           <div className="mt-7 flex flex-col items-center gap-3">
             <button
               onClick={() => {
-                saveResult(
-                  profile,
-                  result.routine.map((r) => r.product.id),
-                  Object.fromEntries(result.routine.map((r) => [r.product.id, r.reason]))
-                );
+                const ids = result.routine.map((r) => r.product.id);
+                const reasons = Object.fromEntries(result.routine.map((r) => [r.product.id, r.reason]));
+                saveResult(profile, ids, reasons);
+                track("passport_save", null, { productIds: ids, concerns });
+                getPublicSource()?.saveBeautyResult(getSessionId(), profile, ids, reasons).catch((e) => console.warn("[MIRYEO] result save failed", e));
                 setSaved(true);
               }}
               className="inline-flex min-h-[52px] items-center gap-2 rounded-2xl px-8 text-[1rem] font-bold text-white transition-transform hover:scale-[1.02]"
@@ -281,6 +300,7 @@ export default function FinderPage() {
               onClick={() => {
                 setStep(0);
                 setSaved(false);
+                completedKey.current = "";
               }}
               className="text-[0.88rem] font-semibold"
               style={{ color: "var(--b-text-soft)" }}
@@ -307,7 +327,7 @@ function StepChoices({
 }) {
   return (
     <>
-      <h1 className="font-display mt-2 text-[1.5rem] font-bold md:text-[1.7rem]" style={{ color: "var(--b-navy)" }}>
+      <h1 className="font-display mt-2 text-[1.5rem] font-bold @xl:text-[1.7rem]" style={{ color: "var(--b-navy)" }}>
         {title}
       </h1>
       <div className="mt-6 space-y-3">

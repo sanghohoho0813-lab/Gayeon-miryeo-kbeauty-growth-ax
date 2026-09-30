@@ -55,7 +55,7 @@ export default function Home() {
         </Link>
       </div>
 
-      <p className="mt-12 text-[0.82rem] text-[#9a927c]">AX Platform by 미래AI랩 · Demo Data 기반 MVP</p>
+      <p className="mt-12 text-[0.82rem] text-[#9a927c]">AX Platform by 미래AI랩 · PILOT</p>
     </main>
   );
 }

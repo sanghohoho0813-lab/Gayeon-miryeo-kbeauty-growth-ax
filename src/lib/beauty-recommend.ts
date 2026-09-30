@@ -45,7 +45,7 @@ function reasonFor(p: Product, profile: BeautyProfile): string {
   if (profile.texture === "촉촉하고 리치한 사용감" && p.texture !== "가벼움") {
     parts.push("촉촉하고 리치한 사용감을 선호하시는 분께 맞는 텍스처입니다");
   }
-  if (p.isBest) parts.push("MIRYEO 베스트셀러입니다");
+  if (p.isBest) parts.push("MIRYEO 추천 제품입니다");
   return parts.join(". ") + ".";
 }
 

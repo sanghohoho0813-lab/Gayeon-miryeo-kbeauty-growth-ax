@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, Heart, History, RefreshCcw, Sparkles } from "lucide-react";
-import { demoRepository } from "@/lib/repository";
+import { useBeautyData } from "@/components/beauty/BeautyDataProvider";
 import { BeautyProductCard } from "@/components/beauty/BeautyProductCard";
 import { CONCERNS } from "@/components/beauty/concerns";
 import { ProductVisual } from "@/components/shared/ProductVisual";
@@ -30,7 +30,7 @@ export default function PassportPage() {
     setLoaded(true);
   }, []);
 
-  const products = demoRepository.products;
+  const { products } = useBeautyData();
   const wishedProducts = products.filter((p) => wishlist.includes(p.id));
   const viewedProducts = viewed
     .map((id) => products.find((p) => p.id === id))
@@ -47,12 +47,12 @@ export default function PassportPage() {
     <div className="pt-8">
       {/* Passport 카드 */}
       <section className="overflow-hidden rounded-[28px]" style={{ background: "var(--b-navy)" }}>
-        <div className="flex flex-col gap-6 p-8 md:flex-row md:items-center md:justify-between md:p-10">
+        <div className="flex flex-col gap-6 p-8 @3xl:flex-row @3xl:items-center @3xl:justify-between @3xl:p-10">
           <div>
             <p className="text-[0.8rem] font-bold tracking-[0.25em]" style={{ color: "var(--b-gold)" }}>
               MY BEAUTY PASSPORT
             </p>
-            <h1 className="font-display mt-2 text-[1.7rem] font-bold text-white md:text-[2rem]">
+            <h1 className="font-display mt-2 text-[1.7rem] font-bold text-white @3xl:text-[2rem]">
               나의 피부 데이터
             </h1>
             <p className="mt-2 text-[0.92rem] text-white/65">
@@ -113,7 +113,7 @@ export default function PassportPage() {
       {routineProducts.length > 0 && (
         <section className="mt-10">
           <SectionTitle icon={<Sparkles size={19} aria-hidden />} title="내 추천 루틴" sub="최근 AI Beauty 분석 결과" />
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 @3xl:grid-cols-3">
             {routineProducts.map((p, i) => (
               <Link
                 key={p.id}
@@ -150,9 +150,9 @@ export default function PassportPage() {
           <SectionTitle
             icon={<RefreshCcw size={19} aria-hidden />}
             title="다시 구매할 제품"
-            sub="추천 루틴 기준, 소진 주기가 되면 이곳에서 알려드려요 (Demo)"
+            sub="추천 루틴에 담긴 제품을 다시 찾기 쉽게 모아두었어요"
           />
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 @3xl:grid-cols-4">
             {routineProducts.slice(0, 4).map((p) => (
               <BeautyProductCard key={p.id} product={p} aiBadge="재구매 추천" />
             ))}
@@ -162,9 +162,9 @@ export default function PassportPage() {
 
       {/* 저장한 제품 */}
       {wishedProducts.length > 0 && (
-        <section className="mt-10">
+        <section className="mt-10" id="saved">
           <SectionTitle icon={<Heart size={19} aria-hidden />} title="저장한 제품" sub={`찜한 제품 ${wishedProducts.length}개`} />
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 @3xl:grid-cols-4">
             {wishedProducts.map((p) => (
               <BeautyProductCard key={p.id} product={p} />
             ))}
@@ -176,7 +176,7 @@ export default function PassportPage() {
       {viewedProducts.length > 0 && (
         <section className="mt-10">
           <SectionTitle icon={<History size={19} aria-hidden />} title="최근 본 제품" sub="최근 조회한 순서" />
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 @3xl:grid-cols-4">
             {viewedProducts.slice(0, 4).map((p) => (
               <BeautyProductCard key={p.id} product={p} />
             ))}
