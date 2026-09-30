@@ -7,6 +7,7 @@ import { recommend } from "@/lib/beauty-recommend";
 import { saveResult } from "@/lib/beauty-store";
 import { getPublicSource, getSessionId, track } from "@/lib/customer-events";
 import { useBeautyData } from "@/components/beauty/BeautyDataProvider";
+import { useCustomerId } from "@/components/beauty/CustomerSession";
 import { CONCERNS } from "@/components/beauty/concerns";
 import { ProductVisual } from "@/components/shared/ProductVisual";
 import type { BeautyProfile, SkinConcern } from "@/lib/types";
@@ -29,6 +30,7 @@ export default function FinderPage() {
   const [routineLevel, setRoutineLevel] = useState("");
   const [budget, setBudget] = useState("");
   const [saved, setSaved] = useState(false);
+  const customerId = useCustomerId();
 
   const profile: BeautyProfile = useMemo(
     () => ({ concerns, careGoal, texture, routineLevel, budget }),
@@ -276,7 +278,7 @@ export default function FinderPage() {
                 const reasons = Object.fromEntries(result.routine.map((r) => [r.product.id, r.reason]));
                 saveResult(profile, ids, reasons);
                 track("passport_save", null, { productIds: ids, concerns });
-                getPublicSource()?.saveBeautyResult(getSessionId(), profile, ids, reasons).catch((e) => console.warn("[MIRYEO] result save failed", e));
+                getPublicSource()?.saveBeautyResult(getSessionId(), profile, ids, reasons, customerId).catch((e) => console.warn("[MIRYEO] result save failed", e));
                 setSaved(true);
               }}
               className="inline-flex min-h-[52px] items-center gap-2 rounded-2xl px-8 text-[1rem] font-bold text-white transition-transform hover:scale-[1.02]"
@@ -292,9 +294,16 @@ export default function FinderPage() {
               )}
             </button>
             {saved && (
-              <Link href="/beauty/passport" className="text-[0.92rem] font-bold underline" style={{ color: "var(--b-navy)" }}>
-                뷰티 패스포트에서 확인하기 →
-              </Link>
+              customerId ? (
+                <Link href="/beauty/me" className="text-[0.92rem] font-bold underline" style={{ color: "var(--b-navy)" }}>
+                  마이페이지 추천 기록에 저장됨 — 확인하기 →
+                </Link>
+              ) : (
+                <span className="flex flex-col items-center gap-1 text-center text-[0.92rem]">
+                  <Link href="/beauty/passport" className="font-bold underline" style={{ color: "var(--b-navy)" }}>뷰티 패스포트에서 확인하기 →</Link>
+                  <Link href="/beauty/login?mode=signup" className="underline" style={{ color: "var(--b-text-soft)" }}>회원가입하면 이 기록을 계정에 보관하고 재구매 시점을 알려드려요</Link>
+                </span>
+              )
             )}
             <button
               onClick={() => {

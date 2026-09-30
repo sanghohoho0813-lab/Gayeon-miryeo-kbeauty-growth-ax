@@ -219,6 +219,73 @@ if (PHASE === "B") {
   await owner.waitForTimeout(800);
   ok("AX 고객 인사이트에 실제 이벤트 반영", (await mainText(owner)).includes("Finder"));
 
+  // 7-1. 고객 회원가입 (같은 브라우저 → 가입 전 익명 추천 기록 연결) · 마이페이지 · 구매 기록
+  await cust.goto(`${APP}/beauty/login?mode=signup`, { waitUntil: "networkidle" });
+  await cust.fill("#c-email", "customer@miryeo.test");
+  await cust.fill("#c-password", "customer-pass-1");
+  await cust.fill("#c-name", "E2E 고객");
+  await cust.getByLabel(/\[필수\] 개인정보 수집·이용에 동의/).check();
+  await cust.getByRole("button", { name: /동의하고 가입하기/ }).click();
+  await cust.waitForURL(/\/beauty\/me/, { timeout: 15000 });
+  await cust.waitForLoadState("networkidle");
+  const cacc = await one("select a.user_id, a.email, a.privacy_version, a.marketing_consent from customer_accounts a where a.organization_id = $1", [orgId]);
+  ok("고객 가입 → customer_accounts (이메일 자동·동의 버전)", cacc?.email === "customer@miryeo.test" && cacc.privacy_version === "v-e2e" && cacc.marketing_consent === false);
+  ok("가입 전 익명 추천 기록 → 계정 연결 (claim_session)", (await count("select count(*) n from beauty_recommendations where customer_user_id = $1", [cacc.user_id])) === 1);
+  await cust.getByTestId("recommendations").getByText("STEP 1").first().waitFor({ timeout: 8000 });
+  ok("마이페이지: 추천 기록 표시 (본인 RLS)", true);
+  await cust.selectOption('select[aria-label="구매한 제품"]', { label: "E2E 토너" });
+  await cust.fill('input[aria-label="구매일"]', day(50));
+  await cust.getByRole("button", { name: /구매 기록 추가/ }).click();
+  await cust.waitForTimeout(1200);
+  ok("구매 자기기록 → customer_purchases (SELF)", (await count("select count(*) n from customer_purchases where customer_user_id = $1 and source = 'SELF'", [cacc.user_id])) === 1);
+  ok("재구매 예상 D-10 (토너 60일 추정)", (await cust.getByTestId("repurchase").innerText()).includes("D-10"));
+  await cust.goto(`${APP}/ax`, { waitUntil: "networkidle" });
+  await cust.getByText("고객 계정으로 로그인되어 있습니다").waitFor({ timeout: 10000 }).catch(() => {});
+  ok("고객 계정으로 /ax → 조직 만들기 대신 고객 안내", (await cust.locator("body").innerText()).includes("고객 계정으로 로그인되어 있습니다"));
+
+  // 7-2. 운영자: 회원·재구매 · 운영자 구매 기록
+  await owner.goto(`${APP}/ax/customers?reload=members`, { waitUntil: "networkidle" }); // 같은 페이지 해시 이동은 새로 불러오지 않음
+  await owner.waitForTimeout(800);
+  const memText = await owner.locator("#members").innerText();
+  ok("AX 회원 패널 (대표): 회원 1명 · 이메일 마스킹", memText.includes("1명") && memText.includes("cu******") && !memText.includes("customer@miryeo.test"));
+  await owner.getByRole("button", { name: "E2E 고객 구매 기록 추가" }).click();
+  await owner.selectOption("#sp-prod", { label: "E2E 토너" });
+  await owner.getByRole("button", { name: "저장", exact: true }).click();
+  await owner.waitForTimeout(1000);
+  ok("운영자 구매 기록 → customer_purchases (STAFF)", (await count("select count(*) n from customer_purchases where customer_user_id = $1 and source = 'STAFF'", [cacc.user_id])) === 1);
+
+  // 7-3. 정산·미수금 → 연체 RULE
+  await owner.goto(`${APP}/ax/channels?tab=settlements`, { waitUntil: "networkidle" });
+  await owner.getByRole("button", { name: /청구·정산 추가/ }).click();
+  await owner.selectOption("#st-kind", "CHANNEL");
+  await owner.fill("#st-cp", "자사몰");
+  await owner.fill("#st-amount", "1200000");
+  await owner.fill("#st-issued", day(20));
+  await owner.fill("#st-due", day(2));
+  await owner.getByRole("button", { name: "저장", exact: true }).click();
+  await owner.waitForTimeout(1000);
+  const st1 = await one("select id, ref_id, status from settlements where organization_id = $1", [orgId]);
+  ok("정산 저장 → settlements (채널 연결)", st1?.status === "OPEN" && !!st1.ref_id);
+  await owner.getByRole("button", { name: "입금 기록" }).first().click();
+  await owner.fill("#pay-amount", "200000");
+  await owner.getByRole("button", { name: "입금 기록", exact: true }).last().click();
+  await owner.waitForTimeout(1000);
+  ok("부분 입금 → PARTIAL (DB)", (await one("select status, paid_amount from settlements where id = $1", [st1.id])).status === "PARTIAL");
+  await owner.goto(`${APP}/ax/growth`, { waitUntil: "networkidle" });
+  await owner.waitForTimeout(1500);
+  ok("연체 미수금 RULE → growth_actions (정산)", (await count("select count(*) n from growth_actions where organization_id = $1 and rule_key = 'settlement-overdue' and category = '정산'", [orgId])) === 1);
+
+  // 7-4. 월별 실적 · 대표 브리핑 · 내보내기
+  await owner.goto(`${APP}/ax/monthly`, { waitUntil: "networkidle" });
+  ok("월별 실적 (Live 판매 행)", (await owner.getByTestId("monthly-products").innerText()).includes("E2E 토너"));
+  await owner.goto(`${APP}/ax`, { waitUntil: "networkidle" });
+  const brief = await owner.getByTestId("briefing-lines").innerText();
+  ok("대표 브리핑 (Live): 미수금·재고 문장", brief.includes("미수금") && brief.includes("재고"), (await owner.getByTestId("briefing-headline").innerText()));
+  await owner.goto(`${APP}/ax/data?tab=export`, { waitUntil: "networkidle" });
+  const [dl] = await Promise.all([owner.waitForEvent("download"), owner.locator('[data-export="상품목록"]').click()]);
+  const csv = fs.readFileSync(await dl.path(), "utf8");
+  ok("상품목록 CSV 내보내기 (Live)", dl.suggestedFilename().startsWith("miryeo_products_") && !dl.suggestedFilename().includes("DEMO") && csv.includes("MR-TONER-01"), dl.suggestedFilename());
+
   // 8. 초대 (서버 API + service role) → 메일 → 수락 → 비밀번호 → 역할별 화면
   await owner.goto(`${APP}/ax/settings#members`, { waitUntil: "networkidle" });
   await owner.waitForTimeout(800);
@@ -264,6 +331,13 @@ if (PHASE === "B") {
     return [(await r.json()).length, (await b.json()).length];
   }, { gw: GW });
   ok("STAFF 토큰: 판매 조회 가능 · B2B 0행 (RLS)", staffB2b[0] === 8 && staffB2b[1] === 0, JSON.stringify(staffB2b));
+  const staffPriv = await staff.evaluate(async ({ gw }) => {
+    const key = Object.keys(localStorage).find((k) => k.includes("auth-token"));
+    const tok = JSON.parse(localStorage.getItem(key)).access_token;
+    const get = async (t) => (await (await fetch(`${gw}/rest/v1/${t}?select=*`, { headers: { authorization: `Bearer ${tok}`, apikey: "x" } })).json()).length;
+    return [await get("customer_accounts"), await get("customer_purchases"), await get("settlements")];
+  }, { gw: GW });
+  ok("STAFF 토큰: 고객 개인정보·구매·정산 0행 (RLS)", staffPriv.every((n) => n === 0), JSON.stringify(staffPriv));
   await staff.goto(`${APP}/ax/settings`, { waitUntil: "networkidle" });
   ok("STAFF: 구성원 목록 차단", (await staff.locator("#members").innerText()).includes("대표·관리자만"));
 
@@ -298,6 +372,15 @@ if (PHASE === "B") {
   await owner.emulateMedia({ media: "print" });
   await owner.pdf({ path: `${OUT}/weekly_live.pdf`, format: "A4", printBackground: true });
   await owner.emulateMedia({ media: "screen" });
+
+  // 10-1. 고객 탈퇴 → 서버 API(service role)로 로그인 정보까지 삭제
+  await cust.goto(`${APP}/beauty/me`, { waitUntil: "networkidle" });
+  await cust.getByText("회원 탈퇴").click();
+  await cust.getByRole("button", { name: "탈퇴하기" }).click();
+  await cust.waitForURL(/\/beauty$/, { timeout: 15000 });
+  await cust.waitForTimeout(800);
+  ok("고객 탈퇴 → auth.users·계정·구매기록 삭제", (await count("select count(*) n from auth.users where email = 'customer@miryeo.test'")) === 0 && (await count("select count(*) n from customer_accounts where organization_id = $1", [orgId])) === 0 && (await count("select count(*) n from customer_purchases where organization_id = $1", [orgId])) === 0);
+  ok("탈퇴 후 추천 기록은 익명 통계로 유지", (await count("select count(*) n from beauty_recommendations where organization_id = $1 and customer_user_id is null", [orgId])) === 1);
 
   // 11. 장애: REST 게이트웨이 중단 → Error 화면 (Demo로 대체하지 않음)
   const gwPid = fs.readFileSync("/tmp/miryeo-gateway.pid", "utf8").trim();

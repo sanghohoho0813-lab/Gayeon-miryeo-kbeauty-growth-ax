@@ -9,7 +9,7 @@ Customer Event → AX Decision(RULE) → Human Action → Result → Proof Event
 | 영역 | 경로 | 대상 |
 |---|---|---|
 | MIRYEO Business AX | `/ax` | 대표·관리자·직원 (OWNER / ADMIN / STAFF) |
-| MIRYEO AI Beauty | `/beauty` | 고객 (익명 세션, 개인정보 미수집) |
+| MIRYEO AI Beauty | `/beauty` | 고객 (비회원: 익명 세션 / 회원: `/beauty/login`·`/beauty/me`, 동의 기반) |
 | 로그인 (Live) | `/login` | 구성원 |
 
 ## 실행
@@ -18,7 +18,7 @@ npm install
 npm run dev          # Demo 모드 (기본)
 npm run typecheck
 npm run build
-npm run verify:db    # (선택) 로컬 Postgres로 migration + RLS·트리거 65개 시나리오 검증
+npm run verify:db    # (선택) 로컬 Postgres로 migration + RLS·트리거 97개 시나리오 검증
 bash supabase/tests/live-e2e/run.sh   # (선택) 로컬 Supabase 호환 스택에서 Live 모드 브라우저 E2E (SETUP.md §E)
 ```
 Live 전환은 **SETUP.md** 참고.
@@ -36,7 +36,9 @@ UI (src/app, src/components)
        └ live-source.ts  (Supabase, RLS)
  └ buildModel (src/lib/model.ts) → analytics.ts (RULE / STATISTICAL)
 ```
-- Schema / RLS: `supabase/migrations/001~006` (005 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
+- Schema / RLS: `supabase/migrations/001~007` (005·007 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
+- 월별 실적 `/ax/monthly`, 정산·미수금 `/ax/channels?tab=settlements`, 대표 브리핑 `src/lib/briefing.ts`, 내보내기 `/ax/data?tab=export`
+- 고객 회원·마이페이지 `src/lib/customer-account.ts`, 재구매 예상 `src/lib/repurchase.ts`, 탈퇴 API `src/app/api/customer/account/route.ts`
 - Evidence 계산(Money KPI·Baseline 비교): `src/lib/evidence.ts` → 실증 화면 + 주간 리포트(`/ax/reports/weekly`, 인쇄·PDF)
 - 판매·상품 파일 가져오기(CSV/XLSX, 열 자동 인식): `src/lib/import.ts`
 - 구성원 관리 API(Live, 서버 전용 키): `src/app/api/org/members/route.ts`

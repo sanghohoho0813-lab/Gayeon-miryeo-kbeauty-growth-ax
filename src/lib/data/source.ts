@@ -11,12 +11,15 @@ import type {
   GrowthActionCandidate,
   KpiBaseline,
   ActionEvent,
+  CustomerAccount,
+  CustomerPurchase,
   Inventory,
   OrgSettings,
   Product,
   ProductionPlan,
   ProofEvent,
   SalesRecord,
+  Settlement,
   TechAsset,
 } from "../types";
 import type { DataMode } from "../config";
@@ -41,6 +44,11 @@ export interface DataSnapshot {
   techAssets: TechAsset[];
   /** 활성 + 이력(superseded) 전체 */
   baselines: KpiBaseline[];
+  /** 고객 개인정보 — Live RLS상 OWNER/ADMIN만 (STAFF는 빈 배열) */
+  customerAccounts: CustomerAccount[];
+  customerPurchases: CustomerPurchase[];
+  /** 정산·미수금 — OWNER/ADMIN만 */
+  settlements: Settlement[];
   loadedAt: string;
 }
 
@@ -80,9 +88,12 @@ export interface DataSource {
   upsertTechAsset(t: TechAsset): Promise<void>;
   updateOrg(patch: Partial<OrgSettings>): Promise<void>;
   lockBaseline(b: Omit<KpiBaseline, "id" | "lockedAt" | "supersededAt">): Promise<void>;
+  upsertSettlement(s: Settlement): Promise<void>;
+  /** 운영자가 고객 구매를 기록 (source=STAFF) */
+  addStaffPurchase(p: Omit<CustomerPurchase, "id" | "createdAt" | "source">): Promise<void>;
 
   trackEvent(e: TrackInput): Promise<void>;
-  saveBeautyResult(sessionId: string, profile: BeautyProfile, productIds: string[], reasons: Record<string, string>): Promise<void>;
+  saveBeautyResult(sessionId: string, profile: BeautyProfile, productIds: string[], reasons: Record<string, string>, customerUserId?: string | null): Promise<void>;
 
   /** Demo 전용 — Live에서는 호출 불가 */
   reset(): Promise<void>;

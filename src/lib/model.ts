@@ -34,6 +34,7 @@ export function buildModel(snapshot: DataSnapshot): AxModel {
   const candidates = generateCandidates({
     products: snapshot.products, metrics, channelStats, interest: customer.productInterest,
     b2b: snapshot.b2b, customers: snapshot.customers, today,
+    accounts: snapshot.customerAccounts, purchases: snapshot.customerPurchases, settlements: snapshot.settlements,
   });
   const actions = sortActions(snapshot.actions);
   return {

@@ -14,6 +14,22 @@ import {
   getWishlist,
 } from "@/lib/beauty-store";
 import type { BeautyRecommendation, SkinConcern } from "@/lib/types";
+import { useCustomerSession } from "@/components/beauty/CustomerSession";
+
+/** 비회원 Passport는 이 브라우저에만 저장 — 회원 전환 안내 */
+function MemberBanner() {
+  const { session } = useCustomerSession();
+  const member = !!session?.account && !session.operator;
+  return (
+    <div data-testid="member-banner" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-white px-5 py-3.5 text-[0.92rem]" style={{ borderColor: "var(--b-border)" }}>
+      {member ? (
+        <><span>회원 계정에 추천·구매 기록이 보관되고 있습니다.</span><Link href="/beauty/me" className="font-bold underline" style={{ color: "var(--b-navy)" }}>마이페이지 →</Link></>
+      ) : (
+        <><span>지금 기록은 이 브라우저에만 저장됩니다. 회원이 되면 기기와 상관없이 보관하고 재구매 시점을 알려드려요.</span><Link href="/beauty/login?mode=signup" className="font-bold underline" style={{ color: "var(--b-navy)" }}>회원가입</Link></>
+      )}
+    </div>
+  );
+}
 
 export default function PassportPage() {
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -45,6 +61,7 @@ export default function PassportPage() {
 
   return (
     <div className="pt-8">
+      <MemberBanner />
       {/* Passport 카드 */}
       <section className="overflow-hidden rounded-[28px]" style={{ background: "var(--b-navy)" }}>
         <div className="flex flex-col gap-6 p-8 @3xl:flex-row @3xl:items-center @3xl:justify-between @3xl:p-10">

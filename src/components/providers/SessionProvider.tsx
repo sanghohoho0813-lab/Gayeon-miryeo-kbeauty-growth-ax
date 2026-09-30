@@ -12,7 +12,7 @@ import { ROLE_LABEL } from "@/lib/permissions";
 
 /* Session / Role — Demo: Role Switcher(localStorage, iframe 공유) / Live: Supabase Auth + organization_members */
 
-export type SessionStatus = "loading" | "ready" | "signed_out" | "no_org" | "misconfigured" | "error";
+export type SessionStatus = "loading" | "ready" | "signed_out" | "no_org" | "customer" | "misconfigured" | "error";
 
 interface SessionValue {
   status: SessionStatus;
@@ -84,7 +84,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setStatus("loading");
     sb.from("organization_members").select("organization_id, role").eq("user_id", session.user.id).limit(1).then(({ data, error: err }) => {
       if (err) { setError(err.message); setStatus("error"); return; }
-      if (!data || data.length === 0) { setMembership(null); setStatus("no_org"); return; }
+      if (!data || data.length === 0) {
+        setMembership(null);
+        // 고객 계정으로 Business AX에 들어온 경우: 조직 만들기 대신 고객 화면 안내
+        sb.from("customer_accounts").select("user_id").eq("user_id", session.user.id).maybeSingle().then(({ data: c }) => setStatus(c ? "customer" : "no_org"));
+        return;
+      }
       setMembership({ orgId: data[0].organization_id, role: data[0].role as Role });
       try { localStorage.setItem(OPERATOR_KEY, "1"); } catch { /* noop */ }
       setStatus("ready");

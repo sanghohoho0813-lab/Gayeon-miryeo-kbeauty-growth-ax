@@ -10,6 +10,10 @@ import { WeeklyTrend } from "@/components/ax/TrendChart";
 import { ActionDrawer } from "@/components/ax/ActionDrawer";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { EmptyState } from "@/components/ax/States";
+import { BriefingCard } from "@/components/ax/BriefingCard";
+import { change, marginRate, monthlySummary } from "@/lib/monthly";
+import { summarizeReceivables } from "@/lib/settlements";
+import { CalendarRange, Wallet } from "lucide-react";
 import { useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
@@ -59,6 +63,10 @@ export default function DashboardPage() {
           <KpiCard label="Finder 완료 (7일)" value={customer.recent.finder_complete} format={(v) => `${Math.round(v)}건`} icon={<Users size={22} />} iconTone="#C76C86" sub="고객 화면 행동" href="/ax/customers" />
         )}
       </div>
+
+      {fin && <FinanceRow />}
+
+      <div className="mt-6"><BriefingCard /></div>
 
       <div className="mt-6">
         <DataCard title={<>오늘 먼저 할 일 <span className="ml-1 text-[0.88rem] font-semibold text-ink-soft">열린 Action {openActions.length}건</span></>} action={<SeeAllLink href="/ax/growth" label="AI Growth Center" />} tourId="missions">
@@ -175,6 +183,22 @@ export default function DashboardPage() {
       </Link>
 
       <ActionDrawer action={open} onClose={() => setOpen(null)} />
+    </div>
+  );
+}
+
+/** 경영 수치 — 이번 달 매출·매출총이익·받을 돈 (계약 별지 제1호 ①) */
+function FinanceRow() {
+  const m = useModel();
+  const [prev, cur] = monthlySummary(m.snapshot.sales, m.snapshot.products, m.snapshot.channels, m.today, 2);
+  const mr = marginRate(cur);
+  const rs = summarizeReceivables(m.snapshot.settlements, m.today);
+  const day = Number(m.today.slice(8, 10));
+  return (
+    <div className="mt-4 grid grid-cols-1 gap-4 @md:grid-cols-3" data-testid="finance-row">
+      <KpiCard label={`이번 달 매출 (${day}일까지)`} value={cur.revenue} format={formatKRW} icon={<CalendarRange size={22} />} iconTone="#2563EB" sub={`지난달 전체 ${formatKRW(prev.revenue)}`} href="/ax/monthly" />
+      <KpiCard label="이번 달 매출총이익" value={cur.grossProfit} format={formatKRW} icon={<Banknote size={22} />} iconTone="#16A34A" sub={mr == null ? "원가 미입력" : `이익률 ${Math.round(mr * 100)}% · 원가 입력 제품 기준`} trend={change(cur.grossProfit, prev.grossProfit) != null && day >= 28 ? change(cur.grossProfit, prev.grossProfit) : null} href="/ax/monthly" />
+      <KpiCard label="받을 돈 (미수금)" value={rs.outstanding} format={formatKRW} icon={<Wallet size={22} />} iconTone={rs.overdueCount ? "#DC2626" : "#0F766E"} sub={rs.overdueCount ? `연체 ${rs.overdueCount}건 · ${formatKRW(rs.overdueAmount)}` : `${rs.openCount}건 · 연체 없음`} href="/ax/channels?tab=settlements" />
     </div>
   );
 }

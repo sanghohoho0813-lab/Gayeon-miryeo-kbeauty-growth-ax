@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, LayoutDashboard, Sparkles, User } from "lucide-react";
+import { Heart, LayoutDashboard, LogIn, Sparkles, User } from "lucide-react";
+import { useCustomerSession } from "./CustomerSession";
 import { DeviceSwitch, useDeviceView } from "@/components/device/DeviceView";
 import { isLive } from "@/lib/config";
 
@@ -37,6 +38,21 @@ function DemoControlBar() {
   );
 }
 
+function AccountLink() {
+  const { session } = useCustomerSession();
+  const member = !!session?.account && !session.operator;
+  return member ? (
+    <Link href="/beauty/me" data-testid="account-link" className="flex h-11 items-center gap-1.5 rounded-full px-2.5 text-[0.86rem] font-semibold hover:bg-black/5" aria-label="마이페이지">
+      <span className="flex h-8 w-8 items-center justify-center rounded-full text-white" style={{ background: "var(--b-navy)" }}><User size={17} aria-hidden /></span>
+      <span className="hidden @xl:inline">마이페이지</span>
+    </Link>
+  ) : (
+    <Link href="/beauty/login" data-testid="account-link" className="flex h-11 items-center gap-1.5 rounded-full px-2.5 text-[0.86rem] font-semibold hover:bg-black/5" aria-label="로그인 · 회원가입">
+      <LogIn size={19} aria-hidden /><span className="hidden @xl:inline">로그인</span>
+    </Link>
+  );
+}
+
 export function BeautyHeader() {
   const pathname = usePathname();
   const active = (href: string) => (href === "/beauty" ? pathname === "/beauty" : pathname.startsWith(href));
@@ -61,7 +77,7 @@ export function BeautyHeader() {
               <Sparkles size={15} aria-hidden /> 내 피부 추천받기
             </Link>
             <Link href="/beauty/passport#saved" className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-black/5" aria-label="찜한 제품"><Heart size={20} /></Link>
-            <Link href="/beauty/passport" className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-black/5" aria-label="뷰티 패스포트"><User size={20} /></Link>
+            <AccountLink />
           </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-4 pb-2.5 @3xl:hidden" aria-label="모바일 메뉴">

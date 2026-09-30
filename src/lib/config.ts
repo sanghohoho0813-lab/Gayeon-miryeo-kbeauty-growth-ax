@@ -14,3 +14,8 @@ export const isLive = DATA_MODE === "live";
 export const liveConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 export const DATA_SOURCE_LABEL = isLive ? "SUPABASE LIVE" : "DEMO DATA";
+
+/** 고객 회원가입: 가연인터내셔널의 개인정보 처리방침 URL·버전 (Live에서 URL이 없으면 가입을 막는다 — 계약 제17조) */
+export const PRIVACY_POLICY_URL = process.env.NEXT_PUBLIC_PRIVACY_POLICY_URL ?? "";
+export const PRIVACY_VERSION = process.env.NEXT_PUBLIC_PRIVACY_VERSION ?? (isLive ? "" : "demo-draft");
+export const customerSignupEnabled = !isLive || Boolean(PRIVACY_POLICY_URL && PRIVACY_VERSION);

@@ -28,7 +28,7 @@ export GOTRUE_MAILER_URLPATHS_INVITE=/auth/v1/verify GOTRUE_MAILER_URLPATHS_CONF
 
 "$GOTRUE_BIN" migrate >/tmp/gotrue-migrate.log 2>&1 || { cat /tmp/gotrue-migrate.log; exit 1; }
 $PSQL -d "$DB" -o /dev/null -f "$DIR/post-auth.sql"
-for f in "$ROOT"/supabase/migrations/00{1,2,3,5,6}_*.sql; do $PSQL -d "$DB" -o /dev/null -f "$f"; done
+for f in "$ROOT"/supabase/migrations/00{1,2,3,5,6,7}_*.sql; do $PSQL -d "$DB" -o /dev/null -f "$f"; done
 
 for f in /tmp/miryeo-gotrue.pid /tmp/miryeo-gateway.pid; do [ -f "$f" ] && kill "$(cat "$f")" 2>/dev/null || true; done
 sleep 1

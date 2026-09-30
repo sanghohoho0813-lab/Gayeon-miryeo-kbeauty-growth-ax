@@ -31,6 +31,8 @@ export interface Product {
   purchaseLinks: PurchaseLink[];
   mainChannelIds: string[];
   featuredUntil?: string | null; // AX Action 결과로 고객화면 노출
+  /** 1개 사용기간(일) — 재구매 예상시점 계산. 없으면 카테고리 기본 추정값 */
+  usageDays?: number | null;
   isDemo?: boolean;
 }
 
@@ -147,7 +149,7 @@ export interface BeautyRecommendation {
 }
 
 export type ActionPriority = "우선" | "높음" | "중간";
-export type ActionCategory = "재고" | "생산" | "채널" | "B2B" | "재구매" | "고객 관심";
+export type ActionCategory = "재고" | "생산" | "채널" | "B2B" | "재구매" | "고객 관심" | "정산";
 export type ActionStatus = "NEW" | "REVIEWED" | "IN_PROGRESS" | "DONE" | "DISMISSED";
 
 export interface KpiSnapshot {
@@ -207,6 +209,7 @@ export type ProofEventType =
   | "CUSTOMER_INTEREST_RESPONSE"
   | "B2B_FOLLOWUP"
   | "REPURCHASE_OUTREACH"
+  | "SETTLEMENT_FOLLOWUP"
   | "MANUAL";
 
 export type ProofStatus = "RECORDED" | "RESULT_CONFIRMED" | "REJECTED";
@@ -273,3 +276,54 @@ export interface KpiBaseline {
 }
 
 export type Role = "OWNER" | "ADMIN" | "STAFF";
+
+/* ---------- 고객 회원 (계약 별지 제1호 ⑥) ---------- */
+export interface CustomerAccount {
+  userId: string;
+  email?: string | null;
+  displayName?: string | null;
+  skinConcerns: SkinConcern[];
+  marketingConsent: boolean;
+  privacyAgreedAt: string;
+  privacyVersion: string;
+  createdAt: string;
+}
+
+export interface CustomerPurchase {
+  id: string;
+  customerUserId: string;
+  productId: string;
+  quantity: number;
+  purchasedOn: string; // YYYY-MM-DD
+  channelLabel?: string | null;
+  source: "SELF" | "STAFF";
+  note?: string | null;
+  createdAt: string;
+}
+
+export interface SavedRecommendation {
+  id: string;
+  createdAt: string;
+  productIds: string[];
+  reasons: Record<string, string>;
+}
+
+/* ---------- 정산·미수금 (계약 별지 제1호 ①·③) ---------- */
+export type SettlementKind = "B2B" | "EXPORT" | "CHANNEL" | "OTHER";
+export type SettlementStatus = "OPEN" | "PARTIAL" | "PAID" | "CANCELLED";
+
+export interface Settlement {
+  id: string;
+  kind: SettlementKind;
+  counterparty: string;
+  refId?: string | null;
+  description?: string | null;
+  amount: number;
+  paidAmount: number;
+  issuedOn: string;
+  dueOn?: string | null;
+  paidOn?: string | null;
+  status: SettlementStatus;
+  note?: string | null;
+  updatedAt?: string;
+}

@@ -10,7 +10,8 @@ export type Permission =
   | "approve_action"
   | "execute_action"
   | "confirm_proof"
-  | "manage_org";
+  | "manage_org"
+  | "view_customers"; // 고객 회원 개인정보·구매기록
 
 const MATRIX: Record<Permission, Role[]> = {
   view_financials: ["OWNER", "ADMIN"],
@@ -21,6 +22,7 @@ const MATRIX: Record<Permission, Role[]> = {
   execute_action: ["OWNER", "ADMIN", "STAFF"],
   confirm_proof: ["OWNER"],
   manage_org: ["OWNER"],
+  view_customers: ["OWNER", "ADMIN"],
 };
 
 export const PERMISSION_LABEL: Record<Permission, string> = {
@@ -32,6 +34,7 @@ export const PERMISSION_LABEL: Record<Permission, string> = {
   execute_action: "Action 실행·결과 기록",
   confirm_proof: "실증 결과 확정",
   manage_org: "조직·기술자산·실증 설정",
+  view_customers: "고객 회원 정보·구매 기록",
 };
 
 export const ROLE_LABEL: Record<Role, string> = { OWNER: "대표", ADMIN: "관리자", STAFF: "직원" };

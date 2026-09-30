@@ -14,6 +14,8 @@ const SMTP_PORT = Number(process.env.SMTP_PORT ?? 2500);
 const GOTRUE = process.env.GOTRUE_URL ?? "http://127.0.0.1:9999";
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET) throw new Error("JWT_SECRET required");
+// PostgREST와 동일하게 date 컬럼은 "YYYY-MM-DD" 문자열로 반환 (JS Date 변환 금지)
+pg.types.setTypeParser(1082, (v) => v);
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 10 });
 
 // ---------- JWT ----------

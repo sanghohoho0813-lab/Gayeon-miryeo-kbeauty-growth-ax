@@ -5,7 +5,7 @@ import type { DataSnapshot, DataSource } from "./source";
 import { uuidv4 } from "./source";
 import type {
   B2BAccount, Channel, CustomerEvent, CustomerProfile, ExportRecord, GrowthAction, ActionEvent,
-  Inventory, KpiBaseline, Product, ProductionPlan, ProofEvent, SalesRecord, TechAsset,
+  CustomerAccount, CustomerPurchase, Inventory, KpiBaseline, Product, ProductionPlan, ProofEvent, SalesRecord, Settlement, TechAsset,
 } from "../types";
 
 /* LIVE 저장소 — Supabase만 사용. 오류는 그대로 throw → 화면에서 Error State.
@@ -22,13 +22,13 @@ const toProduct = (r: Row): Product => ({
   id: r.id, sku: r.sku, name: r.name, nameEn: r.name_en ?? undefined, category: r.category, line: r.line ?? undefined,
   price: Number(r.price), cost: r.cost == null ? undefined : Number(r.cost), status: r.status, description: r.description ?? undefined,
   concerns: r.concerns ?? [], texture: r.texture ?? undefined, routineStep: r.routine_step ?? undefined, isNew: r.is_new, isBest: r.is_best,
-  isPublished: r.is_published, purchaseLinks: r.purchase_links ?? [], mainChannelIds: r.main_channel_ids ?? [], featuredUntil: r.featured_until, isDemo: r.is_demo,
+  isPublished: r.is_published, purchaseLinks: r.purchase_links ?? [], mainChannelIds: r.main_channel_ids ?? [], featuredUntil: r.featured_until, usageDays: r.usage_days ?? null, isDemo: r.is_demo,
 });
 const fromProduct = (p: Product, org: string): Row => ({
   id: p.id, organization_id: org, sku: p.sku, name: p.name, name_en: p.nameEn ?? null, category: p.category, line: p.line ?? null,
   price: p.price, cost: p.cost ?? null, status: p.status, description: p.description ?? null, concerns: p.concerns, texture: p.texture ?? null,
   routine_step: p.routineStep ?? null, is_new: !!p.isNew, is_best: !!p.isBest, is_published: p.isPublished, purchase_links: p.purchaseLinks,
-  main_channel_ids: p.mainChannelIds, featured_until: p.featuredUntil ?? null, is_demo: !!p.isDemo,
+  main_channel_ids: p.mainChannelIds, featured_until: p.featuredUntil ?? null, usage_days: p.usageDays ?? null, is_demo: !!p.isDemo,
 });
 const toInventory = (r: Row): Inventory => ({ productId: r.product_id, currentStock: r.current_stock, safetyStock: r.safety_stock, incomingStock: r.incoming_stock, incomingDate: r.incoming_date, updatedAt: r.updated_at });
 const toProduction = (r: Row): ProductionPlan => ({ id: r.id, productId: r.product_id, partner: r.partner, lastProducedAt: r.last_produced_at, quantity: r.quantity, expectedArrival: r.expected_arrival, status: r.status, nextRecommendedAt: r.next_recommended_at });
@@ -58,17 +58,31 @@ const toBaseline = (r: Row): KpiBaseline => ({
   source: r.source, note: r.note, lockedBy: r.locked_by ?? "-", lockedAt: r.locked_at, supersededAt: r.superseded_at,
 });
 
+export const toCustomerAccount = (r: Row): CustomerAccount => ({
+  userId: r.user_id, email: r.email, displayName: r.display_name, skinConcerns: r.skin_concerns ?? [], marketingConsent: r.marketing_consent,
+  privacyAgreedAt: r.privacy_agreed_at, privacyVersion: r.privacy_version, createdAt: r.created_at,
+});
+export const toPurchase = (r: Row): CustomerPurchase => ({
+  id: r.id, customerUserId: r.customer_user_id, productId: r.product_id, quantity: r.quantity, purchasedOn: r.purchased_on,
+  channelLabel: r.channel_label, source: r.source, note: r.note, createdAt: r.created_at,
+});
+const toSettlement = (r: Row): Settlement => ({
+  id: r.id, kind: r.kind, counterparty: r.counterparty, refId: r.ref_id, description: r.description, amount: Number(r.amount), paidAmount: Number(r.paid_amount),
+  issuedOn: r.issued_on, dueOn: r.due_on, paidOn: r.paid_on, status: r.status, note: r.note, updatedAt: r.updated_at,
+});
+
 const TECH_KINDS = ["특허", "벤처기업확인", "연구개발 조직", "기술인증", "실증자료"] as const;
 
 export function createLiveSource(sb: SupabaseClient, orgId: string, userId: string | null): DataSource {
   const since = new Date(Date.now() - 60 * 86_400_000).toISOString();
-  const salesSince = new Date(Date.now() - 70 * 86_400_000).toISOString().slice(0, 10);
+  // 월별 실적(최근 12개월)을 위해 약 13개월치 판매 행을 읽는다
+  const salesSince = new Date(Date.now() - 400 * 86_400_000).toISOString().slice(0, 10);
   const org = orgId;
 
   return {
     mode: "live",
     async loadAx(): Promise<DataSnapshot> {
-      const [o, products, inventory, production, channels, sales, b2b, exports, customers, events, actions, aevents, proofs, tech, baselines] = await Promise.all([
+      const [o, products, inventory, production, channels, sales, b2b, exports, customers, events, actions, aevents, proofs, tech, baselines, accounts, purchases, settlements] = await Promise.all([
         sb.from("organizations").select("*").eq("id", org).single(),
         sb.from("products").select("*").eq("organization_id", org).order("created_at"),
         sb.from("inventory").select("*").eq("organization_id", org),
@@ -84,7 +98,11 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
         sb.from("proof_events").select("*").eq("organization_id", org).order("created_at"),
         sb.from("tech_assets").select("*").eq("organization_id", org),
         sb.from("kpi_baselines").select("*").eq("organization_id", org).order("locked_at"),
+        sb.from("customer_accounts").select("*").eq("organization_id", org).order("created_at"),
+        sb.from("customer_purchases").select("*").eq("organization_id", org).order("purchased_on"),
+        sb.from("settlements").select("*").eq("organization_id", org).order("issued_on"),
       ]);
+      for (const r of [accounts, purchases, settlements]) if (r.error) throw new Error(`${r.error.message} — supabase/migrations/007 적용 여부를 확인하세요`);
       if (baselines.error) throw new Error(`${baselines.error.message} — supabase/migrations/005 적용 여부를 확인하세요`);
       if (o.error) throw new Error(o.error.message);
       const techRows = must<Row[]>(tech).map(toTech);
@@ -106,6 +124,10 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
         proofEvents: must<Row[]>(proofs).map(toProof),
         techAssets,
         baselines: must<Row[]>(baselines).map(toBaseline),
+        // RLS상 STAFF에게는 빈 배열 (고객 개인정보·정산은 대표·관리자 전용)
+        customerAccounts: must<Row[]>(accounts).map(toCustomerAccount),
+        customerPurchases: must<Row[]>(purchases).map(toPurchase),
+        settlements: must<Row[]>(settlements).map(toSettlement),
         loadedAt: new Date().toISOString(),
       };
     },
@@ -205,6 +227,15 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
       if ("axOwnerName" in patch) map.ax_owner_name = patch.axOwnerName;
       must(await sb.from("organizations").update(map).eq("id", org).select("id"));
     },
+    async upsertSettlement(st) {
+      const row: Row = { organization_id: org, kind: st.kind, counterparty: st.counterparty, ref_id: st.refId ?? null, description: st.description ?? null, amount: st.amount, paid_amount: st.paidAmount, issued_on: st.issuedOn, due_on: st.dueOn ?? null, paid_on: st.paidOn ?? null, status: st.status, note: st.note ?? null };
+      if (!st.id.startsWith("new-")) row.id = st.id;
+      must(await sb.from("settlements").upsert(row).select("id"));
+    },
+    async addStaffPurchase(p) {
+      const { error } = await sb.from("customer_purchases").insert({ organization_id: org, customer_user_id: p.customerUserId, product_id: p.productId, quantity: p.quantity, purchased_on: p.purchasedOn, channel_label: p.channelLabel ?? null, note: p.note ?? null, source: "STAFF" });
+      if (error) throw new Error(error.message);
+    },
     async lockBaseline(b) {
       const { error } = await sb.rpc("lock_baseline", {
         org, p_kpi: b.kpiKey, p_value: b.value, p_unit: b.unit, p_from: b.periodFrom ?? null, p_to: b.periodTo ?? null,
@@ -216,13 +247,13 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
       const { error } = await sb.from("customer_events").insert({ organization_id: org, session_id: e.sessionId, event_type: e.eventType, product_id: e.productId ?? null, payload: e.payload ?? {} });
       if (error) throw new Error(error.message);
     },
-    async saveBeautyResult(sessionId, profile, productIds, reasons) {
+    async saveBeautyResult(sessionId, profile, productIds, reasons, customerUserId) {
       // 익명 고객은 beauty_profiles를 조회할 수 없다(RLS) → insert 후 select(RETURNING)하면 거부된다.
       // id를 클라이언트에서 만들고 결과를 돌려받지 않는다.
       const profileId = uuidv4();
-      const prof = await sb.from("beauty_profiles").insert({ id: profileId, organization_id: org, session_id: sessionId, concerns: profile.concerns, care_goal: profile.careGoal, texture: profile.texture, routine_level: profile.routineLevel, budget: profile.budget });
+      const prof = await sb.from("beauty_profiles").insert({ id: profileId, organization_id: org, session_id: sessionId, customer_user_id: customerUserId ?? null, concerns: profile.concerns, care_goal: profile.careGoal, texture: profile.texture, routine_level: profile.routineLevel, budget: profile.budget });
       if (prof.error) throw new Error(prof.error.message);
-      const { error } = await sb.from("beauty_recommendations").insert({ organization_id: org, session_id: sessionId, beauty_profile_id: profileId, product_ids: productIds, reasons, saved_to_passport: true });
+      const { error } = await sb.from("beauty_recommendations").insert({ organization_id: org, session_id: sessionId, customer_user_id: customerUserId ?? null, beauty_profile_id: profileId, product_ids: productIds, reasons, saved_to_passport: true });
       if (error) throw new Error(error.message);
     },
     async reset() {

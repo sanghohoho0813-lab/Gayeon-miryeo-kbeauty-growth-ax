@@ -11,13 +11,14 @@ import { Tabs } from "@/components/ax/Tabs";
 import { EmptyState } from "@/components/ax/States";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { PermissionNotice } from "@/components/ax/PermissionNotice";
+import { Settlements } from "@/components/ax/Settlements";
 import { useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { formatKRW, formatPct } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
 
-const TABS = [{ id: "analysis", label: "채널 분석" }, { id: "b2b", label: "B2B" }, { id: "export", label: "수출" }] as const;
+const TABS = [{ id: "analysis", label: "채널 분석" }, { id: "b2b", label: "B2B" }, { id: "export", label: "수출" }, { id: "settlements", label: "정산·미수금" }] as const;
 type TabId = (typeof TABS)[number]["id"];
 
 function Inner() {
@@ -28,11 +29,12 @@ function Inner() {
   if (!can(role, "view_commercial")) return <PermissionNotice role={role} what="채널·B2B·수출" />;
   return (
     <div>
-      <PageHeader title="채널·B2B·수출" description="판매 행(sales_records)으로 계산한 최근 4주 채널 성과와 B2B·수출 현황입니다." actions={<DataFreshness />} />
+      <PageHeader title="채널·B2B·수출" description="판매 행(sales_records)으로 계산한 최근 4주 채널 성과, B2B·수출 현황, 거래처 정산·미수금입니다." actions={<DataFreshness />} />
       <Tabs tabs={TABS} value={tab} onChange={(t) => router.replace(`/ax/channels?tab=${t}`, { scroll: false })} />
       {tab === "analysis" && <Analysis />}
       {tab === "b2b" && <B2B />}
       {tab === "export" && <Export />}
+      {tab === "settlements" && <Settlements />}
     </div>
   );
 }

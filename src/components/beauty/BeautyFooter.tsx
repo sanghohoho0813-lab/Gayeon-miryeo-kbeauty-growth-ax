@@ -21,7 +21,7 @@ export function BeautyFooter() {
             <div className="mb-2.5 font-semibold text-white/90">안내</div>
             <ul className="space-y-1.5 text-white/70">
               <li>추천은 선택한 고민·사용감 기준이며 의학적 진단이 아닙니다</li>
-              <li>개인정보 없이 익명으로 이용됩니다</li>
+              <li>비회원은 익명으로 이용 · 회원 정보는 동의한 범위에서만 사용됩니다</li>
             </ul>
           </div>
         </div>

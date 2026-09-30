@@ -1,4 +1,7 @@
 import type {
+  CustomerAccount,
+  CustomerPurchase,
+  Settlement,
   ActionStatus,
   B2BAccount,
   Channel,
@@ -14,6 +17,8 @@ import type {
   SkinConcern,
 } from "./types";
 import { daysBetween, todayISO, addDaysISO } from "./date";
+import { repurchaseDue, repurchaseSchedule } from "./repurchase";
+import { summarizeReceivables } from "./settlements";
 
 /* ==========================================================================
    MIRYEO Growth AX — Analytics Adapter (RULE / STATISTICAL)
@@ -326,9 +331,13 @@ export function generateCandidates(input: {
   b2b: B2BAccount[];
   customers: CustomerProfile[];
   today: string;
+  /** 2단계: 회원 구매기록 기반 재구매 · 정산 연체 (대표·관리자 데이터 — STAFF는 빈 배열) */
+  accounts?: CustomerAccount[];
+  purchases?: CustomerPurchase[];
+  settlements?: Settlement[];
 }): GrowthActionCandidate[] {
   const out: GrowthActionCandidate[] = [];
-  const { products, metrics, channelStats, interest, b2b, customers, today } = input;
+  const { products, metrics, channelStats, interest, b2b, customers, today, accounts = [], purchases = [], settlements = [] } = input;
   const daysText = (m: ProductMetrics) => (Number.isFinite(m.daysOfStock) ? `${Math.round(m.daysOfStock)}일` : "-");
 
   for (const p of products) {
@@ -399,9 +408,27 @@ export function generateCandidates(input: {
     }
   }
 
-  const due = customers.filter((c) => c.orderCount >= 2 && c.lastOrderAt && daysBetween(c.lastOrderAt, today) >= 60);
-  if (due.length > 0) {
-    out.push({ ruleKey: "repurchase", category: "재구매", priority: "중간", title: `재구매 시점 고객 ${due.length}명`, judgement: `2회 이상 구매했고 마지막 주문 후 60일이 지난 고객이 ${due.length}명입니다.`, evidence: [`대상 ${due.length}명 (구매 2회+, 60일 경과)`, "기준: 구매 주기 RULE (Demo)"], impact: ["재구매 전환 기회"], recommendation: "고객 동의 범위 안에서 맞춤 루틴 안내를 검토하세요.", decisionMethod: "RULE", href: "/ax/customers", proofType: "REPURCHASE_OUTREACH", snapshot: [{ label: "재구매 대상", value: `${due.length}명` }] });
+  // 재구매: 회원 구매기록(사용기간 기준 예상일)이 있으면 그것을 우선, 없으면 기존 고객 목록 기준
+  if (accounts.length > 0 && purchases.length > 0) {
+    const productById = new Map(products.map((p) => [p.id, p]));
+    const dueItems = repurchaseDue(repurchaseSchedule(purchases, productById, today));
+    const consent = new Set(accounts.filter((a) => a.marketingConsent).map((a) => a.userId));
+    const members = new Set(dueItems.map((i) => i.purchase.customerUserId));
+    const contactable = [...members].filter((id) => consent.has(id)).length;
+    if (members.size > 0) {
+      out.push({ ruleKey: "repurchase-members", category: "재구매", priority: "중간", title: `재구매 시점 회원 ${members.size}명 (안내 동의 ${contactable}명)`, judgement: `구매 기록과 제품 사용기간으로 계산한 재구매 예상일이 7일 이내이거나 최근 지난 회원이 ${members.size}명입니다.`, evidence: [`대상 제품 ${dueItems.length}건`, `마케팅 수신 동의 ${contactable}명 / 미동의 ${members.size - contactable}명`, "예상일 = 구매일 + 사용기간 × 수량 (사용기간 미입력 제품은 종류별 추정)"], impact: ["재구매 전환 기회"], recommendation: "수신 동의한 회원에게만 재구매 안내를 검토하고, 미동의 회원은 마이페이지 표시로만 안내하세요.", decisionMethod: "RULE", href: "/ax/customers#members", proofType: "REPURCHASE_OUTREACH", snapshot: [{ label: "재구매 대상 회원", value: `${members.size}명` }, { label: "안내 가능(동의)", value: `${contactable}명` }] });
+    }
+  } else {
+    const due = customers.filter((c) => c.orderCount >= 2 && c.lastOrderAt && daysBetween(c.lastOrderAt, today) >= 60);
+    if (due.length > 0) {
+      out.push({ ruleKey: "repurchase", category: "재구매", priority: "중간", title: `재구매 시점 고객 ${due.length}명`, judgement: `2회 이상 구매했고 마지막 주문 후 60일이 지난 고객이 ${due.length}명입니다.`, evidence: [`대상 ${due.length}명 (구매 2회+, 60일 경과)`, "기준: 구매 주기 RULE (Demo)"], impact: ["재구매 전환 기회"], recommendation: "고객 동의 범위 안에서 맞춤 루틴 안내를 검토하세요.", decisionMethod: "RULE", href: "/ax/customers", proofType: "REPURCHASE_OUTREACH", snapshot: [{ label: "재구매 대상", value: `${due.length}명` }] });
+    }
+  }
+
+  // 정산: 기한 지난 미수금
+  const rs = summarizeReceivables(settlements, today);
+  if (rs.overdueCount > 0) {
+    out.push({ ruleKey: "settlement-overdue", category: "정산", priority: rs.maxOverdueDays >= 30 ? "우선" : "높음", title: `연체 미수금 ${rs.overdueCount}건 회수`, judgement: `입금 기한이 지난 받을 돈이 ${formatKRW(rs.overdueAmount)} 있습니다 (최장 ${rs.maxOverdueDays}일 경과).`, evidence: [`연체 ${rs.overdueCount}건 · ${formatKRW(rs.overdueAmount)}`, `전체 미수금 ${formatKRW(rs.outstanding)}`], impact: ["현금 흐름 확보", "거래처 신용 관리"], recommendation: "연체 건별로 거래처에 입금 일정을 확인하고, 입금되면 정산 화면에 기록하세요.", decisionMethod: "RULE", href: "/ax/channels?tab=settlements", proofType: "SETTLEMENT_FOLLOWUP", snapshot: [{ label: "연체 미수금", value: formatKRW(rs.overdueAmount) }, { label: "연체 건수", value: `${rs.overdueCount}건` }] });
   }
   return out;
 }

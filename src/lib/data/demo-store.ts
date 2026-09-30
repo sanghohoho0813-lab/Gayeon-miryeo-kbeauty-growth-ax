@@ -8,6 +8,7 @@ import { demoChannels, demoB2B, demoExports } from "../demo/channels";
 import { demoInventory, demoProduction } from "../demo/inventory";
 import { demoSales } from "../demo/sales";
 import { demoCustomerEvents, demoCustomers, demoTechAssets } from "../demo/customers";
+import { demoCustomerAccounts, demoCustomerPurchases, demoSettlements } from "../demo/stage2";
 import { addDaysISO, daysBetween, todayISO } from "../date";
 
 /* DEMO 저장소 — localStorage 단일 JSON DB (DECISIONS D-002).
@@ -16,8 +17,16 @@ import { addDaysISO, daysBetween, todayISO } from "../date";
 const KEY = "miryeo-demo-db-v2";
 const CHANGE_EVENT = "miryeo-db-change";
 
+/** Demo 고객 화면의 저장된 추천 결과 (Live: beauty_recommendations) */
+export interface DemoBeautyResult { id: string; sessionId: string; customerUserId: string | null; productIds: string[]; reasons: Record<string, string>; createdAt: string }
+
 interface DemoDB extends Omit<DataSnapshot, "loadedAt"> {
   version: 2;
+  /** 2단계 보완 시드 적용 여부 (12개월 판매·회원·정산) */
+  stage2?: boolean;
+  /** Demo 판매 시드 형식 (2 = 일 단위) */
+  seedSales?: number;
+  beautyResults: DemoBeautyResult[];
   seededOn: string;
   updatedAt: string;
 }
@@ -43,6 +52,12 @@ function seed(): DemoDB {
     proofEvents: [],
     techAssets: demoTechAssets(),
     baselines: [],
+    customerAccounts: demoCustomerAccounts(),
+    customerPurchases: demoCustomerPurchases(),
+    settlements: demoSettlements(),
+    beautyResults: [],
+    stage2: true,
+    seedSales: 2,
   };
 }
 
@@ -54,6 +69,8 @@ function rebase(db: DemoDB): DemoDB {
   const ms = delta * 86_400_000;
   db.sales = db.sales.map((s) => (s.source === "seed" ? { ...s, saleDate: addDaysISO(s.saleDate, delta) } : s));
   db.customerEvents = db.customerEvents.map((e) => (e.origin === "seed" ? { ...e, createdAt: new Date(Date.parse(e.createdAt) + ms).toISOString() } : e));
+  db.customerPurchases = (db.customerPurchases ?? []).map((p) => (p.id.startsWith("demo-pur-") ? { ...p, purchasedOn: addDaysISO(p.purchasedOn, delta) } : p));
+  db.settlements = (db.settlements ?? []).map((x) => (x.id.startsWith("demo-st-") ? { ...x, issuedOn: addDaysISO(x.issuedOn, delta), dueOn: x.dueOn ? addDaysISO(x.dueOn, delta) : x.dueOn, paidOn: x.paidOn ? addDaysISO(x.paidOn, delta) : x.paidOn } : x));
   db.seededOn = today;
   return db;
 }
@@ -66,6 +83,24 @@ function read(): DemoDB {
       const parsed = JSON.parse(raw) as DemoDB;
       if (parsed.version === 2) {
         parsed.baselines ??= []; // PASS 2에서 추가된 필드
+        if (parsed.stage2 && parsed.seedSales !== 2) {
+          parsed.sales = [...demoSales(), ...parsed.sales.filter((x) => x.source !== "seed")];
+          parsed.seedSales = 2;
+          parsed.seededOn = todayISO();
+          write(parsed, false);
+        }
+        if (!parsed.stage2) {
+          // 2단계 보완: 12개월 판매 시드·회원·정산 추가 (직접 입력한 데이터는 유지)
+          parsed.sales = [...demoSales(), ...parsed.sales.filter((x) => x.source !== "seed")];
+          parsed.customerAccounts = [...demoCustomerAccounts(), ...(parsed.customerAccounts ?? []).filter((a) => !a.userId.startsWith("demo-cust-0"))];
+          parsed.customerPurchases = [...demoCustomerPurchases(), ...(parsed.customerPurchases ?? []).filter((p) => !p.id.startsWith("demo-pur-"))];
+          parsed.settlements = [...demoSettlements(), ...(parsed.settlements ?? []).filter((x) => !x.id.startsWith("demo-st-"))];
+          parsed.beautyResults ??= [];
+          parsed.stage2 = true;
+          parsed.seedSales = 2;
+          parsed.seededOn = todayISO();
+          write(parsed, false);
+        }
         const rebased = rebase(parsed);
         if (rebased.seededOn !== JSON.parse(raw).seededOn) write(rebased, false);
         return rebased;
@@ -163,6 +198,12 @@ export const demoSource: DataSource = {
   setProductFeatured: (productId, until) => mutate((db) => void (db.products = db.products.map((p) => (p.id === productId ? { ...p, featuredUntil: until } : p)))),
   upsertTechAsset: (t) => mutate((db) => void (db.techAssets = upsertBy(db.techAssets, { ...t, updatedAt: new Date().toISOString() }, (x) => x.id))),
   updateOrg: (patch) => mutate((db) => void (db.org = { ...db.org, ...patch })),
+  upsertSettlement: (st) => mutate((db) => void (db.settlements = upsertBy(db.settlements, { ...withId(st), updatedAt: new Date().toISOString() }, (x) => x.id))),
+  addStaffPurchase: (p) =>
+    mutate((db) => {
+      if (!db.customerAccounts.some((a) => a.userId === p.customerUserId)) throw new Error("고객 계정을 찾을 수 없습니다");
+      db.customerPurchases.push({ ...p, id: newId("pur"), source: "STAFF", createdAt: new Date().toISOString() });
+    }),
   lockBaseline: (b) =>
     mutate((db) => {
       const now = new Date().toISOString();
@@ -174,10 +215,15 @@ export const demoSource: DataSource = {
       db.customerEvents.push({ id: newId("ev"), sessionId: e.sessionId, eventType: e.eventType, productId: e.productId ?? null, payload: e.payload, createdAt: new Date().toISOString(), origin: "live" });
       if (db.customerEvents.length > 5000) db.customerEvents = db.customerEvents.slice(-5000);
     }),
-  async saveBeautyResult() {
-    /* Demo: 결과 자체는 Passport(localStorage)에 저장되고, 이벤트는 trackEvent로 기록된다 */
-  },
+  saveBeautyResult: (sessionId, _profile, productIds, reasons, customerUserId) =>
+    mutate((db) => {
+      db.beautyResults.push({ id: newId("rec"), sessionId, customerUserId: customerUserId ?? null, productIds, reasons, createdAt: new Date().toISOString() });
+      if (db.beautyResults.length > 500) db.beautyResults = db.beautyResults.slice(-500);
+    }),
   async reset() {
     write(seed());
   },
 };
+
+/** 고객 계정 Demo 구현(customer-account.ts)용 — 같은 Demo DB를 읽고 쓴다 */
+export const demoDb = { read: () => read(), mutate: (fn: (db: DemoDB) => void) => mutate(fn), CHANGE_EVENT };

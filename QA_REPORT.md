@@ -1,4 +1,4 @@
-# QA_REPORT — MIRYEO K-Beauty Growth AX (PILOT V2 PASS 3)
+# QA_REPORT — MIRYEO K-Beauty Growth AX (계약 2단계 개발 보완)
 
 DATE: 2026-09-30 · Next.js 16.3.7 · MODE TESTED: DEMO + LIVE(로컬 Supabase 호환 스택) · BROWSER: Chromium (Playwright)
 
@@ -8,12 +8,13 @@ DATE: 2026-09-30 · Next.js 16.3.7 · MODE TESTED: DEMO + LIVE(로컬 Supabase �
 | `npm run typecheck` (tsc --noEmit) | PASS |
 | `npm run build` (Next 16, Turbopack) | PASS (21 routes, API 1) |
 | `npm audit --omit=dev` | 0 vulnerabilities (Next 16 업그레이드로 해소) |
-| **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 45/45** (A 7 + B 38) |
+| **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 62/62** (A 7 + B 55) |
+| 2단계 보완 Demo Flow (회원·마이페이지·재구매·정산·월별·브리핑·내보내기·권한·탈퇴) | PASS 41/41 |
 | PASS 3 Demo Flow (상품 일괄 등록·권한) | PASS 11/11 |
-| Route QA: 23 route × 8 viewport (1920/1440/1280/1024/768/430/390/360) — 가로 overflow, console error, HTTP error | PASS (0건) |
+| Route QA: 29 route × 8 viewport (1920/1440/1280/1024/768/430/390/360) — 가로 overflow, console error, HTTP error | PASS (0건) |
 | Whole-App Acceptance Flow (PASS 1 회귀) | PASS 31/31 |
 | PASS 2 Flow (Baseline·주간 리포트·PDF·파일 가져오기·구성원·권한) | PASS 33/33 |
-| DB 검증 `npm run verify:db` (Postgres 16 + Supabase auth stub): migration 001~006, RLS·트리거·이벤트 한도 65개 시나리오, 005·006 재실행 | PASS 65/65 |
+| DB 검증 `npm run verify:db` (Postgres 16 + Supabase auth stub): migration 001~007, RLS·트리거·이벤트 한도·고객/정산 97개 시나리오, 005~007 재실행 | PASS 97/97 |
 | Import 로직 단위 테스트 (열 자동 인식, 날짜 9종, 금액, 중복) | PASS 6/6 |
 | 클라이언트 번들에 service role 키 값·서버 코드 포함 여부 | 없음 (안내 문구의 변수 이름만) |
 | 실제 Supabase 프로젝트(호스팅) 연결 | **NOT VERIFIED** — 자격증명 없음. 로컬 호환 스택에서는 VERIFIED |
@@ -48,6 +49,12 @@ AX OWNER 지정 → 실증 화면 반영
 ### Live E2E 45단계 (로컬 스택, 모두 PASS)
 A: 대표 계정 생성 / 비로그인 → /login / 잘못된 비밀번호 안내 / 조직 없는 계정 → 조직 만들기 / 조직 생성 → DB·OWNER / Live 빈 상태(Demo 없음) / Page error 0
 B: 재로그인 / 채널 저장 / 상품 저장(공개·구매링크) / 상품 일괄 등록(신규·부분 수정) / 판매 파일 8행 인식·저장 / 재고 위험 RULE → Action 생성·이력 / Baseline 잠금(RPC) / Action DONE·승인자·KPI before/after·이력 / Proof(SUPABASE LIVE) / OWNER 확정 / Baseline 대비 변화 / Pilot 시작일·AX OWNER / 고객 홈 실상품 / 구매처 새 창 / 익명 이벤트 5종 / 구매채널 이벤트 / Finder 결과 저장(익명) / AX 고객 인사이트 반영 / 구성원 목록(서버 API) / 초대 2명 / 초대 메일 / 초대 수락·비밀번호·진입 / STAFF 메뉴 / STAFF 버튼 / STAFF 토큰 RLS(판매 O·B2B 0행) / STAFF 구성원 차단 / ADMIN 메뉴 / ADMIN 구성원 조회·초대 폼 없음 / ADMIN API 초대 403 / 역할 변경 / 제거(계정 유지) / 주간 리포트(LIVE) / 장애 중 재시도 안내·잘못된 역할 표시 없음 / 장애 → Error 화면(Demo 없음) / Page error 0
+
+### 2단계 보완에서 발견·수정한 결함
+- Demo 판매 시드가 주 1회 집계 행이라 월별 합계가 그 달에 든 주 수에 따라 출렁임(전월 대비 +77% 같은 가짜 추세) → 일반 채널은 일 단위 행으로 분할 (주간 분석 값은 동일)
+- 한글 CSV 파일명이 일부 브라우저에서 `download`로 바뀜 → 영문 파일명(`miryeo_*`)
+- 고객 인사이트 360~430px 가로 넘침 (새 회원 패널 그리드) → 열 폭 고정
+- 날짜 함수가 시각이 붙은 날짜 문자열에서 실패 → 앞 10자만 사용하도록 보강 (로컬 게이트웨이도 PostgREST와 같은 `YYYY-MM-DD` 반환으로 수정)
 
 ### PASS 3에서 발견·수정한 결함 (Live E2E)
 - **P0**: 익명 고객 Finder 결과 저장 실패 — `insert().select()`는 결과 조회 권한이 필요한데 익명 고객은 없음. 클라이언트 생성 id + RETURNING 없이 저장.

@@ -21,6 +21,18 @@ export function AxGate({ children }: { children: ReactNode }) {
   if (session.status === "misconfigured") return <ConfigErrorState />;
   if (session.status === "error") return <ErrorState title="조직 정보를 확인하지 못했습니다" message={session.error} onRetry={session.refreshMembership} />;
   if (session.status === "no_org") return <OrgOnboarding onDone={session.refreshMembership} />;
+  if (session.status === "customer") {
+    return (
+      <div className="mx-auto mt-16 max-w-lg rounded-2xl border p-8 text-center" style={{ borderColor: "var(--border)" }}>
+        <h1 className="text-[1.3rem] font-bold">고객 계정으로 로그인되어 있습니다</h1>
+        <p className="mt-2 text-[0.95rem] text-ink-soft">Business AX는 가연인터내셔널 구성원 전용입니다.</p>
+        <div className="mt-5 flex justify-center gap-2">
+          <a href="/beauty/me" className="btn-primary">고객 마이페이지로</a>
+          <button className="btn-secondary" onClick={() => void session.signOut().then(() => window.location.assign("/login"))}>로그아웃</button>
+        </div>
+      </div>
+    );
+  }
   if (session.status !== "ready" || status === "loading") return <LoadingState />;
   if (status === "error") return <ErrorState message={error} onRetry={refresh} />;
   return <>{children}</>;

@@ -4,7 +4,7 @@ import { demoProducts } from "./products";
 import { demoChannels } from "./channels";
 
 /**
- * DEMO DATA — 최근 8주 주간 판매 패턴 (index 0 = 8주 전, 7 = 최근 1주).
+ * DEMO DATA — 최근 8주 주간 판매 패턴 (index 0 = 8주 전, 7 = 최근 1주) + 앞선 44주 결정적 이력.
  * DB 구조와 동일하게 "판매 행(sale_date, units, revenue)"으로 변환해 저장한다.
  */
 const patterns: [string, string, number[]][] = [
@@ -33,24 +33,47 @@ const patterns: [string, string, number[]][] = [
   ["p-mst-01", "ch-online", [55, 52, 50, 48, 46, 45, 43, 42]],
 ];
 
+/** 월별 현황 시연용: 최근 8주 앞에 44주를 덧붙여 약 12개월 (결정적 패턴, Demo) */
+const HISTORY_WEEKS = 44;
+function extend(weekly: number[]): number[] {
+  const firstNonZero = weekly.find((u) => u > 0) ?? 0;
+  const periodic = weekly.filter((u) => u === 0).length >= 3; // B2B·수출처럼 격주/3주 간격 납품
+  if (weekly[0] === 0 && !periodic) return [...Array(HISTORY_WEEKS).fill(0), ...weekly]; // 신규 제품
+  const past = Array.from({ length: HISTORY_WEEKS }, (_, w) => {
+    if (periodic) return w % 3 === 0 ? Math.round(firstNonZero * (0.7 + (0.3 * w) / HISTORY_WEEKS)) : 0;
+    const trend = 0.72 + (0.28 * w) / HISTORY_WEEKS;
+    const season = 1 + 0.08 * Math.sin((w / 52) * 2 * Math.PI * 2);
+    return Math.max(0, Math.round(firstNonZero * trend * season));
+  });
+  return [...past, ...weekly];
+}
+
+/** 주간 패턴을 판매 행으로 변환.
+ *  일반 채널: 해당 주 7일에 나눠 일별 행 (월별 집계가 "그 달에 든 주 수"에 따라 출렁이지 않도록)
+ *  B2B·수출처럼 간헐 납품: 납품일 1행 */
 export function demoSales(): SalesRecord[] {
   const records: SalesRecord[] = [];
-  for (const [productId, channelId, weekly] of patterns) {
+  for (const [productId, channelId, recent] of patterns) {
     const product = demoProducts.find((p) => p.id === productId)!;
     const channel = demoChannels.find((c) => c.id === channelId)!;
+    const periodic = recent.filter((u) => u === 0).length >= 3;
+    const weekly = extend(recent);
+    const last = weekly.length - 1;
+    const rev = (u: number) => Math.round(u * product.price * (1 - channel.avgDiscountRate));
     weekly.forEach((units, i) => {
       if (units <= 0) return;
-      // 주간 집계 1행: 해당 주의 마지막 날짜로 기록 (최근 주 = 오늘)
-      const saleDate = daysAgoISO((7 - i) * 7);
-      records.push({
-        id: `seed-${productId}-${channelId}-${i}`,
-        productId,
-        channelId,
-        saleDate,
-        units,
-        revenue: Math.round(units * product.price * (1 - channel.avgDiscountRate)),
-        source: "seed",
-      });
+      const weekEndAgo = (last - i) * 7; // 이 주의 마지막 날 (최근 주 = 오늘)
+      if (periodic) {
+        records.push({ id: `seed-${productId}-${channelId}-${i}`, productId, channelId, saleDate: daysAgoISO(weekEndAgo), units, revenue: rev(units), source: "seed" });
+        return;
+      }
+      const base = Math.floor(units / 7);
+      const extra = units % 7;
+      for (let d = 0; d < 7; d++) {
+        const u = base + (d < extra ? 1 : 0);
+        if (u <= 0) continue;
+        records.push({ id: `seed-${productId}-${channelId}-${i}-${d}`, productId, channelId, saleDate: daysAgoISO(weekEndAgo + d), units: u, revenue: rev(u), source: "seed" });
+      }
     });
   }
   return records;

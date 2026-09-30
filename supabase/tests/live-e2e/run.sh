@@ -19,6 +19,8 @@ start_app() {
 bash supabase/tests/live-e2e/stack.sh | tail -1
 stop_app; start_app ""
 PHASE=A node supabase/tests/live-e2e/e2e.mjs
+# 고객 회원가입은 개인정보 처리방침 URL·버전이 있어야 열린다 (계약 제17조)
+export NEXT_PUBLIC_PRIVACY_POLICY_URL="https://example.com/privacy" NEXT_PUBLIC_PRIVACY_VERSION="v-e2e"
 stop_app; start_app "$(cat /tmp/miryeo-live-e2e/org-id)"
 PHASE=B node supabase/tests/live-e2e/e2e.mjs
 stop_app

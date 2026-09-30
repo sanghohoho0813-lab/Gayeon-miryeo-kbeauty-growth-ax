@@ -4,28 +4,25 @@ import { useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Radio } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
-import { ActionSummaryCard, DataCard, KpiCard, MiniBar, StatusBadge } from "@/components/ax/Cards";
+import { ActionSummaryCard, DataCard, KpiCard, MiniBar } from "@/components/ax/Cards";
 import { DailyEvents } from "@/components/ax/TrendChart";
 import { ActionDrawer } from "@/components/ax/ActionDrawer";
+import { CustomerMembers } from "@/components/ax/CustomerMembers";
 import { AiReadyButton, AI_SPECS } from "@/components/ax/AiReady";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { EmptyState } from "@/components/ax/States";
 import { useModel } from "@/components/providers/DataProvider";
-import { useSession } from "@/components/providers/SessionProvider";
-import { can } from "@/lib/permissions";
 import { EVENT_LABEL, formatPct, INTEREST_GROWTH_MIN, INTEREST_THRESHOLD } from "@/lib/analytics";
-import { daysBetween, formatDateKR, relativeKR } from "@/lib/date";
+import { relativeKR } from "@/lib/date";
 import type { GrowthAction } from "@/lib/types";
 
 export default function CustomersPage() {
   const m = useModel();
-  const { role } = useSession();
   const [open, setOpen] = useState<GrowthAction | null>(null);
   const c = m.customer;
   const interestActions = m.actions.filter((a) => a.category === "고객 관심" || a.category === "재구매");
   const maxScore = Math.max(1, ...c.productInterest.map((p) => p.recentScore));
   const concernTotal = c.concerns.reduce((s, x) => s + x.count, 0);
-  const repurchase = m.snapshot.customers.filter((cu) => cu.orderCount >= 2 && cu.lastOrderAt && daysBetween(cu.lastOrderAt, m.today) >= 60);
 
   return (
     <div>
@@ -124,20 +121,7 @@ export default function CustomersPage() {
         </DataCard>
       </div>
 
-      <DataCard className="mt-6" title="재구매 시점 고객 (구매 2회+, 60일 경과)">
-        {!can(role, "view_financials") ? (
-          <p className="text-[0.92rem] text-ink-soft">고객 목록은 대표/관리자 권한에서 열람합니다.</p>
-        ) : repurchase.length === 0 ? <EmptyState title="대상 고객이 없습니다" /> : (
-          <ul className="grid gap-2 @3xl:grid-cols-2">
-            {repurchase.map((cu) => (
-              <li key={cu.id} className="flex items-center justify-between rounded-xl border p-3 text-[0.9rem]" style={{ borderColor: "var(--border)" }}>
-                <span><span className="font-semibold">{cu.displayName}</span><br /><span className="text-ink-soft">마지막 주문 {formatDateKR(cu.lastOrderAt)} · {cu.orderCount}회</span></span>
-                <StatusBadge tone="warning">재구매 시점</StatusBadge>
-              </li>
-            ))}
-          </ul>
-        )}
-      </DataCard>
+      <CustomerMembers />
 
       <ActionDrawer action={open} onClose={() => setOpen(null)} />
     </div>

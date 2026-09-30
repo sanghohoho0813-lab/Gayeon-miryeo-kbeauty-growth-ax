@@ -141,7 +141,7 @@ function cellToString(c: unknown): string {
 }
 
 /* ---------- 상품 일괄 등록 (SKU 기준: 없으면 신규, 있으면 파일에 값이 있는 항목만 갱신) ---------- */
-export type ProductField = "sku" | "name" | "category" | "price" | "cost" | "line" | "concerns" | "texture" | "routineStep" | "purchaseUrl" | "isPublished";
+export type ProductField = "sku" | "name" | "category" | "price" | "cost" | "line" | "concerns" | "texture" | "routineStep" | "usageDays" | "purchaseUrl" | "isPublished";
 
 export const PRODUCT_FIELDS: FieldDef<ProductField>[] = [
   { key: "sku", label: "SKU / 상품코드", required: true, hint: "상품을 구분하는 고유 코드", aliases: ["sku", "상품코드", "제품코드", "품번", "자체상품코드", "관리코드", "itemcode"] },
@@ -153,6 +153,7 @@ export const PRODUCT_FIELDS: FieldDef<ProductField>[] = [
   { key: "concerns", label: "피부 고민 분류 (선택)", required: false, hint: "수분·진정·탄력·피부결·광채·데일리 케어 (구분: , ; ·)", aliases: ["concerns", "고민", "피부고민", "추천분류", "고민분류"] },
   { key: "texture", label: "사용감 (선택)", required: false, hint: "가벼움·중간·리치", aliases: ["texture", "사용감", "제형", "텍스처"] },
   { key: "routineStep", label: "루틴 단계 (선택)", required: false, hint: "1~4", aliases: ["routinestep", "routine_step", "루틴", "루틴단계", "단계", "step"] },
+  { key: "usageDays", label: "사용기간 일수 (선택)", required: false, hint: "1개 사용 기간, 재구매 예상 계산", aliases: ["usagedays", "usage_days", "사용기간", "사용일수", "사용주기", "소진기간"] },
   { key: "purchaseUrl", label: "구매 링크 (선택)", required: false, hint: "https://…", aliases: ["url", "link", "구매링크", "구매url", "상품url", "상품링크", "링크"] },
   { key: "isPublished", label: "고객 화면 공개 (선택)", required: false, hint: "Y/N, 공개/비공개. 비우면 신규는 비공개", aliases: ["ispublished", "is_published", "공개", "공개여부", "노출", "노출여부", "published"] },
 ];
@@ -237,6 +238,8 @@ export function validateProductRows(input: { body: string[][]; map: Record<Produ
     if (texRaw) { const t = normalizeTexture(texRaw); if (t) set("texture", t, "사용감"); else errors.push(`사용감 인식 불가: ${texRaw}`); }
     const stepRaw = cell(raw, "routineStep");
     if (stepRaw) { const v = Number(stepRaw.replace(/[^0-9]/g, "")); if (v >= 1 && v <= 4) set("routineStep", v, "루틴 단계"); else errors.push(`루틴 단계 1~4: ${stepRaw}`); }
+    const useRaw = cell(raw, "usageDays");
+    if (useRaw) { const v = Number(useRaw.replace(/[^0-9]/g, "")); if (v >= 1 && v <= 365) set("usageDays", v, "사용기간"); else errors.push(`사용기간 1~365일: ${useRaw}`); }
     const url = cell(raw, "purchaseUrl");
     if (url) {
       if (!/^https?:\/\/\S+$/i.test(url)) errors.push(`구매 링크 형식 오류: ${url}`);

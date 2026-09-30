@@ -1,8 +1,23 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-09-30 (PILOT V2 PASS 3)
-DELIVERY STAGE: PILOT Foundation (Contract Kickoff)
-CURRENT PASS: 3 — Live 경로를 로컬 Supabase 호환 스택에서 브라우저 E2E로 검증, 결함 3건 수정, 익명 이벤트 보호, 상품 일괄 등록, Next 16. 실제 Supabase 연결은 USER ACTION 대기
+LAST UPDATED: 2026-09-30 (계약 2단계 개발 보완)
+DELIVERY STAGE: 계약 제11조 2단계 — 6개 핵심기능 초기버전 개발 완료, 시험버전 공개(URL)·1차 보고 대기
+CURRENT PASS: 4 — 2단계 보완(고객 회원·마이페이지·재구매, 정산·미수금, 월별 실적, 대표 브리핑, CSV 내보내기). 실제 Supabase 연결은 USER ACTION 대기
+
+## 계약 별지 제1호 대조 (2026-09-30 기준)
+| No | 핵심모듈 | 구현 | 화면 |
+|---|---|---|---|
+| 1 | 통합 경영 현황판 — 월별·채널별·제품별 매출, 이익, 재고, 받을 돈, 수출, B2B | ✅ 대시보드(4주 KPI + 이번 달 매출·매출총이익·받을 돈) + 월별 실적(12개월·채널별·제품별) | `/ax`, `/ax/monthly` |
+| 2 | 제품별 재고·생산 분석 — 원가·판매가·이익·재고·판매속도·소진일·OEM | ✅ (OEM 생산기간은 생산계획 입고예정일로 관리, 발주량 계산에는 미반영) | `/ax/products` |
+| 3 | 판매채널·B2B·수출 성과관리 — 실적 비교, 거래처·납품·정산 상태 | ✅ 채널 분석·B2B·수출 + 정산·미수금(청구·부분입금·연체) | `/ax/channels` |
+| 4 | AI 성장 실행센터 — 행동 제안 + 대표자용 요약 | ✅ RULE 행동추천·Action 생애주기 + 대표 브리핑(RULE 요약). LLM 문장화는 READY(승인 시) | `/ax/growth`, `/ax` |
+| 5 | AI 제품·사용순서 추천 → 구매 결정 | ✅ Finder → 루틴 → 제품 상세 → 구매처 이동 | `/beauty/finder` |
+| 6 | 고객 뷰티 기록·회원·재구매 — 고객계정·마이페이지·추천결과·구매이력·재구매 예상시점 | ✅ 회원가입(필수/선택 동의 분리)·마이페이지·추천 기록(가입 전 기록 연결)·구매 기록(고객/운영자)·재구매 예상일·탈퇴 | `/beauty/login`, `/beauty/me`, `/ax/customers#members` |
+
+제5조 기본기능: 로그인·권한 ✅ · 검색·필터·등록·수정·조회·이력 ✅ · 반응형 ✅ · CSV·엑셀 입력 ✅ **및 내보내기 ✅**(`/ax/data?tab=export`) · AI 흐름 ✅ · 대표자 브리핑 ✅ · 추천→구매 흐름 ✅
+
+완료·검수 기준 중 남은 것: **MVP 시험버전 공개 + 1차 완료 보고 전달** (USER ACTION: Supabase·Vercel 설정 → 공개 URL)
+계약 2단계 중 개발 외 결과물(특허기술자료, 벤처/기업정비 기초자료)은 이 저장소 범위 밖.
 
 ## PASS 3 변경 요약
 | 항목 | 상태 |
@@ -102,7 +117,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | # | 구분 | 작업 | 상태 |
 |---|---|---|---|
 | 1 | SUPABASE | Project 생성 | WAITING |
-| 2 | SUPABASE | migration 001→002→003→**005→006** 실행 (004 선택) | WAITING |
+| 2 | SUPABASE | migration 001→002→003→**005→006→007** 실행 (004 선택) | WAITING |
 | 3 | SUPABASE | OWNER 계정 생성 → `/login` → 조직 만들기 | WAITING |
 | 4 | ENV | `NEXT_PUBLIC_DATA_MODE=live`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | WAITING |
 | 5 | ENV | `NEXT_PUBLIC_MIRYEO_ORG_ID` (조직 생성 후) | WAITING |
@@ -111,6 +126,9 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | 7 | DATA | 실제 상품 1~2개, 재고, 판매 샘플, 구매 링크 | WAITING |
 | 8 | DATA | Pilot 시작일 + Money KPI 3 Baseline 잠금 (실측·자기기록 값) | WAITING |
 | 8-1 | DATA | 실제 판매 엑셀 샘플 1개 (열 이름 별칭 보강용) | WAITING |
+| 8-2 | LEGAL | **고객 개인정보 처리방침 URL·버전 확정** → `NEXT_PUBLIC_PRIVACY_POLICY_URL`, `NEXT_PUBLIC_PRIVACY_VERSION` (없으면 Live 회원가입 비활성), 별지 제6호 적용 여부 | WAITING |
+| 8-3 | DATA | 제품별 사용기간(일) — 재구매 예상일 정확도 (미입력 시 종류별 추정) | WAITING |
+| 8-4 | DATA | 거래처별 청구·입금 현황 (미수금 초기값) | WAITING |
 | 9 | PEOPLE | AX OWNER 지정, ADMIN/STAFF 계정 목록 | WAITING |
 | 10 | FACT | 법인 관계(가연인터내셔널·MIRYEO·OEM), 기술자산 상태 확인 | WAITING |
 
@@ -125,7 +143,8 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 기술자산 상태 기본값 "미확인"
 
 ## 10. NEXT PRIORITY
-1. (USER ACTION 1~6 완료 시) **실제 Supabase 연결 확인**: `e2e.mjs`와 같은 순서로 1회 (특히 Realtime, 초대 메일 Redirect URL)
+0. **시험버전 공개 + 1차 완료 보고** (계약 제12조: 보고 후 5영업일 이의 없으면 2단계 진행 확인) — USER ACTION 1~6 후 공개 URL로 보고서 작성
+1. (USER ACTION 1~6 완료 시) **실제 Supabase 연결 확인**: `e2e.mjs`와 같은 순서로 1회 (특히 Realtime, 초대·가입 메일 Redirect URL)
 2. 실제 판매·상품 엑셀 수령 → 열 별칭 보강 → 첫 실데이터 입력 지원 (Week 0)
 3. 고객 화면 공개 준비: 실제 제품 정보·구매 링크 확인, 봇 방지(R-14) 필요성 판단
 4. Week 1~4 운영 지원: 주간 리포트 기반 점검 루틴

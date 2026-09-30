@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ChevronLeft, ChevronRight, Printer } from "lucide-react";
 import { StatusBadge } from "@/components/ax/Cards";
+import { BriefingCard } from "@/components/ax/BriefingCard";
 import { ACTION_STATUS_LABEL } from "@/components/ax/Cards";
 import { useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
@@ -84,6 +85,8 @@ function Inner() {
           </div>
           {!isLive && <p className="mt-3 rounded-lg p-2.5 text-[0.84rem] font-semibold" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>DEMO 데이터 — 시연용이며 실증 자료로 사용할 수 없습니다.</p>}
         </header>
+
+        {isCurrent && <div className="mt-6 print-break-avoid"><BriefingCard compact /></div>}
 
         <Section n={1} title="이번 주 운영 요약">
           <div className="grid grid-cols-2 gap-2 @xl:grid-cols-4">
