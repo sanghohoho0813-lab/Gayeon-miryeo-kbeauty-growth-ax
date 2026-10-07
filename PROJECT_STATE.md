@@ -26,7 +26,7 @@ CURRENT PASS: 7 — 공개 Demo 배포(https://gayeon-miryeo-kbeauty-growth-ax.v
 |---|---|
 | 배포 상태 확인: Vercel 프로젝트 연결, 기본 브랜치 push마다 Production 자동 배포, 공개 주소 https://gayeon-miryeo-kbeauty-growth-ax.vercel.app = DEMO 모드·최신 커밋, 배포별 주소는 Vercel 로그인 보호 | VERIFIED (GitHub deployments API + curl) |
 | 공개 주소 HTTP 점검: 23개 경로 200·DEMO 표기, AI 브리핑 POST → 503 AI_DISABLED(비용 없음), HSTS 있음 | VERIFIED |
-| 결함(공개 사이트): 검색 노출 제어 없음(robots 404·noindex 없음), 보안 헤더 없음(nosniff·Referrer·Permissions·클릭재킹 차단) → D-039 | FIXED (로컬 검증 후 배포 확인 — QA_REPORT) |
+| 결함(공개 사이트): 검색 노출 제어 없음(robots 404·noindex 없음), 보안 헤더 없음(nosniff·Referrer·Permissions·클릭재킹 차단) → D-039 | FIXED + 배포 확인 (커밋 5e02e0b, 공개 주소에서 robots·헤더 6종·noindex 확인) |
 | 결함: 저장한 테마·글자 크기·모션 줄이기가 hydration 후에야 적용 → 매 진입 시 기본 테마 깜빡임, 모션 줄이기 사용자에게 첫 애니메이션 재생 → D-041 | FIXED + VERIFIED (JS 차단 상태에서도 첫 화면에 적용 3종·hydration 후 기본값으로 바뀌는 순간 없음) |
 | 공개 주소 브라우저 자동 테스트 | NOT RUN — 작업 환경 프록시 인증서를 브라우저가 신뢰하지 않음. 인증서 검증 우회는 하지 않음. 같은 커밋의 로컬 빌드로 대신 검증 |
 

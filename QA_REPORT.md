@@ -64,6 +64,7 @@ B: 재로그인 / 채널 저장 / 상품 저장(공개·구매링크) / 상품 �
 
 ### PASS 7 — 공개 주소 점검·발견 결함
 - 공개 주소(DEMO) `curl` 점검: 23개 경로 200·DEMO 표기·런타임 오류 문구 없음, AI 브리핑 POST 503(꺼짐), HSTS 있음. 배포 전: robots 404·noindex 없음·보안 헤더 없음 → D-039로 수정
+- 배포 후 확인 (커밋 5e02e0b, Vercel 배포 success): 공개 주소 robots `Disallow: /`, `x-robots-tag: noindex`, nosniff·Referrer·Permissions·X-Frame-Options·CSP frame-ancestors·HSTS, `x-powered-by` 없음, 첫 화면 설정 스크립트 포함, 22개 화면 200·오류 0
 - 브라우저 자동 테스트는 공개 주소에 직접 실행하지 않음: 작업 환경 프록시의 가로채기 인증서(2026-08)가 브라우저 인증서 저장소에 없음. 인증서 검증을 끄는 우회는 하지 않고, 같은 커밋의 로컬 빌드로 전체 회귀 + 배포 후 `curl` 확인
 - **결함 (UX·접근성)**: 저장한 테마·글자 크기·모션 줄이기가 hydration 후에 적용 → 기본 테마 깜빡임·첫 애니메이션 재생. 7 Theme 비교 테스트가 30/31로 실패하며 드러남(5번째 테마가 기본 네이비로 측정). 첫 화면 전 스크립트로 수정(D-041), 새 테스트 `qa-boot` 5/5 — JS 번들을 막아도 저장 설정이 첫 화면에 적용, hydration 중 기본 테마로 바뀌는 순간 없음(속성 변경 기록 `deep-teal → deep-teal`)
 
