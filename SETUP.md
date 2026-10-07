@@ -36,7 +36,9 @@ Demo 모드: Seed + 브라우저 저장소. 설정 > Demo 초기화로 원상복
 8. 생성된 `organizations.id`를 `NEXT_PUBLIC_MIRYEO_ORG_ID`에 설정 (고객 화면 이벤트 기록 대상) → 재배포
 
 ### [VERCEL]
-9. Environment Variables 반영 후 Redeploy
+> 현재(2026-10-07 확인): Vercel 프로젝트가 이미 연결되어 있음. GitHub 기본 브랜치 = `claude/miryeo-kbeauty-growth-ax-9urrn9`이며 **push마다 Production 자동 배포**. 공개 주소 https://gayeon-miryeo-kbeauty-growth-ax.vercel.app (현재 **DEMO 모드**). 배포별 주소(`…-<hash>-ksh90813.vercel.app`)는 Vercel 로그인 보호가 걸려 있어 외부인은 공개 주소로만 접속.
+9. Vercel > Project > Settings > Environment Variables에 위 ENV 반영 후 Redeploy (환경변수는 빌드 시 반영되므로 재배포 필수)
+   - (선택) 고객 화면을 검색에 노출하려면 `NEXT_PUBLIC_ALLOW_INDEXING=on` (Live일 때만 적용, Business AX·로그인·API는 항상 검색 제외). 기본은 전체 검색 제외
 9-1. 대표 계정으로 **`/ax/system` 공개 전 점검** → "공개 가능 — 문제 없음" 확인 (DB 설치·익명 노출·조직 ID·공개 상품·관리 키를 자동 확인, 조직 ID 복사 버튼 있음). 문제 항목은 화면의 '해결' 안내대로 처리
 
 ### [DATA]

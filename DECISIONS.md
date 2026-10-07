@@ -153,3 +153,16 @@
 - 입력 항목은 Demo 시드를 세지 않는다(D-033과 같은 범위). 시작 가이드를 마치면 대시보드 배너가 운영 점검으로 바뀐다. 주간 리포트(현재 주, 대표·관리자)에 인쇄용으로 포함.
 - WHY: 실증의 가장 큰 위험은 데이터 입력이 멈추는 것(QA Five Devil Q2). 사람이 기억하지 않아도 매주 같은 기준으로 드러나게.
 
+## D-039 공개 사이트 기본 보안 헤더 + 검색 노출 기본 차단
+- 모든 응답: `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`(카메라·마이크·위치·결제 차단), `X-Frame-Options: SAMEORIGIN` + `CSP frame-ancestors 'self'`(다른 사이트가 로그인 화면을 감싸는 클릭재킹 차단, Device View는 같은 출처라 영향 없음). HSTS는 Vercel이 제공.
+- 검색: Demo이거나 `NEXT_PUBLIC_ALLOW_INDEXING=on`이 아니면 전체 `noindex` + robots `Disallow: /`. 허용해도 `/ax`·`/login`·`/api`는 항상 제외.
+- WHY: 공개 Demo 주소에 실제 브랜드명(MIRYEO)과 Demo 제품·숫자가 있어, 검색되면 Demo가 실제 제품·실적처럼 보일 수 있음(원칙: Demo를 실적처럼 보이게 하지 않는다). 고객 화면 검색 노출은 사업 판단이라 기본 꺼짐.
+
+## D-040 push = Production 배포 → push 전 전체 회귀 필수
+- 2026-10-07 확인: GitHub 기본 브랜치가 작업 브랜치이고 Vercel이 push마다 Production(https://gayeon-miryeo-kbeauty-growth-ax.vercel.app)에 배포. 따라서 커밋 전 Demo 회귀(Flow·PASS2·PASS3·Stage2·PASS6·Route 31×8·접근성)를 통과한 뒤에만 push. Live·DB 관련 변경은 Live E2E·verify:db까지.
+- 배포 후 `curl`로 공개 주소의 전 화면 200·DEMO 표기·헤더를 확인한다. (작업 환경의 브라우저는 프록시 인증서 문제로 공개 주소에 직접 접속하지 않으며, 인증서 검증을 끄는 우회는 하지 않는다.)
+
+## D-041 화면 설정(테마·글자 크기·모션 줄이기)은 첫 화면 전에 적용
+- `src/lib/themes.ts`의 `SETTINGS_BOOT_SCRIPT`를 root layout `<head>`에서 실행해 저장값을 `<html>`에 먼저 적용. `SettingsProvider`는 저장값을 읽은 뒤에만 속성을 바꾼다(그 전에 기본값으로 덮어쓰지 않음). 테마 상수는 React 의존 없는 `src/lib/themes.ts`로 이동.
+- WHY: 기존에는 hydration 뒤 useEffect에서 적용 → 다른 테마를 고른 사용자가 매 페이지 진입마다 기본 네이비를 잠깐 봄, '모션 줄이기' 사용자에게 첫 애니메이션이 재생됨(접근성). 회귀 테스트(7 Theme 색 비교)가 간헐 실패로 드러냄 — 테스트 문제가 아니라 실제 결함.
+

@@ -1,4 +1,4 @@
-# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 6)
+# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 7)
 
 DATE: 2026-10-07 · Next.js 16.3.7 · MODE TESTED: DEMO + LIVE(로컬 Supabase 호환 스택) · BROWSER: Chromium (Playwright)
 
@@ -9,6 +9,8 @@ DATE: 2026-10-07 · Next.js 16.3.7 · MODE TESTED: DEMO + LIVE(로컬 Supabase �
 | `npm run build` (Next 16, Turbopack) | PASS |
 | `npm audit` | 0 vulnerabilities (2026-10-07 공개된 sharp·source-map-js high 2건 → `npm audit fix`로 해소, 전체 회귀 재실행) |
 | **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 68/68** (A 7 + B 61 — 공개 전 점검 정상 판정, 판매 RLS 해제 시 노출 탐지, 점검 API 권한·키 값 미포함 포함) |
+| **PASS 7** 화면 설정 첫 화면 적용 `qa-boot` (JS 차단 상태 3종 + hydration 중 기본 테마 없음 + 설정 변경) | PASS 5/5 |
+| 보안 헤더·robots (Demo 로컬 + 환경변수 3조합 규칙 평가) | PASS |
 | **PASS 6 Demo** (공개 전 점검 Demo 판정·권한·API, 주간 운영 점검 시드 제외·실입력 정상·지연 탐지·주간 리포트·배너) | PASS 19/19 |
 | **접근성** axe-core WCAG 2.1 A/AA — 26개 화면 × 1440·390px (reduced motion) | **PASS 0건** (수정 전 4종: 대비·버튼 이름·라벨 불일치·스크롤 영역 키보드) |
 | **AI 브리핑** (가짜 Anthropic 서버 :4010) — 요청 형식(모델·effort·fallbacks·beta 헤더)·시스템 규칙·개인정보 미포함·근거 없는 숫자 폐기·거절 처리·직원 차단·임의 입력 거부 | PASS 11/11 |
@@ -59,6 +61,11 @@ B: 재로그인 / 채널 저장 / 상품 저장(공개·구매링크) / 상품 �
 ### PASS 5에서 발견·수정한 결함
 - 접근성: 상태 색(성공·주의)·금색 글자 대비 부족 → 토큰 조정(D-035), 아이콘만 있는 역할 버튼 이름 없음 → 숨김 텍스트, 알림 벨 라벨이 보이는 숫자와 불일치 → 수정, 가로 스크롤 표 키보드 접근 불가 → `tabIndex=0` 15곳
 - 테스트 환경: 시험용 XLSX 날짜 고정값 → 실행일 기준으로 재생성. playwright-core는 설치된 Chromium 1194에 맞춰 1.56 고정(SETUP §E)
+
+### PASS 7 — 공개 주소 점검·발견 결함
+- 공개 주소(DEMO) `curl` 점검: 23개 경로 200·DEMO 표기·런타임 오류 문구 없음, AI 브리핑 POST 503(꺼짐), HSTS 있음. 배포 전: robots 404·noindex 없음·보안 헤더 없음 → D-039로 수정
+- 브라우저 자동 테스트는 공개 주소에 직접 실행하지 않음: 작업 환경 프록시의 가로채기 인증서(2026-08)가 브라우저 인증서 저장소에 없음. 인증서 검증을 끄는 우회는 하지 않고, 같은 커밋의 로컬 빌드로 전체 회귀 + 배포 후 `curl` 확인
+- **결함 (UX·접근성)**: 저장한 테마·글자 크기·모션 줄이기가 hydration 후에 적용 → 기본 테마 깜빡임·첫 애니메이션 재생. 7 Theme 비교 테스트가 30/31로 실패하며 드러남(5번째 테마가 기본 네이비로 측정). 첫 화면 전 스크립트로 수정(D-041), 새 테스트 `qa-boot` 5/5 — JS 번들을 막아도 저장 설정이 첫 화면에 적용, hydration 중 기본 테마로 바뀌는 순간 없음(속성 변경 기록 `deep-teal → deep-teal`)
 
 ### PASS 6에서 발견·수정한 결함
 - `/ax/system` 390·430px 가로 넘침: 긴 환경변수 이름(끊을 곳 없는 문자열)이 줄바꿈되지 않음 → `break-any` (화면 폭 점검으로 발견)

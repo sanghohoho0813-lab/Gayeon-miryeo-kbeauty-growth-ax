@@ -22,7 +22,7 @@ npm run verify:db    # (선택) 로컬 Postgres로 migration + RLS·트리거 97
 npm run setup-sql    # migration 수정 후 supabase/setup_all.sql 재생성
 bash supabase/tests/live-e2e/run.sh   # (선택) 로컬 Supabase 호환 스택에서 Live 모드 브라우저 E2E (SETUP.md §E)
 ```
-Live 전환은 **SETUP.md** 참고. 1차 완료 보고서 초안: **STAGE2_DELIVERY_REPORT.md**
+공개 주소(현재 DEMO): https://gayeon-miryeo-kbeauty-growth-ax.vercel.app — 기본 브랜치 push마다 Vercel Production 자동 배포이므로 push 전 전체 회귀 필수(DECISIONS D-040). Live 전환은 **SETUP.md** 참고. 1차 완료 보고서 초안: **STAGE2_DELIVERY_REPORT.md**
 
 ## Data Mode (정확한 동작)
 - `NEXT_PUBLIC_DATA_MODE=demo` (기본): Demo Seed + 브라우저 저장소. 화면에 DEMO 표시, Demo 초기화 가능.

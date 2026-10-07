@@ -1,8 +1,8 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-10-07 (PASS 6 — 공개 준비: 공개 전 점검·Supabase 일괄 설치·주간 운영 점검)
+LAST UPDATED: 2026-10-07 (PASS 7 — 공개 Demo 배포 확인·보안 헤더·검색 노출 차단)
 DELIVERY STAGE: 계약 제11조 2단계 — 6개 핵심기능 초기버전 개발 완료, 시험버전 공개(URL)·1차 보고 대기
-CURRENT PASS: 6 — 공개 준비. 공개 전 점검(`/ax/system`), Supabase 일괄 설치(`supabase/setup_all.sql`), 주간 운영 점검(Week 1~12). 시험버전 공개·실제 Supabase 연결은 USER ACTION 대기
+CURRENT PASS: 7 — 공개 Demo 배포(https://gayeon-miryeo-kbeauty-growth-ax.vercel.app) 확인, 보안 헤더·검색 노출 차단. **push = Production 배포**(D-040). Live 전환·실제 Supabase 연결은 USER ACTION 대기
 
 ## 계약 별지 제1호 대조 (2026-09-30 기준)
 | No | 핵심모듈 | 구현 | 화면 |
@@ -16,8 +16,19 @@ CURRENT PASS: 6 — 공개 준비. 공개 전 점검(`/ax/system`), Supabase 일
 
 제5조 기본기능: 로그인·권한 ✅ · 검색·필터·등록·수정·조회·이력 ✅ · 반응형 ✅ · CSV·엑셀 입력 ✅ **및 내보내기 ✅**(`/ax/data?tab=export`) · AI 흐름 ✅ · 대표자 브리핑 ✅ · 추천→구매 흐름 ✅
 
-완료·검수 기준 중 남은 것: **MVP 시험버전 공개 + 1차 완료 보고 전달** (USER ACTION: Supabase·Vercel 설정 → 공개 URL)
+완료·검수 기준 중 남은 것: **MVP 시험버전 공개 + 1차 완료 보고 전달**
+- **공개 주소(DEMO) 있음**: https://gayeon-miryeo-kbeauty-growth-ax.vercel.app — Vercel이 push마다 자동 배포 (2026-10-07 확인, 전 화면 200). Live 시험버전은 USER ACTION(Supabase·환경변수) 후 같은 주소에서 전환
+- Demo 주소를 시험버전으로 먼저 보고할지, Live 전환 후 보고할지는 **사용자 결정** (보고서 초안에 두 경우 모두 표기)
 계약 2단계 중 개발 외 결과물(특허기술자료, 벤처/기업정비 기초자료)은 이 저장소 범위 밖.
+
+## PASS 7 변경 요약 (2026-10-07)
+| 항목 | 상태 |
+|---|---|
+| 배포 상태 확인: Vercel 프로젝트 연결, 기본 브랜치 push마다 Production 자동 배포, 공개 주소 https://gayeon-miryeo-kbeauty-growth-ax.vercel.app = DEMO 모드·최신 커밋, 배포별 주소는 Vercel 로그인 보호 | VERIFIED (GitHub deployments API + curl) |
+| 공개 주소 HTTP 점검: 23개 경로 200·DEMO 표기, AI 브리핑 POST → 503 AI_DISABLED(비용 없음), HSTS 있음 | VERIFIED |
+| 결함(공개 사이트): 검색 노출 제어 없음(robots 404·noindex 없음), 보안 헤더 없음(nosniff·Referrer·Permissions·클릭재킹 차단) → D-039 | FIXED (로컬 검증 후 배포 확인 — QA_REPORT) |
+| 결함: 저장한 테마·글자 크기·모션 줄이기가 hydration 후에야 적용 → 매 진입 시 기본 테마 깜빡임, 모션 줄이기 사용자에게 첫 애니메이션 재생 → D-041 | FIXED + VERIFIED (JS 차단 상태에서도 첫 화면에 적용 3종·hydration 후 기본값으로 바뀌는 순간 없음) |
+| 공개 주소 브라우저 자동 테스트 | NOT RUN — 작업 환경 프록시 인증서를 브라우저가 신뢰하지 않음. 인증서 검증 우회는 하지 않음. 같은 커밋의 로컬 빌드로 대신 검증 |
 
 ## PASS 6 변경 요약 (2026-10-07)
 | 항목 | 상태 |
@@ -141,7 +152,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | 3 | SUPABASE | OWNER 계정 생성 → `/login` → 조직 만들기 | WAITING |
 | 4 | ENV | `NEXT_PUBLIC_DATA_MODE=live`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | WAITING |
 | 5 | ENV | `NEXT_PUBLIC_MIRYEO_ORG_ID` (조직 생성 후) | WAITING |
-| 6 | VERCEL | 환경변수 반영 + Redeploy | WAITING |
+| 6 | VERCEL | 환경변수 반영 + Redeploy (프로젝트·자동 배포는 이미 연결됨 — DEMO 운영 중) | WAITING |
 | 6-0 | CHECK | 재배포 후 대표 계정으로 `/ax/system` → "공개 가능 — 문제 없음" | WAITING |
 | 6-1 | ENV (선택) | `SUPABASE_SERVICE_ROLE_KEY` (서버 전용, 앱 내 초대용) + Supabase Redirect URL에 `/login` 추가 | WAITING |
 | 7 | DATA | 실제 상품 1~2개, 재고, 판매 샘플, 구매 링크 | WAITING |

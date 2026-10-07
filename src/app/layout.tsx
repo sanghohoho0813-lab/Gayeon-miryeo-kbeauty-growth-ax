@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SettingsProvider } from "@/components/providers/SettingsProvider";
 import { DeviceViewProvider } from "@/components/device/DeviceView";
+import { SETTINGS_BOOT_SCRIPT } from "@/lib/themes";
 
 export const metadata: Metadata = {
   title: "MIRYEO K-Beauty Growth AX",
@@ -16,6 +17,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" data-ax-theme="deep-navy" suppressHydrationWarning>
+      <head>
+        {/* 저장된 화면 설정을 첫 화면 전에 적용 (DECISIONS D-041) */}
+        <script dangerouslySetInnerHTML={{ __html: SETTINGS_BOOT_SCRIPT }} />
+      </head>
       <body>
         <SettingsProvider>
           <DeviceViewProvider>{children}</DeviceViewProvider>

@@ -8,7 +8,7 @@
 | 수신 | 주식회사 가연인터내셔널 |
 | 발신 | 미래에이아이랩 |
 | 보고일 | [ 2026년 __월 __일 ] |
-| 시험버전(MVP 베타) 주소 | [ 공개 주소 — Supabase·Vercel 설정 후 기입 ] |
+| 시험버전(MVP 베타) 주소 | https://gayeon-miryeo-kbeauty-growth-ax.vercel.app (현재 Demo 데이터 — 시연용 · 실제 실적 아님) [ Live 전환 후 같은 주소에서 실데이터로 운영 — 전환일 기입 ] |
 | 시험 계정 | [ 대표(OWNER) 계정 이메일 — 별도 전달 ] |
 | 코드 기준 | 브랜치 `claude/miryeo-kbeauty-growth-ax-9urrn9` |
 
