@@ -103,9 +103,9 @@ export default function SystemCheckPage() {
                   <li key={c.id} data-check={c.id} data-status={c.status} className="ax-card flex items-start gap-3 p-4">
                     <I.C size={22} className="mt-0.5 shrink-0" style={{ color: I.color }} aria-label={I.label} />
                     <div className="min-w-0 flex-1">
-                      <div className="font-bold">{c.label}</div>
+                      <div className="break-any font-bold">{c.label}</div>
                       <p className="break-any mt-0.5 text-[0.88rem]">{c.detail}</p>
-                      {c.fix && c.status !== "ok" && <p className="mt-1 text-[0.84rem] text-ink-soft">해결: {c.fix}</p>}
+                      {c.fix && c.status !== "ok" && <p className="break-any mt-1 text-[0.84rem] text-ink-soft">해결: {c.fix}</p>}
                     </div>
                   </li>
                 );
@@ -114,7 +114,7 @@ export default function SystemCheckPage() {
           </section>
         );
       })}
-      <p className="mt-6 text-[0.84rem] text-ink-soft">설치 순서는 SETUP.md §B, 새 Supabase 프로젝트는 <code>supabase/setup_all.sql</code> 한 번 실행으로 데이터베이스가 준비됩니다. 실제 자료 입력 순서는 <Link className="underline" href="/ax/start">시작 가이드</Link>를 보세요.</p>
+      <p className="break-any mt-6 text-[0.84rem] text-ink-soft">설치 순서는 SETUP.md §B, 새 Supabase 프로젝트는 <code>supabase/setup_all.sql</code> 한 번 실행으로 데이터베이스가 준비됩니다. 실제 자료 입력 순서는 <Link className="underline" href="/ax/start">시작 가이드</Link>를 보세요.</p>
     </div>
   );
 }

@@ -131,7 +131,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 높이 < 약 880px이면 frame이 비율 축소 (내부 viewport 390 유지) — KNOWN
 
 ## 7. QA
-- 2026-10-07: typecheck / build PASS, Route QA 30×8 이상 0, Demo 31/31 · PASS2 33/33 · PASS3 11/11 · Stage2 41/41 · AI 11/11, 접근성 0건, Live E2E 62/62, DB 97/97, npm audit 0 → `QA_REPORT.md`
+- 2026-10-07 (PASS 6): typecheck / build PASS, Route QA 31×8 이상 0, Demo 31/31 · PASS2 33/33 · PASS3 11/11 · Stage2 41/41 · PASS6 19/19 (AI 11/11은 PASS 5), 접근성 26화면 0건, Live E2E 68/68, DB 97/97 + setup_all 스키마 동일 → `QA_REPORT.md`
 
 ## 8. USER ACTION QUEUE
 | # | 구분 | 작업 | 상태 |

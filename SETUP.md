@@ -62,7 +62,7 @@ values ('<org id>', '<auth user id>', 'STAFF'); -- OWNER / ADMIN / STAFF
 - `npm run verify:db` — 로컬 Postgres에 auth stub을 만들고 001~007 + RLS·트리거 97개 시나리오 실행, `setup_all.sql`이 최신인지 확인하고 새 DB에 한 번에 적용해 개별 migration 결과와 스키마가 같은지 비교
 - `npm run setup-sql` — migration을 고친 뒤 `supabase/setup_all.sql` 다시 생성 (직접 수정 금지)
 - `bash supabase/tests/live-e2e/run.sh` — 로컬 Supabase 호환 스택으로 앱을 **Live 모드로 빌드·실행**하고 브라우저 E2E 실행 (Phase A 7 + B 60 — 공개 전 점검 정상 판정과 RLS 해제 시 노출 탐지 포함)
-  - 전제: Postgres 16 실행 중, Supabase Auth 바이너리(`GOTRUE_BIN`, `github.com/supabase/auth`를 Go로 빌드), `npm i --no-save playwright-core@1.56` (설치된 Chromium 1194와 같은 버전 — 버전이 다르면 networkidle 대기가 멈출 수 있음), Chromium(`CHROMIUM_PATH`)
+  - 전제: Postgres 16 실행 중, Supabase Auth 바이너리(`GOTRUE_BIN`, `github.com/supabase/auth`를 Go로 빌드), `npm i --no-save playwright-core@1.56` (설치된 Chromium 1194와 같은 버전), Chromium(`CHROMIUM_PATH`)
   - 구성: `stack.sh`(DB·Auth·게이트웨이·SMTP 수신), `gateway.mjs`(PostgREST 호환 최소 구현 — 검증 전용), `e2e.mjs`(Phase A/B)
   - 끝나면 `.next`가 Live 빌드이므로 `npm run build`로 다시 빌드
 
