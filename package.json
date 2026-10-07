@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "verify:db": "bash supabase/tests/run.sh"
+    "verify:db": "bash supabase/tests/run.sh",
+    "setup-sql": "node scripts/build-setup-sql.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

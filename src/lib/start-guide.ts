@@ -22,21 +22,37 @@ export interface GuideStep {
 
 const SEED_CHANNELS = new Set(demoChannels.map((c) => c.id));
 
+/** Demo 시드를 뺀 실데이터 범위 — 시작 가이드·주간 운영 점검 공통 */
+export function realScope(s: DataSnapshot) {
+  const products = s.products.filter((p) => !p.isDemo);
+  const ids = new Set(products.map((p) => p.id));
+  return {
+    products,
+    ids,
+    channels: s.channels.filter((c) => !SEED_CHANNELS.has(c.id)),
+    sales: s.sales.filter((x) => x.source !== "seed"),
+    inventory: s.inventory.filter((i) => ids.has(i.productId)),
+    settlements: s.settlements.filter((x) => !x.id.startsWith("demo-st-")),
+    /** Demo 시드 Proof(DEMO SEED·BROWSER DEMO) 제외 */
+    proofs: s.proofEvents.filter((p) => p.dataSource !== "DEMO SEED" && p.dataSource !== "BROWSER DEMO"),
+  };
+}
+
 export function buildStartGuide(s: DataSnapshot, today: string): GuideStep[] {
-  const realProducts = s.products.filter((p) => !p.isDemo);
-  const realIds = new Set(realProducts.map((p) => p.id));
-  const realChannels = s.channels.filter((c) => !SEED_CHANNELS.has(c.id));
-  const realSales = s.sales.filter((x) => x.source !== "seed");
+  const r = realScope(s);
+  const realProducts = r.products;
+  const realChannels = r.channels;
+  const realSales = r.sales;
   const salesDays = realSales.length ? daysBetween(realSales.reduce((a, x) => (x.saleDate < a ? x.saleDate : a), today), today) : 0;
-  const invReal = s.inventory.filter((i) => realIds.has(i.productId));
+  const invReal = r.inventory;
   const published = realProducts.filter((p) => p.isPublished);
   const linked = published.filter((p) => p.purchaseLinks.some((l) => l.url));
   const usage = realProducts.filter((p) => p.usageDays);
   const costed = realProducts.filter((p) => p.cost != null);
-  const realSettle = s.settlements.filter((x) => !x.id.startsWith("demo-st-"));
+  const realSettle = r.settlements;
   const baselines = (["COST", "REVENUE", "SCALE"] as const).filter((k) => activeBaseline(s.baselines, k));
   const doneActions = s.actions.filter((a) => a.status === "DONE").length;
-  const confirmed = s.proofEvents.filter((p) => p.status === "RESULT_CONFIRMED" && p.dataSource !== "DEMO SEED" && p.dataSource !== "BROWSER DEMO").length;
+  const confirmed = r.proofs.filter((p) => p.status === "RESULT_CONFIRMED").length;
   const liveEvents = s.customerEvents.filter((e) => e.origin === "live").length;
 
   return [

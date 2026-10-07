@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { createClient } from "@supabase/supabase-js";
 import { ungroundedNumbers, validateBriefInput } from "@/lib/ai/grounding";
+import { jsonResponse, requireOwnerAdmin } from "@/lib/server/auth";
 
 /* 대표 브리핑 AI 문장화 (계약 별지 제1호 ④ "대표자용 요약") — 기본 꺼짐.
    켜는 조건(서버 환경변수): AI_BRIEFING_ENABLED=true + Anthropic 자격증명(ANTHROPIC_API_KEY 등).
@@ -21,7 +21,7 @@ const SYSTEM = `당신은 화장품 브랜드 MIRYEO를 운영하는 가연인�
 - 마지막 문장은 목록에 근거한 오늘의 우선 행동 하나를 제안합니다.
 - 제목, 글머리표, 마크다운 없이 평문으로 씁니다.`;
 
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+const json = jsonResponse;
 
 async function authorize(req: Request): Promise<{ key: string } | Response> {
   if (process.env.NEXT_PUBLIC_DATA_MODE !== "live") {
@@ -29,16 +29,8 @@ async function authorize(req: Request): Promise<{ key: string } | Response> {
     if (process.env.AI_BRIEFING_ALLOW_DEMO !== "true") return json({ error: "DEMO_DISABLED", message: "Demo 모드에서는 AI 요약을 쓰지 않습니다." }, 403);
     return { key: `demo:${req.headers.get("x-forwarded-for") ?? "local"}` };
   }
-  const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!token || !url || !anon) return json({ error: "NO_TOKEN", message: "로그인이 필요합니다." }, 401);
-  const sb = createClient(url, anon, { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
-  const { data, error } = await sb.auth.getUser(token);
-  if (error || !data.user) return json({ error: "INVALID_TOKEN", message: "세션이 만료되었습니다." }, 401);
-  const m = await sb.from("organization_members").select("organization_id, role").eq("user_id", data.user.id).limit(1);
-  const row = m.data?.[0];
-  if (!row || !["OWNER", "ADMIN"].includes(row.role)) return json({ error: "FORBIDDEN", message: "대표·관리자만 사용할 수 있습니다." }, 403);
-  return { key: `org:${row.organization_id}` };
+  const who = await requireOwnerAdmin(req);
+  return who instanceof Response ? who : { key: `org:${who.orgId}` };
 }
 
 function rateLimited(key: string): boolean {

@@ -12,7 +12,8 @@ import { DataFreshness } from "@/components/ax/DataFreshness";
 import { EmptyState } from "@/components/ax/States";
 import { BriefingCard } from "@/components/ax/BriefingCard";
 import { buildStartGuide, guideProgress } from "@/lib/start-guide";
-import { Rocket } from "lucide-react";
+import { CircleAlert, Rocket } from "lucide-react";
+import { buildWeeklyRoutine, routineProgress } from "@/lib/weekly-routine";
 import { change, marginRate, monthlySummary } from "@/lib/monthly";
 import { summarizeReceivables } from "@/lib/settlements";
 import { CalendarRange, Wallet } from "lucide-react";
@@ -211,7 +212,7 @@ function FinanceRow() {
 function StartGuideBanner() {
   const m = useModel();
   const p = guideProgress(buildStartGuide(m.snapshot, m.today));
-  if (p.done >= p.total) return null;
+  if (p.done >= p.total) return <RoutineBanner />;
   return (
     <Link href="/ax/start" data-testid="start-banner" className="ax-card ax-card-hover mt-4 flex flex-wrap items-center gap-3 p-4">
       <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: "var(--primary-soft)", color: "var(--primary)" }} aria-hidden><Rocket size={20} /></span>
@@ -220,6 +221,22 @@ function StartGuideBanner() {
         <span className="text-[0.88rem] text-ink-soft">다음 단계: {p.next?.title}</span>
       </span>
       <span className="h-2 w-40 overflow-hidden rounded-full bg-surface-muted" aria-hidden><span className="block h-full rounded-full" style={{ width: `${Math.round(p.ratio * 100)}%`, background: "var(--primary)" }} /></span>
+    </Link>
+  );
+}
+
+/* 시작 가이드를 마친 뒤: 주간 운영 점검 요약 (모두 정상이면 숨김) */
+function RoutineBanner() {
+  const m = useModel();
+  const r = routineProgress(buildWeeklyRoutine(m.snapshot, m.today));
+  if (r.done >= r.total) return null;
+  return (
+    <Link href="/ax/start#routine" data-testid="routine-banner" className="ax-card ax-card-hover mt-4 flex flex-wrap items-center gap-3 p-4">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: "var(--warning-soft)", color: "var(--warning)" }} aria-hidden><CircleAlert size={20} /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-bold">이번 주 운영 점검 {r.done}/{r.total}</span>
+        <span className="text-[0.88rem] text-ink-soft">확인 필요: {r.next?.title} — {r.next?.detail}</span>
+      </span>
     </Link>
   );
 }

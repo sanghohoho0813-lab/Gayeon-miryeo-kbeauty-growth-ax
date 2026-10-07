@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ChevronLeft, ChevronRight, Printer } from "lucide-react";
 import { StatusBadge } from "@/components/ax/Cards";
 import { BriefingCard } from "@/components/ax/BriefingCard";
+import { WeeklyRoutineList } from "@/components/ax/WeeklyRoutine";
 import { ACTION_STATUS_LABEL } from "@/components/ax/Cards";
 import { useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
@@ -172,6 +173,13 @@ function Inner() {
             </div>
           )}
         </Section>
+
+        {isCurrent && can(role, "edit_master") && (
+          <section className="mt-7 print-break-avoid">
+            <h2 className="mb-3 text-[1.1rem] font-bold">운영 점검 (AX OWNER)</h2>
+            <WeeklyRoutineList print />
+          </section>
+        )}
 
         <footer className="mt-8 border-t pt-4 text-[0.78rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>
           이 리포트는 시스템에 기록된 사실(Action·Proof·고객 이벤트·판매 입력)만 집계합니다. 판단 방식은 RULE/STATISTICAL이며, 효과를 주장할 때는 Baseline·측정 기간·표본 수를 함께 제시해야 합니다. · 가연인터내셔널 MIRYEO Business AX · Powered by 미래AI랩

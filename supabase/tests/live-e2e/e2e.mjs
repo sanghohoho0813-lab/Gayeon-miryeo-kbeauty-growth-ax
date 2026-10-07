@@ -382,6 +382,39 @@ if (PHASE === "B") {
   ok("고객 탈퇴 → auth.users·계정·구매기록 삭제", (await count("select count(*) n from auth.users where email = 'customer@miryeo.test'")) === 0 && (await count("select count(*) n from customer_accounts where organization_id = $1", [orgId])) === 0 && (await count("select count(*) n from customer_purchases where organization_id = $1", [orgId])) === 0);
   ok("탈퇴 후 추천 기록은 익명 통계로 유지", (await count("select count(*) n from beauty_recommendations where organization_id = $1 and customer_user_id is null", [orgId])) === 1);
 
+  // 10-2. 공개 전 점검 (/ax/system) — 정상 판정 + RLS를 끄면 노출을 잡아내는지
+  const runCheck = async () => {
+    await owner.locator('[data-testid="readiness-summary"]').getByText(/공개 가능|해결 필요/).waitFor({ timeout: 30000 });
+    const st = {};
+    for (const el of await owner.locator("[data-check]").all()) st[await el.getAttribute("data-check")] = await el.getAttribute("data-status");
+    return st;
+  };
+  await owner.goto(`${APP}/ax/system`, { waitUntil: "networkidle" });
+  let st = await runCheck();
+  ok("공개 전 점검: migration 001·005·006·007 적용 판정", ["m001", "m005", "m006", "m007"].every((k) => st[k] === "ok"), JSON.stringify(st));
+  ok("공개 전 점검: 익명 노출 없음 · 비공개 상품 차단", st["anon-leak"] === "ok" && st["anon-unpublished"] === "ok" && (await owner.locator('[data-check="anon-leak"]').innerText()).includes("판매"));
+  ok("공개 전 점검: 조직 ID 일치 · 공개 상품 · 관리 키 유효", st["public-org"] === "ok" && st["public-products"] === "ok" && st["service-role"] === "ok" && (await owner.getByTestId("org-id").innerText()) === orgId);
+  ok("공개 전 점검: 문제 0건 → 공개 가능", (await owner.getByTestId("readiness-summary").getAttribute("data-ready")) === "1" && (await owner.getByTestId("readiness-summary").innerText()).includes("공개 가능"));
+  await owner.screenshot({ path: `${OUT}/B_readiness.png`, fullPage: true });
+  await db.query("alter table public.sales_records disable row level security");
+  try {
+    await owner.getByRole("button", { name: "다시 점검" }).click();
+    await owner.waitForTimeout(500);
+    st = await runCheck();
+    const leakText = await owner.locator('[data-check="anon-leak"]').innerText();
+    ok("RLS 해제(판매) → '익명에게 보임: 판매' 문제 판정", st["anon-leak"] === "fail" && leakText.includes("익명에게 보임: 판매") && (await owner.getByTestId("readiness-summary").getAttribute("data-ready")) === "0", leakText.replace(/\n/g, " / "));
+  } finally {
+    await db.query("alter table public.sales_records enable row level security");
+  }
+  const sysApi = await owner.evaluate(async () => {
+    const key = Object.keys(localStorage).find((k) => k.includes("auth-token"));
+    const tok = JSON.parse(localStorage.getItem(key)).access_token;
+    const a = await fetch("/api/system/status", { headers: { authorization: `Bearer ${tok}` } });
+    const n = await fetch("/api/system/status");
+    return [a.status, JSON.stringify(await a.json()), n.status];
+  });
+  ok("서버 점검 API: 대표 200 · 키 값 미포함 · 비로그인 401", sysApi[0] === 200 && sysApi[2] === 401 && !sysApi[1].includes("eyJ") && sysApi[1].includes('"serviceRole":"ok"'), sysApi[1]);
+
   // 11. 장애: REST 게이트웨이 중단 → Error 화면 (Demo로 대체하지 않음)
   const gwPid = fs.readFileSync("/tmp/miryeo-gateway.pid", "utf8").trim();
   process.kill(Number(gwPid));

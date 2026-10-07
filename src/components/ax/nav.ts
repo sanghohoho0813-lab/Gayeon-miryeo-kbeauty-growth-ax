@@ -1,7 +1,7 @@
-import { CalendarRange, Database, Rocket, FileBarChart, Globe, LayoutDashboard, Lightbulb, Package, Settings, Sparkles, Users, type LucideIcon } from "lucide-react";
+import { CalendarRange, Database, Rocket, FileBarChart, ShieldCheck, Globe, LayoutDashboard, Lightbulb, Package, Settings, Sparkles, Users, type LucideIcon } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
 
-/* Business AX IA — 4 Group / 11 Primary (v4.1: 3~4 Group, 8~12, 14 초과 금지). 같은 Group = 같은 Icon Hue */
+/* Business AX IA — 4 Group / 12 Primary (v4.1: 3~4 Group, 8~12, 14 초과 금지). 같은 Group = 같은 Icon Hue */
 export interface NavItem { href: string; label: string; icon: LucideIcon; requires?: Permission; tour?: string }
 export interface NavGroup { group: string; hue: string; items: NavItem[] }
 
@@ -23,6 +23,7 @@ export const AX_NAV: NavGroup[] = [
   { group: "관리", hue: "var(--grp-sys)", items: [
     { href: "/ax/start", label: "시작 가이드", icon: Rocket, requires: "edit_master" },
     { href: "/ax/data", label: "데이터 관리", icon: Database },
+    { href: "/ax/system", label: "공개 전 점검", icon: ShieldCheck, requires: "edit_master" },
     { href: "/ax/settings", label: "설정", icon: Settings },
   ] },
 ];

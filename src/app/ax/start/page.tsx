@@ -7,6 +7,7 @@ import { DataCard, StatusBadge } from "@/components/ax/Cards";
 import { useModel } from "@/components/providers/DataProvider";
 import { buildStartGuide, guideProgress, type StepPhase } from "@/lib/start-guide";
 import { isLive } from "@/lib/config";
+import { WeeklyRoutineList } from "@/components/ax/WeeklyRoutine";
 
 /* 실데이터 시작 가이드 — Week 0 체크리스트 (자동 판정) */
 export default function StartGuidePage() {
@@ -53,6 +54,12 @@ export default function StartGuidePage() {
           </ol>
         </section>
       ))}
+
+      <section className="mt-8" id="routine">
+        <h2 className="text-[1.05rem] font-bold">매주 운영 점검 (Week 1~12)</h2>
+        <p className="mb-3 mt-0.5 text-[0.88rem] text-ink-soft">실데이터 입력을 시작한 뒤에는 AX OWNER가 매주 이 6가지를 확인합니다. 입력이 멈추면 분석·추천·증빙이 모두 멈춥니다. 주간 리포트에도 함께 인쇄됩니다.</p>
+        <DataCard><WeeklyRoutineList /></DataCard>
+      </section>
     </div>
   );
 }

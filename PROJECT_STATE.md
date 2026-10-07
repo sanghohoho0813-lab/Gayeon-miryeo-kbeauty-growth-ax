@@ -1,8 +1,8 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-10-07 (PASS 5 — 실데이터 시작 가이드·AI 문장화 준비·접근성·1차 보고서 초안)
+LAST UPDATED: 2026-10-07 (PASS 6 — 공개 준비: 공개 전 점검·Supabase 일괄 설치·주간 운영 점검)
 DELIVERY STAGE: 계약 제11조 2단계 — 6개 핵심기능 초기버전 개발 완료, 시험버전 공개(URL)·1차 보고 대기
-CURRENT PASS: 5 — 실데이터 시작 가이드(`/ax/start`), 대표 브리핑 AI 문장화(Claude, 기본 꺼짐·READY), 접근성(WCAG 2.1 A/AA 자동 점검 0건), 1차 보고서 초안(`STAGE2_DELIVERY_REPORT.md`). 실제 Supabase 연결은 USER ACTION 대기
+CURRENT PASS: 6 — 공개 준비. 공개 전 점검(`/ax/system`), Supabase 일괄 설치(`supabase/setup_all.sql`), 주간 운영 점검(Week 1~12). 시험버전 공개·실제 Supabase 연결은 USER ACTION 대기
 
 ## 계약 별지 제1호 대조 (2026-09-30 기준)
 | No | 핵심모듈 | 구현 | 화면 |
@@ -18,6 +18,15 @@ CURRENT PASS: 5 — 실데이터 시작 가이드(`/ax/start`), 대표 브리핑
 
 완료·검수 기준 중 남은 것: **MVP 시험버전 공개 + 1차 완료 보고 전달** (USER ACTION: Supabase·Vercel 설정 → 공개 URL)
 계약 2단계 중 개발 외 결과물(특허기술자료, 벤처/기업정비 기초자료)은 이 저장소 범위 밖.
+
+## PASS 6 변경 요약 (2026-10-07)
+| 항목 | 상태 |
+|---|---|
+| 공개 전 점검 `/ax/system` (대표·관리자) — 연결·HTTPS, migration 001·005·006·007 설치, 익명 노출(RLS) 8개 테이블·비공개 상품, 고객 화면 조직 ID·공개 상품·구매 링크·처리방침, 관리 키 유효성, AI 설정 일치, 직접 확인 3항목, 조직 ID 복사 | PILOT — Demo VERIFIED, 로컬 Live VERIFIED(정상 판정 + RLS 해제 시 노출 탐지) |
+| `/api/system/status` — 서버 설정 참/거짓만, Live는 대표·관리자, 비로그인 401 | VERIFIED (로컬 Live) |
+| Supabase 일괄 설치 `supabase/setup_all.sql` (`npm run setup-sql`) — 한 트랜잭션, 004 제외 | VERIFIED — verify:db가 최신 여부·개별 적용과 스키마 동일(128 CREATE) 확인 |
+| 주간 운영 점검 6항목 (판매 7일·재고 7일·미검토 Action 3일·진행 지연 14일·미확정 Proof·연체 미수금) — 시작 가이드 하단, 주간 리포트(인쇄), 가이드 완료 후 대시보드 배너 | PILOT (Demo VERIFIED) |
+| 서버 인증 공통화 `src/lib/server/auth.ts` (AI 브리핑·점검 API) | 회귀 통과 |
 
 ## PASS 5 변경 요약 (2026-10-07)
 | 항목 | 상태 |
@@ -84,7 +93,8 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | 주간 Evidence 리포트 | PILOT | `/ax/reports/weekly`, 인쇄·PDF |
 | 설정 | PILOT | 7 Theme·글자·모션·역할매트릭스·Demo Reset·Pilot 시작일·AX OWNER·AI 상태·기술자산·구성원 |
 | 도입 배경(Why) | DEMO→설명 | 문서형 |
-| 실데이터 시작 가이드 | PILOT | `/ax/start`, 13단계 자동 판정 |
+| 실데이터 시작 가이드 | PILOT | `/ax/start`, 13단계 자동 판정 + 매주 운영 점검 6항목 |
+| 공개 전 점검 | PILOT | `/ax/system`, Live에서 DB·RLS·설정 자동 점검 |
 | AI 요약(LLM) | READY | 대표 브리핑 Claude 문장화 구현·기본 꺼짐 (D-012, D-034) |
 
 ## 2. CUSTOMER FRONT (`/beauty`)
@@ -127,11 +137,12 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | # | 구분 | 작업 | 상태 |
 |---|---|---|---|
 | 1 | SUPABASE | Project 생성 | WAITING |
-| 2 | SUPABASE | migration 001→002→003→**005→006→007** 실행 (004 선택) | WAITING |
+| 2 | SUPABASE | 새 프로젝트: **`supabase/setup_all.sql` 1회 실행** (또는 001→002→003→005→006→007 개별, 004 선택) | WAITING |
 | 3 | SUPABASE | OWNER 계정 생성 → `/login` → 조직 만들기 | WAITING |
 | 4 | ENV | `NEXT_PUBLIC_DATA_MODE=live`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | WAITING |
 | 5 | ENV | `NEXT_PUBLIC_MIRYEO_ORG_ID` (조직 생성 후) | WAITING |
 | 6 | VERCEL | 환경변수 반영 + Redeploy | WAITING |
+| 6-0 | CHECK | 재배포 후 대표 계정으로 `/ax/system` → "공개 가능 — 문제 없음" | WAITING |
 | 6-1 | ENV (선택) | `SUPABASE_SERVICE_ROLE_KEY` (서버 전용, 앱 내 초대용) + Supabase Redirect URL에 `/login` 추가 | WAITING |
 | 7 | DATA | 실제 상품 1~2개, 재고, 판매 샘플, 구매 링크 | WAITING |
 | 8 | DATA | Pilot 시작일 + Money KPI 3 Baseline 잠금 (실측·자기기록 값) | WAITING |
@@ -158,8 +169,8 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 
 ## 10. NEXT PRIORITY
 0. **시험버전 공개 + 1차 완료 보고** (계약 제12조: 보고 후 5영업일 이의 없으면 2단계 진행 확인) — USER ACTION 1~6 후 공개 URL을 `STAGE2_DELIVERY_REPORT.md`에 채워 발송
-1. (USER ACTION 1~6 완료 시) **실제 Supabase 연결 확인**: `e2e.mjs`와 같은 순서로 1회 (특히 Realtime, 초대·가입 메일 Redirect URL)
+1. (USER ACTION 1~6 완료 시) **실제 Supabase 연결 확인**: `/ax/system` 점검 결과 확인 → `e2e.mjs`와 같은 순서로 1회 (특히 Realtime, 초대·가입 메일 Redirect URL)
 2. 실제 판매·상품 엑셀 수령 → 열 별칭 보강 → 첫 실데이터 입력 지원 (Week 0)
 3. 고객 화면 공개 준비: 실제 제품 정보·구매 링크 확인, 봇 방지(R-14) 필요성 판단
-4. Week 1~4 운영 지원: 주간 리포트 기반 점검 루틴
+4. Week 1~4 운영 지원: 주간 운영 점검 6항목 기준값을 실제 입력 주기에 맞게 조정(`ROUTINE_RULES`), 운영 점검 알림(R-17) 필요성 판단
 5. (승인 시) AI 문장화 켜기 + 실호출 1회 확인 — D-034

@@ -12,7 +12,8 @@ Demo 모드: Seed + 브라우저 저장소. 설정 > Demo 초기화로 원상복
 
 ### [SUPABASE]
 1. Supabase Project 생성(또는 기존 Project 확인)
-2. SQL Editor에서 순서대로 실행: `001_base_schema.sql` → `002_indexes.sql` → `003_rls.sql` → **`005_pilot_v2_pass2.sql`** → **`006_event_guard.sql`** → **`007_stage2_customers_settlements.sql`**
+2. **새 프로젝트(권장)**: SQL Editor에 `supabase/setup_all.sql` 전체를 붙여 넣고 Run — 001·002·003·005·006·007을 한 트랜잭션으로 설치 (실패하면 아무것도 바뀌지 않음, 004 Demo seed 제외). 이미 일부를 실행한 프로젝트는 아래처럼 남은 번호만 실행.
+   - 개별 실행 순서: `001_base_schema.sql` → `002_indexes.sql` → `003_rls.sql` → **`005_pilot_v2_pass2.sql`** → **`006_event_guard.sql`** → **`007_stage2_customers_settlements.sql`**
    - **005는 필수**: Baseline Lock, Action 상태 가드, 고객 이벤트 익명 기록 정책 수정(003만으로는 고객 이벤트가 기록되지 않음), Realtime 등록
    - `004_seed_demo_optional.sql`은 동작 확인용 (실운영 DB에는 선택)
    - **006 권장(고객 화면 공개 전 필수)**: 익명 이벤트 한도·서버 시각 강제
@@ -36,6 +37,7 @@ Demo 모드: Seed + 브라우저 저장소. 설정 > Demo 초기화로 원상복
 
 ### [VERCEL]
 9. Environment Variables 반영 후 Redeploy
+9-1. 대표 계정으로 **`/ax/system` 공개 전 점검** → "공개 가능 — 문제 없음" 확인 (DB 설치·익명 노출·조직 ID·공개 상품·관리 키를 자동 확인, 조직 ID 복사 버튼 있음). 문제 항목은 화면의 '해결' 안내대로 처리
 
 ### [DATA]
 10. 데이터 관리에서 실제 채널 → 상품 1~2개 → 재고 → 판매(1건 또는 `public/samples/sales_template.csv`) 입력, 고객 화면 공개할 상품은 "고객 화면에 공개" 체크
@@ -54,11 +56,12 @@ values ('<org id>', '<auth user id>', 'STAFF'); -- OWNER / ADMIN / STAFF
 1. 설정 > 실증 운영: Pilot 시작일, AX OWNER 지정
 2. 실증·Evidence > MONEY KPI 3: KPI별 Baseline 잠금 (실측·자기기록 값만, 측정 방법·기간 기록)
 3. 데이터 관리 > 판매 입력·파일: 쇼핑몰/자체 엑셀(.xlsx·.csv) 그대로 업로드 → 열 매핑 확인 → 저장
-4. 매주: 실증·Evidence > 주간 리포트 → 인쇄 / PDF 저장
+4. 매주: 실증·Evidence > 주간 리포트 → 인쇄 / PDF 저장 (리포트 끝에 **운영 점검 6항목** 포함 — 판매 입력·재고 갱신·Action 검토·결과 기록·Proof 확정·연체 미수금. 시작 가이드 하단과 같은 판정)
 
 ## E. 검증 도구 (개발자용 — 실제 Supabase DB에는 실행하지 않는다)
-- `npm run verify:db` — 로컬 Postgres에 auth stub을 만들고 001~006 + RLS·트리거 65개 시나리오 실행
-- `bash supabase/tests/live-e2e/run.sh` — 로컬 Supabase 호환 스택으로 앱을 **Live 모드로 빌드·실행**하고 브라우저 E2E 45단계 실행
+- `npm run verify:db` — 로컬 Postgres에 auth stub을 만들고 001~007 + RLS·트리거 97개 시나리오 실행, `setup_all.sql`이 최신인지 확인하고 새 DB에 한 번에 적용해 개별 migration 결과와 스키마가 같은지 비교
+- `npm run setup-sql` — migration을 고친 뒤 `supabase/setup_all.sql` 다시 생성 (직접 수정 금지)
+- `bash supabase/tests/live-e2e/run.sh` — 로컬 Supabase 호환 스택으로 앱을 **Live 모드로 빌드·실행**하고 브라우저 E2E 실행 (Phase A 7 + B 60 — 공개 전 점검 정상 판정과 RLS 해제 시 노출 탐지 포함)
   - 전제: Postgres 16 실행 중, Supabase Auth 바이너리(`GOTRUE_BIN`, `github.com/supabase/auth`를 Go로 빌드), `npm i --no-save playwright-core@1.56` (설치된 Chromium 1194와 같은 버전 — 버전이 다르면 networkidle 대기가 멈출 수 있음), Chromium(`CHROMIUM_PATH`)
   - 구성: `stack.sh`(DB·Auth·게이트웨이·SMTP 수신), `gateway.mjs`(PostgREST 호환 최소 구현 — 검증 전용), `e2e.mjs`(Phase A/B)
   - 끝나면 `.next`가 Live 빌드이므로 `npm run build`로 다시 빌드
