@@ -85,7 +85,7 @@ function BreakdownTable({ title, file, rows, total, testId }: { title: string; f
   return (
     <DataCard title={title} action={<ExportButton name={title.replace(/[ .]/g, "_")} file={file} rows={rows.map((r) => ({ 이름: r.name, 매출: r.revenue, "비중(%)": total ? Math.round((r.revenue / total) * 1000) / 10 : 0, 판매수량: r.units, 매출총이익: r.profit ?? "" }))} />}>
       {rows.length === 0 ? <p className="text-[0.9rem] text-ink-soft">해당 월 판매가 없습니다.</p> : (
-        <div className="table-scroll">
+        <div tabIndex={0} className="table-scroll">
           <table className="!min-w-[480px] text-[0.9rem]" data-testid={testId}>
             <thead><tr className="border-b text-left text-[0.8rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>{["이름", "매출", "비중", "수량", "매출총이익"].map((h) => <th key={h} className="py-2 pr-3 font-semibold">{h}</th>)}</tr></thead>
             <tbody>

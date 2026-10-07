@@ -110,7 +110,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <main className="flex min-h-screen items-center justify-center bg-[#F6F7F9] p-4">
       <div className="w-full max-w-md rounded-2xl border border-[#E3E7EC] bg-white p-7 shadow-sm">
         <div className="font-display text-[1.4rem] font-bold text-[#171B20]">MIRYEO</div>
-        <div className="mb-5 text-[0.95rem] font-semibold" style={{ color: "var(--wordmark)" }}>Business AX</div>
+        <div className="mb-5 text-[0.95rem] font-semibold" style={{ color: "color-mix(in srgb, var(--wordmark) 40%, #2A1D03)" }}>Business AX</div>
         {children}
       </div>
     </main>

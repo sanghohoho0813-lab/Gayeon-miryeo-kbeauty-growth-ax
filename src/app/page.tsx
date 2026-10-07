@@ -5,7 +5,7 @@ import { ArrowRight, BarChart3, Sparkles } from "lucide-react";
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-[#f7f5f0] px-6 py-16">
-      <p className="text-[0.95rem] font-semibold tracking-[0.25em] text-[#8a8264]">
+      <p className="text-[0.95rem] font-semibold tracking-[0.25em] text-[#6B6550]">
         GAYEON INTERNATIONAL
       </p>
       <h1 className="font-display mt-3 text-center text-[2.4rem] font-bold leading-tight text-[#16233f] md:text-[3.2rem]">
@@ -55,7 +55,7 @@ export default function Home() {
         </Link>
       </div>
 
-      <p className="mt-12 text-[0.82rem] text-[#9a927c]">AX Platform by 미래AI랩 · PILOT</p>
+      <p className="mt-12 text-[0.82rem] text-[#6B6550]">AX Platform by 미래AI랩 · PILOT</p>
     </main>
   );
 }

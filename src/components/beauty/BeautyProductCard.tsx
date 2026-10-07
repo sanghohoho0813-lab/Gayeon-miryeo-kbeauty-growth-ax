@@ -21,7 +21,7 @@ export function BeautyProductCard({ product, aiBadge }: { product: Product; aiBa
           </div>
           <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
             {product.isBest && <span className="rounded-full px-2.5 py-1 text-[0.7rem] font-bold text-white" style={{ background: "var(--b-navy)" }}>베스트</span>}
-            {product.isNew && <span className="rounded-full px-2.5 py-1 text-[0.7rem] font-bold text-white" style={{ background: "var(--b-gold)" }}>신제품</span>}
+            {product.isNew && <span className="rounded-full px-2.5 py-1 text-[0.7rem] font-bold text-white" style={{ background: "var(--b-gold-ink)" }}>신제품</span>}
             {aiBadge && <span className="rounded-full border bg-white/90 px-2.5 py-1 text-[0.7rem] font-bold" style={{ borderColor: "var(--b-gold)", color: "var(--b-navy)" }}>{aiBadge}</span>}
           </div>
         </div>
@@ -39,7 +39,7 @@ export function BeautyProductCard({ product, aiBadge }: { product: Product; aiBa
         <Heart size={19} fill={wished ? "var(--b-navy)" : "none"} style={{ color: "var(--b-navy)" }} />
       </button>
       <Link href={`/beauty/products/${product.id}`} className="flex flex-1 flex-col p-4">
-        {product.line && <div className="text-[0.76rem] font-semibold tracking-wide" style={{ color: "var(--b-gold)" }}>{product.line}</div>}
+        {product.line && <div className="text-[0.76rem] font-semibold tracking-wide" style={{ color: "var(--b-gold-ink)" }}>{product.line}</div>}
         <h3 className="mt-0.5 text-[1rem] font-bold leading-snug" style={{ color: "var(--b-text)" }}>{product.name}</h3>
         <div className="mt-1.5 flex flex-wrap gap-1">
           {product.concerns.slice(0, 2).map((c) => <span key={c} className="rounded-full px-2 py-0.5 text-[0.72rem] font-semibold" style={{ background: "var(--b-surface-warm)", color: "var(--b-text-soft)" }}>#{c}</span>)}

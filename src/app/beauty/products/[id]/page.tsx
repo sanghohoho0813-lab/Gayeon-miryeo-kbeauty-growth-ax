@@ -62,8 +62,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {product.isBest && <span className="rounded-full px-3 py-1 text-[0.76rem] font-bold text-white" style={{ background: "var(--b-navy)" }}>베스트</span>}
-            {product.isNew && <span className="rounded-full px-3 py-1 text-[0.76rem] font-bold text-white" style={{ background: "var(--b-gold)" }}>신제품</span>}
-            <span className="text-[0.85rem] font-semibold" style={{ color: "var(--b-gold)" }}>{[product.line, product.category].filter(Boolean).join(" · ")}</span>
+            {product.isNew && <span className="rounded-full px-3 py-1 text-[0.76rem] font-bold text-white" style={{ background: "var(--b-gold-ink)" }}>신제품</span>}
+            <span className="text-[0.85rem] font-semibold" style={{ color: "var(--b-gold-ink)" }}>{[product.line, product.category].filter(Boolean).join(" · ")}</span>
           </div>
           <h1 className="font-display mt-2.5 text-[1.8rem] font-bold leading-tight" style={{ color: "var(--b-navy)" }}>{product.name}</h1>
           {product.nameEn && <p className="mt-0.5 text-[0.9rem]" style={{ color: "var(--b-text-soft)" }}>{product.nameEn}</p>}
@@ -100,7 +100,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             const mine = i + 1 === product.routineStep;
             return (
               <li key={r} className="rounded-2xl p-4 text-[0.9rem] leading-relaxed" style={mine ? { background: "var(--b-navy)", color: "#fff", fontWeight: 700 } : { background: "var(--b-surface-warm)", color: "var(--b-text-soft)" }}>
-                <div className="text-[0.76rem] font-bold" style={{ color: mine ? "#fff" : "var(--b-gold)" }}>STEP {i + 1}{mine ? " · 이 제품" : ""}</div>
+                <div className="text-[0.76rem] font-bold" style={{ color: mine ? "#fff" : "var(--b-gold-ink)" }}>STEP {i + 1}{mine ? " · 이 제품" : ""}</div>
                 {r}
               </li>
             );

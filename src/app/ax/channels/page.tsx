@@ -63,7 +63,7 @@ function Analysis() {
         />
       )}
       <DataCard title="채널별 상세">
-        <div className="table-scroll">
+        <div tabIndex={0} className="table-scroll">
           <table className="text-[0.93rem]">
             <thead>
               <tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>
@@ -103,7 +103,7 @@ function B2B() {
       </div>
       <DataCard title="B2B 거래처" action={<Link href="/ax/data?tab=b2b" className="btn-secondary !min-h-[40px] text-[0.86rem]">거래처 입력</Link>}>
         {list.length === 0 ? <EmptyState title="등록된 거래처가 없습니다" /> : (
-          <div className="table-scroll">
+          <div tabIndex={0} className="table-scroll">
             <table className="text-[0.93rem]">
               <thead><tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}><th className="py-2.5 pr-4 font-semibold">거래처</th><th className="py-2.5 pr-4 font-semibold">상태</th><th className="py-2.5 pr-4 font-semibold">최근 거래</th><th className="py-2.5 pr-4 font-semibold">누적 매출</th><th className="py-2.5 pr-4 font-semibold">주요 상품</th><th className="py-2.5 pr-4 font-semibold">다음 납품</th><th className="py-2.5 font-semibold">비고</th></tr></thead>
               <tbody>
@@ -140,7 +140,7 @@ function Export() {
     <div className="space-y-6">
       <DataCard title="권역별 수출 현황">
         {list.length === 0 ? <EmptyState title="수출 기록이 없습니다" /> : (
-          <div className="table-scroll">
+          <div tabIndex={0} className="table-scroll">
             <table className="text-[0.93rem]">
               <thead><tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}><th className="py-2.5 pr-4 font-semibold">국가/권역</th><th className="py-2.5 pr-4 font-semibold">채널</th><th className="py-2.5 pr-4 font-semibold">누적 매출</th><th className="py-2.5 pr-4 font-semibold">성장률</th><th className="py-2.5 pr-4 font-semibold">최근 거래</th><th className="py-2.5 font-semibold">주요 제품</th></tr></thead>
               <tbody>

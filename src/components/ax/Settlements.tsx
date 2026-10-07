@@ -57,7 +57,7 @@ export function Settlements() {
           ))}
         </div>
         {rows.length === 0 ? <EmptyState title="해당하는 정산 내역이 없습니다" desc="B2B 납품·수출 선적·판매채널 월 정산처럼 받을 돈이 생기면 청구액과 입금 기한을 기록하세요." /> : (
-          <div className="table-scroll">
+          <div tabIndex={0} className="table-scroll">
             <table className="text-[0.9rem]" data-testid="settlement-table">
               <thead>
                 <tr className="border-b text-left text-[0.8rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>

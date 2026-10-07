@@ -19,3 +19,6 @@ export const DATA_SOURCE_LABEL = isLive ? "SUPABASE LIVE" : "DEMO DATA";
 export const PRIVACY_POLICY_URL = process.env.NEXT_PUBLIC_PRIVACY_POLICY_URL ?? "";
 export const PRIVACY_VERSION = process.env.NEXT_PUBLIC_PRIVACY_VERSION ?? (isLive ? "" : "demo-draft");
 export const customerSignupEnabled = !isLive || Boolean(PRIVACY_POLICY_URL && PRIVACY_VERSION);
+
+/** 대표 브리핑 AI 문장화 버튼 표시 (빌드 시). 실제 호출은 서버의 AI_BRIEFING_ENABLED + 자격증명이 있어야 동작 */
+export const AI_BRIEFING_UI = process.env.NEXT_PUBLIC_AI_BRIEFING === "on";

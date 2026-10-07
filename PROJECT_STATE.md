@@ -1,8 +1,8 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-09-30 (계약 2단계 개발 보완)
+LAST UPDATED: 2026-10-07 (PASS 5 — 실데이터 시작 가이드·AI 문장화 준비·접근성·1차 보고서 초안)
 DELIVERY STAGE: 계약 제11조 2단계 — 6개 핵심기능 초기버전 개발 완료, 시험버전 공개(URL)·1차 보고 대기
-CURRENT PASS: 4 — 2단계 보완(고객 회원·마이페이지·재구매, 정산·미수금, 월별 실적, 대표 브리핑, CSV 내보내기). 실제 Supabase 연결은 USER ACTION 대기
+CURRENT PASS: 5 — 실데이터 시작 가이드(`/ax/start`), 대표 브리핑 AI 문장화(Claude, 기본 꺼짐·READY), 접근성(WCAG 2.1 A/AA 자동 점검 0건), 1차 보고서 초안(`STAGE2_DELIVERY_REPORT.md`). 실제 Supabase 연결은 USER ACTION 대기
 
 ## 계약 별지 제1호 대조 (2026-09-30 기준)
 | No | 핵심모듈 | 구현 | 화면 |
@@ -10,7 +10,7 @@ CURRENT PASS: 4 — 2단계 보완(고객 회원·마이페이지·재구매, �
 | 1 | 통합 경영 현황판 — 월별·채널별·제품별 매출, 이익, 재고, 받을 돈, 수출, B2B | ✅ 대시보드(4주 KPI + 이번 달 매출·매출총이익·받을 돈) + 월별 실적(12개월·채널별·제품별) | `/ax`, `/ax/monthly` |
 | 2 | 제품별 재고·생산 분석 — 원가·판매가·이익·재고·판매속도·소진일·OEM | ✅ (OEM 생산기간은 생산계획 입고예정일로 관리, 발주량 계산에는 미반영) | `/ax/products` |
 | 3 | 판매채널·B2B·수출 성과관리 — 실적 비교, 거래처·납품·정산 상태 | ✅ 채널 분석·B2B·수출 + 정산·미수금(청구·부분입금·연체) | `/ax/channels` |
-| 4 | AI 성장 실행센터 — 행동 제안 + 대표자용 요약 | ✅ RULE 행동추천·Action 생애주기 + 대표 브리핑(RULE 요약). LLM 문장화는 READY(승인 시) | `/ax/growth`, `/ax` |
+| 4 | AI 성장 실행센터 — 행동 제안 + 대표자용 요약 | ✅ RULE 행동추천·Action 생애주기 + 대표 브리핑(RULE 요약). Claude 문장화 구현·숫자 검증 포함, 기본 꺼짐(READY — 고객사 승인·API 키) | `/ax/growth`, `/ax` |
 | 5 | AI 제품·사용순서 추천 → 구매 결정 | ✅ Finder → 루틴 → 제품 상세 → 구매처 이동 | `/beauty/finder` |
 | 6 | 고객 뷰티 기록·회원·재구매 — 고객계정·마이페이지·추천결과·구매이력·재구매 예상시점 | ✅ 회원가입(필수/선택 동의 분리)·마이페이지·추천 기록(가입 전 기록 연결)·구매 기록(고객/운영자)·재구매 예상일·탈퇴 | `/beauty/login`, `/beauty/me`, `/ax/customers#members` |
 
@@ -18,6 +18,15 @@ CURRENT PASS: 4 — 2단계 보완(고객 회원·마이페이지·재구매, �
 
 완료·검수 기준 중 남은 것: **MVP 시험버전 공개 + 1차 완료 보고 전달** (USER ACTION: Supabase·Vercel 설정 → 공개 URL)
 계약 2단계 중 개발 외 결과물(특허기술자료, 벤처/기업정비 기초자료)은 이 저장소 범위 밖.
+
+## PASS 5 변경 요약 (2026-10-07)
+| 항목 | 상태 |
+|---|---|
+| 실데이터 시작 가이드 `/ax/start` — Week 0~4 13단계 자동 판정(Demo 시드 제외), 대시보드 진행 배너(OWNER/ADMIN) | PILOT (Demo VERIFIED) |
+| 대표 브리핑 AI 문장화 — `/api/ai/briefing`(서버 전용 키, OWNER/ADMIN, 시간당 20회, 입력은 RULE 문장만·개인정보 없음), 기록에 없는 숫자·거절 시 폐기하고 RULE 요약 유지 | READY (기본 꺼짐) — 가짜 API 서버로 11/11 VERIFIED, 실제 API NOT VERIFIED |
+| 접근성 — axe-core WCAG 2.1 A/AA 25개 화면 × PC(1440)·모바일(390) | 위반 0건 (대비 토큰 `--success`·`--warning`·`--b-gold-ink`, 표 스크롤 키보드 접근, 버튼 이름) |
+| 1차 완료 보고서 초안 | `STAGE2_DELIVERY_REPORT.md` — `[ ]` 칸(보고일·공개 URL·계정) 채워 발송 |
+| 의존성 보안 업데이트 (sharp, source-map-js — npm audit 0건) | 전체 회귀 통과 |
 
 ## PASS 3 변경 요약
 | 항목 | 상태 |
@@ -75,7 +84,8 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | 주간 Evidence 리포트 | PILOT | `/ax/reports/weekly`, 인쇄·PDF |
 | 설정 | PILOT | 7 Theme·글자·모션·역할매트릭스·Demo Reset·Pilot 시작일·AX OWNER·AI 상태·기술자산·구성원 |
 | 도입 배경(Why) | DEMO→설명 | 문서형 |
-| AI 요약(LLM) | READY | Marker만, 미연결 (D-012) |
+| 실데이터 시작 가이드 | PILOT | `/ax/start`, 13단계 자동 판정 |
+| AI 요약(LLM) | READY | 대표 브리핑 Claude 문장화 구현·기본 꺼짐 (D-012, D-034) |
 
 ## 2. CUSTOMER FRONT (`/beauty`)
 | 기능 | 상태 |
@@ -111,7 +121,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 높이 < 약 880px이면 frame이 비율 축소 (내부 viewport 390 유지) — KNOWN
 
 ## 7. QA
-- Next 16 기준 typecheck / build PASS, Route QA 23×8 이상 0, Demo Acceptance 31/31 · PASS2 33/33 · PASS3 11/11, Live E2E 45/45, DB 65/65 → `QA_REPORT.md`
+- 2026-10-07: typecheck / build PASS, Route QA 30×8 이상 0, Demo 31/31 · PASS2 33/33 · PASS3 11/11 · Stage2 41/41 · AI 11/11, 접근성 0건, Live E2E 62/62, DB 97/97, npm audit 0 → `QA_REPORT.md`
 
 ## 8. USER ACTION QUEUE
 | # | 구분 | 작업 | 상태 |
@@ -130,6 +140,8 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | 8-3 | DATA | 제품별 사용기간(일) — 재구매 예상일 정확도 (미입력 시 종류별 추정) | WAITING |
 | 8-4 | DATA | 거래처별 청구·입금 현황 (미수금 초기값) | WAITING |
 | 9 | PEOPLE | AX OWNER 지정, ADMIN/STAFF 계정 목록 | WAITING |
+| 9-1 | DECISION | 대표 브리핑 AI 문장화 사용 여부 (외부 AI 사용료 고객사 부담, 계약 제16조) → 사용 시 `ANTHROPIC_API_KEY`(서버 전용)·`AI_BRIEFING_ENABLED=true`·`NEXT_PUBLIC_AI_BRIEFING=on` | WAITING |
+| 9-2 | REPORT | `STAGE2_DELIVERY_REPORT.md`의 `[ ]` 칸 확인 후 발송 (공개 URL 확보 후) | WAITING |
 | 10 | FACT | 법인 관계(가연인터내셔널·MIRYEO·OEM), 기술자산 상태 확인 | WAITING |
 
 ## 9. KNOWN ISSUES
@@ -141,11 +153,13 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 로컬 게이트웨이는 PostgREST 호환 최소 구현 — 실제 Supabase 연결 후 1회 재확인 필요
 - Demo seed 고객 이벤트는 세션이 흩어져 있어 주간 REVENUE 전환율이 0%로 보일 수 있음 (Demo 한정)
 - 기술자산 상태 기본값 "미확인"
+- AI 문장화는 실제 Anthropic API로 호출해 본 적 없음 (가짜 서버로 요청 형식·검증·거절 처리만 확인). 켜는 날 1회 실호출 확인 필요
+- AI 사용 한도(시간당 20회)는 서버 인스턴스 메모리 기준 — 서버리스 인스턴스가 여러 개면 합산되지 않음
 
 ## 10. NEXT PRIORITY
-0. **시험버전 공개 + 1차 완료 보고** (계약 제12조: 보고 후 5영업일 이의 없으면 2단계 진행 확인) — USER ACTION 1~6 후 공개 URL로 보고서 작성
+0. **시험버전 공개 + 1차 완료 보고** (계약 제12조: 보고 후 5영업일 이의 없으면 2단계 진행 확인) — USER ACTION 1~6 후 공개 URL을 `STAGE2_DELIVERY_REPORT.md`에 채워 발송
 1. (USER ACTION 1~6 완료 시) **실제 Supabase 연결 확인**: `e2e.mjs`와 같은 순서로 1회 (특히 Realtime, 초대·가입 메일 Redirect URL)
 2. 실제 판매·상품 엑셀 수령 → 열 별칭 보강 → 첫 실데이터 입력 지원 (Week 0)
 3. 고객 화면 공개 준비: 실제 제품 정보·구매 링크 확인, 봇 방지(R-14) 필요성 판단
 4. Week 1~4 운영 지원: 주간 리포트 기반 점검 루틴
-5. (승인 시) LLM 경영 요약 — D-012
+5. (승인 시) AI 문장화 켜기 + 실호출 1회 확인 — D-034

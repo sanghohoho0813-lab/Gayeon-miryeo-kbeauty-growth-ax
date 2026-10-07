@@ -66,7 +66,7 @@ export default function PassportPage() {
       <section className="overflow-hidden rounded-[28px]" style={{ background: "var(--b-navy)" }}>
         <div className="flex flex-col gap-6 p-8 @3xl:flex-row @3xl:items-center @3xl:justify-between @3xl:p-10">
           <div>
-            <p className="text-[0.8rem] font-bold tracking-[0.25em]" style={{ color: "var(--b-gold)" }}>
+            <p className="text-[0.8rem] font-bold tracking-[0.25em]" style={{ color: "var(--theme-highlight)" }}>
               MY BEAUTY PASSPORT
             </p>
             <h1 className="font-display mt-2 text-[1.7rem] font-bold text-white @3xl:text-[2rem]">
@@ -138,7 +138,7 @@ export default function PassportPage() {
                 className="group rounded-[24px] border bg-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
                 style={{ borderColor: "var(--b-border)" }}
               >
-                <div className="text-[0.78rem] font-bold" style={{ color: "var(--b-gold)" }}>
+                <div className="text-[0.78rem] font-bold" style={{ color: "var(--b-gold-ink)" }}>
                   STEP {i + 1}
                 </div>
                 <div className="mx-auto mt-2 h-[110px] w-fit transition-transform group-hover:scale-105">
@@ -212,7 +212,7 @@ function SectionTitle({ icon, title, sub }: { icon: React.ReactNode; title: stri
   return (
     <div className="mb-4">
       <h2 className="flex items-center gap-2 text-[1.3rem] font-bold" style={{ color: "var(--b-navy)" }}>
-        <span style={{ color: "var(--b-gold)" }}>{icon}</span>
+        <span style={{ color: "var(--b-gold-ink)" }}>{icon}</span>
         {title}
       </h2>
       {sub && (

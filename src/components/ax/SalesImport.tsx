@@ -112,7 +112,7 @@ export function SalesImport() {
             <StatusBadge tone={dup.length ? "warning" : "neutral"}>중복 의심 {dup.length}행</StatusBadge>
             <StatusBadge tone={bad.length ? "danger" : "neutral"}>오류 {bad.length}행</StatusBadge>
           </div>
-          <div className="table-scroll mt-3 max-h-[260px] overflow-y-auto rounded-xl border" style={{ borderColor: "var(--border)" }}>
+          <div tabIndex={0} className="table-scroll mt-3 max-h-[260px] overflow-y-auto rounded-xl border" style={{ borderColor: "var(--border)" }}>
             <table className="!min-w-0 text-[0.82rem]">
               <thead><tr className="bg-surface-muted text-left"><th className="px-3 py-2">행</th><th className="px-3 py-2">해석</th><th className="w-[34%] px-3 py-2">검증</th></tr></thead>
               <tbody>

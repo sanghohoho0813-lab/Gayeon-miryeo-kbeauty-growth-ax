@@ -80,7 +80,7 @@ export function CustomerMembers() {
           </div>
           <div className="min-w-0">
             <h3 className="mb-2 font-bold">회원 목록 (최근 가입순)</h3>
-            <div className="table-scroll max-h-[340px] overflow-y-auto rounded-xl border" style={{ borderColor: "var(--border)" }}>
+            <div tabIndex={0} className="table-scroll max-h-[340px] overflow-y-auto rounded-xl border" style={{ borderColor: "var(--border)" }}>
               <table className="!min-w-0 w-full text-[0.86rem]">
                 <thead><tr className="bg-surface-muted text-left"><th className="px-3 py-2">회원</th><th className="px-3 py-2">가입</th><th className="px-3 py-2">구매</th><th className="px-3 py-2"><span className="sr-only">작업</span></th></tr></thead>
                 <tbody>

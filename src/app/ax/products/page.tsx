@@ -64,7 +64,7 @@ function ProductsTab({ onSelect }: { onSelect: (p: Product) => void }) {
         {categories.map((c) => <option key={c}>{c}</option>)}
       </select>
     }>
-      <div className="table-scroll">
+      <div tabIndex={0} className="table-scroll">
         <table className="text-[0.93rem]">
           <thead>
             <tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>
@@ -122,7 +122,7 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
           ))}
         </div>
       }>
-        <div className="table-scroll">
+        <div tabIndex={0} className="table-scroll">
           <table className="text-[0.93rem]">
             <thead>
               <tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>
@@ -190,7 +190,7 @@ function ProductionTab() {
   return (
     <DataCard title="OEM 생산 현황" action={<Link href="/ax/data?tab=production" className="btn-secondary !min-h-[40px] text-[0.86rem]">생산 계획 입력</Link>}>
       {plans.length === 0 ? <EmptyState title="생산 계획이 없습니다" /> : (
-        <div className="table-scroll">
+        <div tabIndex={0} className="table-scroll">
           <table className="text-[0.93rem]">
             <thead>
               <tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>

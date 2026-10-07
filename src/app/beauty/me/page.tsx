@@ -44,7 +44,7 @@ export default function MyPage() {
     return (
       <Shell>
         <div className="rounded-3xl border bg-white p-8 text-center" style={{ borderColor: "var(--b-border)" }}>
-          <UserRound size={36} className="mx-auto" style={{ color: "var(--b-gold)" }} aria-hidden />
+          <UserRound size={36} className="mx-auto" style={{ color: "var(--b-gold-ink)" }} aria-hidden />
           <h1 className="mt-3 text-[1.4rem] font-bold">로그인하고 나만의 뷰티 기록을 보관하세요</h1>
           <p className="mt-2 text-[0.95rem]" style={{ color: "var(--b-text-soft)" }}>추천 기록, 구매 기록, 재구매 예상 시점을 한곳에서 확인할 수 있습니다.</p>
           <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -68,7 +68,7 @@ export default function MyPage() {
     <Shell>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[0.85rem] font-bold tracking-[0.18em]" style={{ color: "var(--b-gold)" }}>MY BEAUTY</p>
+          <p className="text-[0.85rem] font-bold tracking-[0.18em]" style={{ color: "var(--b-gold-ink)" }}>MY BEAUTY</p>
           <h1 className="mt-1 text-[1.7rem] font-bold">{acc.displayName || "회원"}님의 뷰티 기록</h1>
         </div>
         <button className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border px-4 text-[0.9rem] font-semibold" style={{ borderColor: "var(--b-border)" }} onClick={async () => { await customerApi().signOut(); await refresh(); router.push("/beauty"); }}>
@@ -214,7 +214,7 @@ function DeleteAccount({ onDone }: { onDone: (full: boolean) => void }) {
 function Section({ icon, title, children, testId }: { icon: React.ReactNode; title: string; children: React.ReactNode; testId: string }) {
   return (
     <section data-testid={testId} className="rounded-3xl border bg-white p-5 md:p-6" style={{ borderColor: "var(--b-border)" }}>
-      <h2 className="mb-3 flex items-center gap-2 text-[1.12rem] font-bold"><span style={{ color: "var(--b-gold)" }} aria-hidden>{icon}</span>{title}</h2>
+      <h2 className="mb-3 flex items-center gap-2 text-[1.12rem] font-bold"><span style={{ color: "var(--b-gold-ink)" }} aria-hidden>{icon}</span>{title}</h2>
       {children}
     </section>
   );

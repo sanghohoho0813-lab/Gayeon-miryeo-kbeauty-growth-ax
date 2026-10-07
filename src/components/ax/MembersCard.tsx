@@ -50,7 +50,7 @@ export function MembersCard() {
       ) : !list ? (
         <p className="mt-3 text-[0.9rem] text-ink-soft">불러오는 중…</p>
       ) : (
-        <div className="table-scroll mt-3">
+        <div tabIndex={0} className="table-scroll mt-3">
           <table className="!min-w-[560px] w-full text-[0.88rem]">
             <thead><tr className="border-b text-left text-ink-soft" style={{ borderColor: "var(--border)" }}><th className="py-2 pr-3 font-semibold">이메일</th><th className="py-2 pr-3 font-semibold">역할</th><th className="py-2 pr-3 font-semibold">상태</th><th className="py-2 font-semibold"><span className="sr-only">작업</span></th></tr></thead>
             <tbody>

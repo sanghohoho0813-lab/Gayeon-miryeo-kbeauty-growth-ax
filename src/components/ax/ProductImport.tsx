@@ -82,7 +82,7 @@ export function ProductImport() {
             <StatusBadge tone="neutral">변경 없음 {unchanged}</StatusBadge>
             <StatusBadge tone={bad ? "danger" : "neutral"}>오류 {bad}</StatusBadge>
           </div>
-          <div className="table-scroll mt-3 max-h-[280px] overflow-y-auto rounded-xl border" style={{ borderColor: "var(--border)" }}>
+          <div tabIndex={0} className="table-scroll mt-3 max-h-[280px] overflow-y-auto rounded-xl border" style={{ borderColor: "var(--border)" }}>
             <table className="!min-w-0 text-[0.82rem]">
               <thead><tr className="bg-surface-muted text-left"><th className="px-3 py-2">행</th><th className="px-3 py-2">상품</th><th className="w-[40%] px-3 py-2">결과</th></tr></thead>
               <tbody>

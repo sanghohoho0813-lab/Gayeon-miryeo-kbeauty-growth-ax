@@ -15,7 +15,7 @@ import { useSettings, type FontScale } from "@/components/providers/SettingsProv
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { ALL_PERMISSIONS, can, PERMISSION_LABEL, ROLE_LABEL } from "@/lib/permissions";
-import { isLive, liveConfigured, DATA_MODE } from "@/lib/config";
+import { isLive, liveConfigured, DATA_MODE, AI_BRIEFING_UI } from "@/lib/config";
 import { formatDateKR, formatDateTimeKR, todayISO } from "@/lib/date";
 import { DEMO_MEMBERS_KEY } from "@/lib/members";
 import type { Role, TechAsset, TechAssetStatus } from "@/lib/types";
@@ -83,7 +83,7 @@ export default function SettingsPage() {
               <div className="mt-3"><RoleMenu inline /></div>
               <p className="mt-3 text-[0.82rem] text-ink-soft">AX OWNER(실증 책임자)는 로그인 역할과 별개입니다: <b>{m.snapshot.org.axOwnerName || "REQUIRED / UNASSIGNED"}</b></p>
             </div>
-            <div className="table-scroll">
+            <div tabIndex={0} className="table-scroll">
               <table className="!min-w-[420px] text-[0.86rem]">
                 <thead><tr className="border-b text-left text-ink-soft" style={{ borderColor: "var(--border)" }}><th className="py-2 pr-3 font-semibold">권한</th>{(["OWNER", "ADMIN", "STAFF"] as Role[]).map((r) => <th key={r} className="py-2 pr-2 text-center font-semibold">{ROLE_LABEL[r]}</th>)}</tr></thead>
                 <tbody>
@@ -141,7 +141,7 @@ export default function SettingsPage() {
             <div className="font-semibold">AI 연결 상태</div>
             <ul className="mt-1 space-y-0.5 text-ink-soft">
               <li>· 재고·생산·채널·고객 관심: <b>RULE / STATISTICAL</b> 동작 중</li>
-              <li>· 경영 요약 LLM: <b>NEXT (CONDITIONAL)</b> — API 미연결</li>
+              <li>· 대표 브리핑 AI 문장화(Claude): <b>{AI_BRIEFING_UI ? "버튼 켜짐" : "READY · 꺼짐"}</b> — 서버 AI_BRIEFING_ENABLED + API 키 설정 시 동작, 숫자 검증 실패 시 RULE 유지</li>
               <li>· 문서 질의 RAG: <b>NEXT (CONDITIONAL)</b></li>
             </ul>
           </div>

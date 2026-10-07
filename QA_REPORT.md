@@ -1,17 +1,20 @@
-# QA_REPORT — MIRYEO K-Beauty Growth AX (계약 2단계 개발 보완)
+# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 5)
 
-DATE: 2026-09-30 · Next.js 16.3.7 · MODE TESTED: DEMO + LIVE(로컬 Supabase 호환 스택) · BROWSER: Chromium (Playwright)
+DATE: 2026-10-07 · Next.js 16.3.7 · MODE TESTED: DEMO + LIVE(로컬 Supabase 호환 스택) · BROWSER: Chromium (Playwright)
 
 ## 1. Release Gate
 | 항목 | 결과 |
 |---|---|
 | `npm run typecheck` (tsc --noEmit) | PASS |
-| `npm run build` (Next 16, Turbopack) | PASS (21 routes, API 1) |
-| `npm audit --omit=dev` | 0 vulnerabilities (Next 16 업그레이드로 해소) |
+| `npm run build` (Next 16, Turbopack) | PASS |
+| `npm audit` | 0 vulnerabilities (2026-10-07 공개된 sharp·source-map-js high 2건 → `npm audit fix`로 해소, 전체 회귀 재실행) |
 | **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 62/62** (A 7 + B 55) |
+| **접근성** axe-core WCAG 2.1 A/AA — 25개 화면 × 1440·390px (reduced motion) | **PASS 0건** (수정 전 4종: 대비·버튼 이름·라벨 불일치·스크롤 영역 키보드) |
+| **AI 브리핑** (가짜 Anthropic 서버 :4010) — 요청 형식(모델·effort·fallbacks·beta 헤더)·시스템 규칙·개인정보 미포함·근거 없는 숫자 폐기·거절 처리·직원 차단·임의 입력 거부 | PASS 11/11 |
+| AI 꺼짐(기본 빌드) `POST /api/ai/briefing` | 503 AI_DISABLED (호출 없음) |
 | 2단계 보완 Demo Flow (회원·마이페이지·재구매·정산·월별·브리핑·내보내기·권한·탈퇴) | PASS 41/41 |
 | PASS 3 Demo Flow (상품 일괄 등록·권한) | PASS 11/11 |
-| Route QA: 29 route × 8 viewport (1920/1440/1280/1024/768/430/390/360) — 가로 overflow, console error, HTTP error | PASS (0건) |
+| Route QA: 30 route(`/ax/start` 추가) × 8 viewport (1920/1440/1280/1024/768/430/390/360) — 가로 overflow, console error, HTTP error | PASS (0건) |
 | Whole-App Acceptance Flow (PASS 1 회귀) | PASS 31/31 |
 | PASS 2 Flow (Baseline·주간 리포트·PDF·파일 가져오기·구성원·권한) | PASS 33/33 |
 | DB 검증 `npm run verify:db` (Postgres 16 + Supabase auth stub): migration 001~007, RLS·트리거·이벤트 한도·고객/정산 97개 시나리오, 005~007 재실행 | PASS 97/97 |
@@ -20,7 +23,8 @@ DATE: 2026-09-30 · Next.js 16.3.7 · MODE TESTED: DEMO + LIVE(로컬 Supabase �
 | 실제 Supabase 프로젝트(호스팅) 연결 | **NOT VERIFIED** — 자격증명 없음. 로컬 호환 스택에서는 VERIFIED |
 | Realtime (postgres_changes) | **NOT VERIFIED** — 로컬 스택에 Realtime 서버 없음 (브라우저 콘솔에 WebSocket 실패 로그가 남는 것은 이 때문) |
 | 실기기(iOS/Android) | NOT VERIFIED |
-| Screen reader | NOT VERIFIED (ESC·포커스 복원·aria-label만 확인) |
+| Screen reader | NOT VERIFIED (자동 점검 0건, 실제 낭독 순서 미확인 — R-16) |
+| 실제 Anthropic API 호출 | **NOT VERIFIED** — 키 없음(기본 꺼짐). 켜는 날 1회 확인 |
 
 ## 2. Acceptance Flow 31항목 (모두 PASS)
 Tutorial: 실제 Route 이동 / 종료 후 Overlay 0 / Sidebar 클릭 가능
@@ -50,6 +54,10 @@ AX OWNER 지정 → 실증 화면 반영
 A: 대표 계정 생성 / 비로그인 → /login / 잘못된 비밀번호 안내 / 조직 없는 계정 → 조직 만들기 / 조직 생성 → DB·OWNER / Live 빈 상태(Demo 없음) / Page error 0
 B: 재로그인 / 채널 저장 / 상품 저장(공개·구매링크) / 상품 일괄 등록(신규·부분 수정) / 판매 파일 8행 인식·저장 / 재고 위험 RULE → Action 생성·이력 / Baseline 잠금(RPC) / Action DONE·승인자·KPI before/after·이력 / Proof(SUPABASE LIVE) / OWNER 확정 / Baseline 대비 변화 / Pilot 시작일·AX OWNER / 고객 홈 실상품 / 구매처 새 창 / 익명 이벤트 5종 / 구매채널 이벤트 / Finder 결과 저장(익명) / AX 고객 인사이트 반영 / 구성원 목록(서버 API) / 초대 2명 / 초대 메일 / 초대 수락·비밀번호·진입 / STAFF 메뉴 / STAFF 버튼 / STAFF 토큰 RLS(판매 O·B2B 0행) / STAFF 구성원 차단 / ADMIN 메뉴 / ADMIN 구성원 조회·초대 폼 없음 / ADMIN API 초대 403 / 역할 변경 / 제거(계정 유지) / 주간 리포트(LIVE) / 장애 중 재시도 안내·잘못된 역할 표시 없음 / 장애 → Error 화면(Demo 없음) / Page error 0
 
+### PASS 5에서 발견·수정한 결함
+- 접근성: 상태 색(성공·주의)·금색 글자 대비 부족 → 토큰 조정(D-035), 아이콘만 있는 역할 버튼 이름 없음 → 숨김 텍스트, 알림 벨 라벨이 보이는 숫자와 불일치 → 수정, 가로 스크롤 표 키보드 접근 불가 → `tabIndex=0` 15곳
+- 테스트 환경: 테스트 도구(playwright-core)가 1.63으로 올라가면 설치된 Chromium 1194와 맞지 않아 networkidle 대기가 멈춤 → 1.56 고정(SETUP §E). 시험용 XLSX 날짜 고정값 → 실행일 기준으로 재생성
+
 ### 2단계 보완에서 발견·수정한 결함
 - Demo 판매 시드가 주 1회 집계 행이라 월별 합계가 그 달에 든 주 수에 따라 출렁임(전월 대비 +77% 같은 가짜 추세) → 일반 채널은 일 단위 행으로 분할 (주간 분석 값은 동일)
 - 한글 CSV 파일명이 일부 브라우저에서 `download`로 바뀜 → 영문 파일명(`miryeo_*`)
@@ -74,6 +82,7 @@ deep-navy · midnight-slate · forest-emerald · sage-evergreen · ocean-teal ·
 | K-4 | 구성원 초대: Live 실검증 전 (Supabase 초대 메일·Redirect URL 설정 필요) | Live 운영 시 확인 필요 |
 | K-5 | ~~`npm audit` next 15.x postcss~~ → Next 16 업그레이드로 해소 | 해결 |
 | K-7 | 로컬 Live 검증은 PostgREST 호환 게이트웨이 사용 (PostgREST 자체 아님), Realtime 미포함 | 실제 Supabase에서 1회 재확인 |
+| K-8 | AI 사용 한도(시간당 20회)는 서버 인스턴스 메모리 기준 — 서버리스 다중 인스턴스에서는 합산되지 않음 | AI를 켠 뒤 사용량 보고 판단 (R-15) |
 | K-6 | Demo seed 고객 이벤트의 세션이 분산돼 주간 REVENUE 전환율이 0%로 보일 수 있음 | Demo 한정 |
 
 ## 5. Score (자체 평가, 근거 포함)

@@ -11,6 +11,8 @@ import { ActionDrawer } from "@/components/ax/ActionDrawer";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { EmptyState } from "@/components/ax/States";
 import { BriefingCard } from "@/components/ax/BriefingCard";
+import { buildStartGuide, guideProgress } from "@/lib/start-guide";
+import { Rocket } from "lucide-react";
 import { change, marginRate, monthlySummary } from "@/lib/monthly";
 import { summarizeReceivables } from "@/lib/settlements";
 import { CalendarRange, Wallet } from "lucide-react";
@@ -65,6 +67,8 @@ export default function DashboardPage() {
       </div>
 
       {fin && <FinanceRow />}
+
+      {can(role, "edit_master") && <StartGuideBanner />}
 
       <div className="mt-6"><BriefingCard /></div>
 
@@ -200,5 +204,22 @@ function FinanceRow() {
       <KpiCard label="이번 달 매출총이익" value={cur.grossProfit} format={formatKRW} icon={<Banknote size={22} />} iconTone="#16A34A" sub={mr == null ? "원가 미입력" : `이익률 ${Math.round(mr * 100)}% · 원가 입력 제품 기준`} trend={change(cur.grossProfit, prev.grossProfit) != null && day >= 28 ? change(cur.grossProfit, prev.grossProfit) : null} href="/ax/monthly" />
       <KpiCard label="받을 돈 (미수금)" value={rs.outstanding} format={formatKRW} icon={<Wallet size={22} />} iconTone={rs.overdueCount ? "#DC2626" : "#0F766E"} sub={rs.overdueCount ? `연체 ${rs.overdueCount}건 · ${formatKRW(rs.overdueAmount)}` : `${rs.openCount}건 · 연체 없음`} href="/ax/channels?tab=settlements" />
     </div>
+  );
+}
+
+/** 실데이터 시작 가이드 진행 — 필수 단계가 끝나면 숨김 */
+function StartGuideBanner() {
+  const m = useModel();
+  const p = guideProgress(buildStartGuide(m.snapshot, m.today));
+  if (p.done >= p.total) return null;
+  return (
+    <Link href="/ax/start" data-testid="start-banner" className="ax-card ax-card-hover mt-4 flex flex-wrap items-center gap-3 p-4">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: "var(--primary-soft)", color: "var(--primary)" }} aria-hidden><Rocket size={20} /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-bold">실데이터 시작 가이드 {p.done}/{p.total}</span>
+        <span className="text-[0.88rem] text-ink-soft">다음 단계: {p.next?.title}</span>
+      </span>
+      <span className="h-2 w-40 overflow-hidden rounded-full bg-surface-muted" aria-hidden><span className="block h-full rounded-full" style={{ width: `${Math.round(p.ratio * 100)}%`, background: "var(--primary)" }} /></span>
+    </Link>
   );
 }

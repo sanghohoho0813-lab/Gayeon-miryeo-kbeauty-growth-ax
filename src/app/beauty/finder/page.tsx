@@ -102,7 +102,7 @@ export default function FinderPage() {
 
       {step < 5 && (
         <div className="rounded-[28px] border bg-white p-7 @xl:p-9" style={{ borderColor: "var(--b-border)" }}>
-          <p className="text-[0.85rem] font-bold" style={{ color: "var(--b-gold)" }}>
+          <p className="text-[0.85rem] font-bold" style={{ color: "var(--b-gold-ink)" }}>
             STEP {step + 1}/5
           </p>
 
@@ -242,7 +242,7 @@ export default function FinderPage() {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <div className="text-[0.8rem] font-bold" style={{ color: "var(--b-gold)" }}>
+                  <div className="text-[0.8rem] font-bold" style={{ color: "var(--b-gold-ink)" }}>
                     {r.stepName}
                   </div>
                   <h2 className="mt-1 text-[1.15rem] font-bold">{r.product.name}</h2>
@@ -282,7 +282,7 @@ export default function FinderPage() {
                 setSaved(true);
               }}
               className="inline-flex min-h-[52px] items-center gap-2 rounded-2xl px-8 text-[1rem] font-bold text-white transition-transform hover:scale-[1.02]"
-              style={{ background: saved ? "var(--b-gold)" : "var(--b-navy)" }}
+              style={{ background: saved ? "var(--b-gold-ink)" : "var(--b-navy)" }}
             >
               {saved ? (
                 <>

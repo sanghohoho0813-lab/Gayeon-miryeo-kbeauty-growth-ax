@@ -19,7 +19,7 @@ export default function BeautyHome() {
       <section className="mt-5 overflow-hidden rounded-[28px] border" style={{ borderColor: "var(--b-border)", background: "linear-gradient(135deg, #ffffff 0%, #f4efe6 55%, #e9e1d0 100%)" }}>
         <div className="grid items-center gap-6 p-7 @3xl:grid-cols-2 @3xl:p-12">
           <div>
-            <p className="text-[0.82rem] font-bold tracking-[0.2em]" style={{ color: "var(--b-gold)" }}>MIRYEO AI BEAUTY</p>
+            <p className="text-[0.82rem] font-bold tracking-[0.2em]" style={{ color: "var(--b-gold-ink)" }}>MIRYEO AI BEAUTY</p>
             <h1 className="font-display mt-3 text-[2rem] font-bold leading-[1.25] @3xl:text-[2.7rem]" style={{ color: "var(--b-navy)" }}>
               오늘의 피부에 맞는<br />MIRYEO를 찾아보세요
             </h1>
@@ -65,7 +65,7 @@ export default function BeautyHome() {
       {featured.length > 0 && (
         <section className="mt-12 rounded-[28px] border p-6 @3xl:p-8" style={{ borderColor: "var(--b-gold)", background: "linear-gradient(150deg, #fff, var(--b-surface-warm))" }}>
           <div className="mb-5 flex items-center gap-2">
-            <TrendingUp size={20} style={{ color: "var(--b-gold)" }} aria-hidden />
+            <TrendingUp size={20} style={{ color: "var(--b-gold-ink)" }} aria-hidden />
             <h2 className="font-display text-[1.45rem] font-bold" style={{ color: "var(--b-navy)" }}>지금 주목받는 제품</h2>
           </div>
           <p className="-mt-3 mb-5 text-[0.9rem]" style={{ color: "var(--b-text-soft)" }}>최근 많은 분들이 피부 추천에서 저장한 제품이에요.</p>
@@ -113,7 +113,7 @@ export default function BeautyHome() {
           <div className="grid grid-cols-2 gap-4 @3xl:grid-cols-4">
             {routine.map((p, i) => (
               <Link key={p.id} href={`/beauty/products/${p.id}`} className="group pressable rounded-2xl border p-4 text-center transition-all hover:-translate-y-0.5 hover:shadow-md" style={{ borderColor: "var(--b-border)" }}>
-                <div className="text-[0.76rem] font-bold" style={{ color: "var(--b-gold)" }}>STEP {i + 1}</div>
+                <div className="text-[0.76rem] font-bold" style={{ color: "var(--b-gold-ink)" }}>STEP {i + 1}</div>
                 <div className="mx-auto mt-2 h-[110px] w-fit transition-transform duration-300 group-hover:scale-[1.04]"><ProductVisual category={p.category} variant={p.id.length} className="h-full" /></div>
                 <div className="mt-2 text-[0.9rem] font-bold leading-snug">{p.name}</div>
                 <div className="text-[0.78rem]" style={{ color: "var(--b-text-soft)" }}>{p.category}</div>
@@ -142,7 +142,7 @@ export default function BeautyHome() {
       </section>
 
       <section className="mt-12 flex flex-col items-center gap-4 rounded-[28px] border p-9 text-center" style={{ borderColor: "var(--b-gold)", background: "linear-gradient(150deg, #fff, var(--b-surface-warm))" }}>
-        <p className="text-[0.8rem] font-bold tracking-[0.2em]" style={{ color: "var(--b-gold)" }}>MY BEAUTY PASSPORT</p>
+        <p className="text-[0.8rem] font-bold tracking-[0.2em]" style={{ color: "var(--b-gold-ink)" }}>MY BEAUTY PASSPORT</p>
         <h2 className="font-display text-[1.45rem] font-bold @3xl:text-[1.7rem]" style={{ color: "var(--b-navy)" }}>나의 추천 기록을 모아보세요</h2>
         <Link href="/beauty/passport" className="pressable mt-1 inline-flex min-h-[52px] items-center gap-2 rounded-2xl px-7 font-bold text-white" style={{ background: "var(--b-navy)" }}>뷰티 패스포트 열기 <ArrowRight size={17} aria-hidden /></Link>
       </section>

@@ -72,8 +72,8 @@
   --chart-6: color-mix(in srgb, var(--theme-secondary) 45%, #FFFFFF);
 
   /* Semantic — 모든 Theme에서 고정 */
-  --success: #15803D; --success-soft: #DCF5E5;
-  --warning: #B45309; --warning-soft: #FDF0D9;
+  --success: #166534; --success-soft: #DCF5E5; /* 6.2:1 (WCAG AA) */
+  --warning: #92400E; --warning-soft: #FDF0D9; /* 6.3:1 (WCAG AA) */
   --danger: #B91C1C;  --danger-soft: #FDE3E3;
   --info: #1D4ED8;    --info-soft: #E2EAFC;
 
@@ -113,6 +113,8 @@
   --b-navy: var(--theme-shell);   /* Brand Ink — 선택 Theme 전파 */
   --b-navy-hover: color-mix(in srgb, var(--theme-shell) 85%, #000);
   --b-gold: color-mix(in srgb, var(--theme-highlight) 62%, #3A2A05);
+  /* 글자·작은 배지용 금색 — 7개 테마 모두 흰색/웜 배경 대비 4.5:1 이상 (b-gold는 장식·테두리용) */
+  --b-gold-ink: color-mix(in srgb, var(--theme-highlight) 40%, #2A1D03);
   --b-radius: 20px;
   background: var(--b-bg);
   color: var(--b-text);

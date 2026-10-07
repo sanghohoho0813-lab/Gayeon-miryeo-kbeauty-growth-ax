@@ -21,7 +21,7 @@ npm run build
 npm run verify:db    # (선택) 로컬 Postgres로 migration + RLS·트리거 97개 시나리오 검증
 bash supabase/tests/live-e2e/run.sh   # (선택) 로컬 Supabase 호환 스택에서 Live 모드 브라우저 E2E (SETUP.md §E)
 ```
-Live 전환은 **SETUP.md** 참고.
+Live 전환은 **SETUP.md** 참고. 1차 완료 보고서 초안: **STAGE2_DELIVERY_REPORT.md**
 
 ## Data Mode (정확한 동작)
 - `NEXT_PUBLIC_DATA_MODE=demo` (기본): Demo Seed + 브라우저 저장소. 화면에 DEMO 표시, Demo 초기화 가능.
@@ -38,6 +38,8 @@ UI (src/app, src/components)
 ```
 - Schema / RLS: `supabase/migrations/001~007` (005·007 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
 - 월별 실적 `/ax/monthly`, 정산·미수금 `/ax/channels?tab=settlements`, 대표 브리핑 `src/lib/briefing.ts`, 내보내기 `/ax/data?tab=export`
+- 실데이터 시작 가이드 `/ax/start` (`src/lib/start-guide.ts`, 저장된 데이터로 자동 판정)
+- 대표 브리핑 AI 문장화(Claude, 기본 꺼짐): `src/app/api/ai/briefing/route.ts`, 숫자 검증 `src/lib/ai/grounding.ts` — 켜는 방법 SETUP.md §G
 - 고객 회원·마이페이지 `src/lib/customer-account.ts`, 재구매 예상 `src/lib/repurchase.ts`, 탈퇴 API `src/app/api/customer/account/route.ts`
 - Evidence 계산(Money KPI·Baseline 비교): `src/lib/evidence.ts` → 실증 화면 + 주간 리포트(`/ax/reports/weekly`, 인쇄·PDF)
 - 판매·상품 파일 가져오기(CSV/XLSX, 열 자동 인식): `src/lib/import.ts`

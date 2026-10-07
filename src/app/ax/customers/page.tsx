@@ -68,7 +68,7 @@ export default function CustomersPage() {
           점수 = 조회×0.2 + 찜×2 + 추천노출×1 + Passport 저장×3 + 구매채널 이동×2 (RULE). {INTEREST_THRESHOLD}점 이상이면서 +{Math.round(INTEREST_GROWTH_MIN * 100)}% 이상이면 &lsquo;고객 관심 상승&rsquo; Action 생성.
         </p>
         {c.productInterest.length === 0 ? <EmptyState title="관심 데이터가 없습니다" desc="고객 화면에서 제품 조회·찜·Finder가 발생하면 계산됩니다." /> : (
-          <div className="table-scroll">
+          <div tabIndex={0} className="table-scroll">
             <table className="text-[0.93rem]">
               <thead>
                 <tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>

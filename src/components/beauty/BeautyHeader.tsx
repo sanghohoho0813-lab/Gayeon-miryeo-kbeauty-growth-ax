@@ -63,7 +63,7 @@ export function BeautyHeader() {
         <div className="mx-auto flex h-[70px] w-full max-w-[1240px] items-center gap-4 px-4 md:px-6">
           <Link href="/beauty" className="shrink-0">
             <span className="font-display block text-[1.45rem] font-bold leading-none tracking-wide" style={{ color: "var(--b-navy)" }}>MIRYEO</span>
-            <span className="text-[0.7rem] font-semibold tracking-[0.22em]" style={{ color: "var(--b-gold)" }}>AI BEAUTY</span>
+            <span className="text-[0.7rem] font-semibold tracking-[0.22em]" style={{ color: "var(--b-gold-ink)" }}>AI BEAUTY</span>
           </Link>
           <nav className="hidden flex-1 items-center justify-center gap-1 @3xl:flex" aria-label="주요 메뉴">
             {NAV.map((n) => (

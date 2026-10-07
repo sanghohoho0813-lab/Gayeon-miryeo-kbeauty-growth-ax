@@ -106,7 +106,7 @@ function Inner() {
         </Section>
 
         <Section n={2} title="Money KPI — Baseline 대비 (이번 주 측정)">
-          <div className="table-scroll">
+          <div tabIndex={0} className="table-scroll">
             <table className="w-full text-[0.88rem]">
               <thead><tr className="border-b text-left text-ink-soft" style={{ borderColor: "var(--border)" }}><th className="py-2 pr-3 font-semibold">KPI</th><th className="py-2 pr-3 font-semibold">Baseline</th><th className="py-2 pr-3 font-semibold">이번 주</th><th className="py-2 pr-3 font-semibold">변화</th><th className="py-2 font-semibold">표본</th></tr></thead>
               <tbody>

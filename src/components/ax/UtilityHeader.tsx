@@ -56,6 +56,7 @@ export function RoleMenu({ inline = false }: { inline?: boolean }) {
         <span className="flex h-9 w-9 items-center justify-center rounded-full text-[0.85rem] font-bold text-white" style={{ background: "var(--primary)" }} aria-hidden>
           {roleLabel.slice(0, 1)}
         </span>
+        <span className="sr-only @4xl:hidden">역할 메뉴: {roleLabel}</span>
         <span className="hidden text-left leading-tight @4xl:block">
           <span className="block text-[0.85rem] font-semibold">{roleLabel}{isLive ? "" : " (Demo)"}</span>
           <span className="block max-w-[12rem] truncate text-[0.72rem] text-ink-soft">{isLive ? userEmail : "역할 바꿔 보기"}</span>
@@ -132,7 +133,7 @@ export function UtilityHeader() {
           <RefreshCw size={19} className={spinning ? "animate-spin" : ""} />
         </button>
 
-        <Link href="/ax/growth" className="relative flex h-11 w-11 items-center justify-center rounded-lg hover:bg-surface-muted" aria-label={`처리할 Action ${openCount}건`}>
+        <Link href="/ax/growth" className="relative flex h-11 w-11 items-center justify-center rounded-lg hover:bg-surface-muted" aria-label={`처리할 Action ${openCount}`}>
           <Bell size={20} />
           {openCount > 0 && (
             <span className="tabular absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[0.68rem] font-bold text-white" style={{ background: "var(--danger)" }}>

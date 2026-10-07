@@ -98,7 +98,7 @@ function Inner() {
         </form>
       )}
       <ul className="mt-6 space-y-1.5 text-[0.88rem]" style={{ color: "var(--b-text-soft)" }}>
-        {["AI 추천 기록을 계정에 보관", "구매 기록과 재구매 예상 시점 확인", "피부 고민에 맞춘 추천 업데이트"].map((t) => <li key={t} className="flex items-center gap-2"><Check size={15} style={{ color: "var(--b-gold)" }} aria-hidden />{t}</li>)}
+        {["AI 추천 기록을 계정에 보관", "구매 기록과 재구매 예상 시점 확인", "피부 고민에 맞춘 추천 업데이트"].map((t) => <li key={t} className="flex items-center gap-2"><Check size={15} style={{ color: "var(--b-gold-ink)" }} aria-hidden />{t}</li>)}
       </ul>
       <Link href="/beauty/finder" className="mt-4 block text-center text-[0.9rem] font-semibold underline" style={{ color: "var(--b-navy)" }}>비회원으로 추천 먼저 받아보기</Link>
     </Card>
