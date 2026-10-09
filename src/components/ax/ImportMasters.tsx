@@ -7,7 +7,7 @@ import { toast } from "./Toast";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
-import { newId } from "@/lib/data/source";
+import { uuidv4 } from "@/lib/data/source";
 import { formatPrice } from "@/lib/analytics";
 import { newProductFromFile, type SalesDiagnosis, type UnknownChannel, type UnknownProduct } from "@/lib/import";
 import type { Channel, ProductCategory } from "@/lib/types";
@@ -99,11 +99,11 @@ export function ImportMasters({ products, channels }: { products: UnknownProduct
       await run(async (s) => {
         for (const c of channels) {
           const d = cd[c.key];
-          await s.upsertChannel({ id: newId("ch"), name: c.name, type: d.type as Channel["type"], avgDiscountRate: Math.min(0.9, Math.max(0, Number(d.discount) / 100 || 0)), active: true });
+          await s.upsertChannel({ id: uuidv4(), name: c.name, type: d.type as Channel["type"], avgDiscountRate: Math.min(0.9, Math.max(0, Number(d.discount) / 100 || 0)), active: true });
         }
         for (const p of products) {
           const d = pd[p.key];
-          await s.upsertProduct(newProductFromFile({ name: p.name, sku: d.sku, category: d.category as ProductCategory, price: Number(d.price.replace(/[,\s원]/g, "")) }, taken, newId("prod"), today));
+          await s.upsertProduct(newProductFromFile({ name: p.name, sku: d.sku, category: d.category as ProductCategory, price: Number(d.price.replace(/[,\s원]/g, "")) }, taken, uuidv4(), today));
         }
       });
       toast(`상품 ${products.length}개 · 채널 ${channels.length}개를 등록했습니다. 판매 행을 다시 검증했습니다.`);

@@ -9,7 +9,8 @@ import { formatPrice } from "@/lib/analytics";
 import { monthLabel } from "@/lib/monthly";
 import { BASELINE_SOURCE_LABEL, formatKpiValue } from "@/lib/evidence";
 import { downloadCSV } from "@/lib/export";
-import { buildBusinessReport, businessReportRows, type Share } from "@/lib/business-report";
+import { useState } from "react";
+import { buildBusinessReport, businessReportRows, REPORT_PERIODS, type ReportPeriod, type Share } from "@/lib/business-report";
 
 /* 사업화 실적 자료 — 정책자금·보증·벤처 신청서에 첨부할 '시스템 기록 근거'. 인쇄·PDF·CSV.
    평가 문장·전망·회사 소개는 쓰지 않는다 (신청서 본문은 대표가 작성). */
@@ -17,7 +18,8 @@ const pct = (v: number | null, signed = false) => (v == null ? "—" : `${signed
 
 export function BusinessReportView() {
   const m = useModel();
-  const r = buildBusinessReport(m.snapshot, m.today, isLive);
+  const [period, setPeriod] = useState<ReportPeriod>("last12");
+  const r = buildBusinessReport(m.snapshot, m.today, isLive, period);
   const max = Math.max(1, ...r.sales.monthly.map((x) => x.revenue));
   const empty = r.coverage.salesRows === 0;
 
@@ -25,8 +27,13 @@ export function BusinessReportView() {
     <div>
       <div data-print="hide" className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-[0.88rem] text-ink-soft">정책자금·보증·벤처 신청서의 매출·판로·운영 실적 근거로 첨부합니다. 숫자는 모두 시스템 기록에서 계산되며, 회사 개요·재무제표·인증은 원본 서류를 사용합니다.</p>
-        <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary !min-h-[40px] text-[0.88rem]" onClick={() => downloadCSV(`miryeo_business_evidence_${m.today}.csv`, businessReportRows(r))}><Download size={15} aria-hidden /> 근거 데이터 CSV</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div role="radiogroup" aria-label="자료 기간" className="flex gap-1 rounded-xl border bg-surface p-1" style={{ borderColor: "var(--border)" }}>
+            {REPORT_PERIODS.map((x) => (
+              <button key={x.id} role="radio" aria-checked={period === x.id} onClick={() => setPeriod(x.id)} className="min-h-[34px] rounded-lg px-3 text-[0.84rem] font-semibold" style={period === x.id ? { background: "var(--primary)", color: "#fff" } : { color: "var(--text-secondary)" }} data-period={x.id}>{x.label}</button>
+            ))}
+          </div>
+          <button className="btn-secondary !min-h-[40px] text-[0.88rem]" onClick={() => downloadCSV(`miryeo_business_evidence_${r.period}_${m.today}.csv`, businessReportRows(r))}><Download size={15} aria-hidden /> 근거 데이터 CSV</button>
           <button className="btn-primary !min-h-[40px] text-[0.88rem]" onClick={() => window.print()}><Printer size={15} aria-hidden /> 인쇄 / PDF 저장</button>
         </div>
       </div>
@@ -37,7 +44,7 @@ export function BusinessReportView() {
             <div>
               <p className="text-[0.8rem] font-semibold tracking-wide text-ink-soft">사업화 실적 자료 · 시스템 기록 근거</p>
               <h2 className="mt-1 text-[1.5rem] font-bold">{m.snapshot.org.name}</h2>
-              <p className="tabular mt-1 text-[0.95rem]">{formatDateKR(r.from)} ~ {formatDateKR(r.to)} (최근 {r.months.length}개월)</p>
+              <p className="tabular mt-1 text-[0.95rem]" data-testid="business-period">{r.periodLabel} · {formatDateKR(r.from)} ~ {formatDateKR(r.to)}</p>
             </div>
             <div className="text-right text-[0.84rem]">
               <StatusBadge tone={isLive ? "success" : "warning"}>{DATA_SOURCE_LABEL}</StatusBadge>

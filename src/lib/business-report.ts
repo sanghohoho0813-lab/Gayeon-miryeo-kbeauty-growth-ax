@@ -9,8 +9,24 @@ import { realScope } from "./start-guide";
    — Live: Demo 표시 상품·시드 데이터를 제외. Demo: 전부 시연용(제출 불가)으로 표시. */
 
 export interface Share { name: string; revenue: number; share: number }
+/** 기간 — 신청 양식마다 기준이 달라 최근 12개월·올해·작년을 고른다 */
+export type ReportPeriod = "last12" | "thisYear" | "lastYear";
+export const REPORT_PERIODS: { id: ReportPeriod; label: string }[] = [
+  { id: "last12", label: "최근 12개월" },
+  { id: "thisYear", label: "올해" },
+  { id: "lastYear", label: "작년" },
+];
+export function periodRange(p: ReportPeriod, today: string): { end: string; n: number; label: string } {
+  const y = Number(today.slice(0, 4)), mo = Number(today.slice(5, 7));
+  if (p === "thisYear") return { end: today, n: mo, label: `${y}년 1~${mo}월` };
+  if (p === "lastYear") return { end: `${y - 1}-12-31`, n: 12, label: `${y - 1}년` };
+  return { end: today, n: 12, label: "최근 12개월" };
+}
+
 export interface BusinessReport {
   live: boolean;
+  period: ReportPeriod;
+  periodLabel: string;
   months: string[];
   from: string;
   to: string;
@@ -41,19 +57,20 @@ export interface BusinessReport {
 
 const share = (v: number, total: number) => (total > 0 ? v / total : 0);
 
-export function buildBusinessReport(s0: DataSnapshot, today: string, live: boolean, n = 12): BusinessReport {
+export function buildBusinessReport(s0: DataSnapshot, today: string, live: boolean, period: ReportPeriod = "last12"): BusinessReport {
+  const { end, n, label: periodLabel } = periodRange(period, today);
   // Live는 실데이터 범위만 (Demo 표시 상품·시드 판매 제외). Demo는 그대로 두고 화면에 '제출 불가' 표시.
   const real = realScope(s0);
   const demoIds = new Set(s0.products.filter((p) => p.isDemo).map((p) => p.id));
   const s: DataSnapshot = live
     ? { ...s0, products: real.products, sales: s0.sales.filter((x) => x.source !== "seed" && !demoIds.has(x.productId)), proofEvents: real.proofs, customerEvents: s0.customerEvents.filter((e) => e.origin !== "seed") }
     : s0;
-  const months = recentMonths(today, n);
+  const months = recentMonths(end, n);
   const from = `${months[0]}-01`;
-  const to = today;
+  const to = end;
   const inPeriod = (d: string) => d >= from && d <= to;
   const sales = s.sales.filter((x) => inPeriod(x.saleDate));
-  const monthly = monthlySummary(s.sales, s.products, s.channels, today, n);
+  const monthly = monthlySummary(s.sales, s.products, s.channels, end, n);
   const total = monthly.reduce((a, r) => a + r.revenue, 0);
   const units = monthly.reduce((a, r) => a + r.units, 0);
   const costed = monthly.reduce((a, r) => a + r.costedRevenue, 0);
@@ -61,7 +78,7 @@ export function buildBusinessReport(s0: DataSnapshot, today: string, live: boole
   const sum = (rows: MonthRow[]) => rows.reduce((a, r) => a + r.revenue, 0);
   // 이번 달이 끝나지 않았으면 비교에서 뺀다 (며칠치 매출로 '감소'처럼 보이는 왜곡 방지)
   const lastDay = new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)), 0)).getUTCDate();
-  const partialMonth = Number(today.slice(8, 10)) < lastDay ? today.slice(0, 7) : null;
+  const partialMonth = Number(today.slice(8, 10)) < lastDay && months.includes(today.slice(0, 7)) ? today.slice(0, 7) : null;
   const complete = partialMonth ? monthly.filter((r) => r.month !== partialMonth) : monthly;
   const recentRows = complete.slice(-3);
   const recent3 = sum(recentRows);
@@ -95,6 +112,8 @@ export function buildBusinessReport(s0: DataSnapshot, today: string, live: boole
 
   return {
     live,
+    period,
+    periodLabel,
     months,
     from,
     to,

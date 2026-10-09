@@ -1,4 +1,4 @@
-# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 8)
+# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 9)
 
 DATE: 2026-10-07 · Next.js 16.3.7 · MODE TESTED: DEMO + LIVE(로컬 Supabase 호환 스택) · BROWSER: Chromium (Playwright)
 
@@ -8,7 +8,8 @@ DATE: 2026-10-07 · Next.js 16.3.7 · MODE TESTED: DEMO + LIVE(로컬 Supabase �
 | `npm run typecheck` (tsc --noEmit) | PASS |
 | `npm run build` (Next 16, Turbopack) | PASS |
 | `npm audit` | 0 vulnerabilities (2026-10-07 공개된 sharp·source-map-js high 2건 → `npm audit fix`로 해소, 전체 회귀 재실행) |
-| **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 73/73** (A 7 + B 66 — 공개 전 점검, 판매 파일의 미등록 상품·채널 등록→판매 연결, Live 사업화 실적 자료·현장확인 가이드 포함) |
+| **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 77/77** (A 7 + B 70 — Demo 백업 파일 → Live 이관·재가져오기 무변화 포함 — 공개 전 점검, 판매 파일의 미등록 상품·채널 등록→판매 연결, Live 사업화 실적 자료·현장확인 가이드 포함) |
+| **PASS 9 Demo** (실데이터 없음/있음 안내, 백업 요약·파일 내용(시드·개인정보 제외), 초기화 후 복원(원가·사용기간·링크·재고·정산·설정), 재가져오기 무변화, JSON 아님·다른 종류·형식 오류 3건, `javascript:` 링크 제거·HTML 이름 글자 표시·대화상자 0, 권한, 기간 3종·CSV 파일명) | PASS 24/24 |
 | **PASS 8 Demo** (자료 진단, 미등록 상품·채널 추정·필수값·등록·재검증·저장, 직원 안내만, 사업화 실적 자료 6섹션·완료된 달 비교·평가 문구 없음·CSV·인쇄, 현장확인 7단계·질문 7개·Demo 경고, 모바일·반폭 배치, 권한) | PASS 32/32 |
 | **PASS 7** 화면 설정 첫 화면 적용 `qa-boot` (JS 차단 상태 3종 + hydration 중 기본 테마 없음 + 설정 변경) | PASS 5/5 |
 | 보안 헤더·robots (Demo 로컬 + 환경변수 3조합 규칙 평가) | PASS |
@@ -62,6 +63,9 @@ B: 재로그인 / 채널 저장 / 상품 저장(공개·구매링크) / 상품 �
 ### PASS 5에서 발견·수정한 결함
 - 접근성: 상태 색(성공·주의)·금색 글자 대비 부족 → 토큰 조정(D-035), 아이콘만 있는 역할 버튼 이름 없음 → 숨김 텍스트, 알림 벨 라벨이 보이는 숫자와 불일치 → 수정, 가로 스크롤 표 키보드 접근 불가 → `tabIndex=0` 15곳
 - 테스트 환경: 시험용 XLSX 날짜 고정값 → 실행일 기준으로 재생성. playwright-core는 설치된 Chromium 1194에 맞춰 1.56 고정(SETUP §E)
+
+### PASS 9에서 발견·수정한 결함
+- 판매 파일에서 등록하는 상품·채널 ID를 `newId()`로 만들어, 보안 컨텍스트가 아닌 주소(사내 http)에서는 UUID가 아닌 값이 되어 Live(uuid 열) 저장이 실패할 수 있었음 → 항상 `uuidv4()`
 
 ### PASS 8 보안 업데이트
 - 2026-10-09 `npm audit`: Next.js 16.0.0~16.3.7 high (이미지 최적화 SSRF, SSG/ISR 캐시 오염, metadata 이미지 경로 정보 노출 등 6건) → **Next.js 16.4.0**, `package.json` 하한 `^16.4.0`(새로 설치해도 취약 버전 불가). audit 0건, 전체 회귀(Demo·접근성·화면 폭·Live E2E) 재실행

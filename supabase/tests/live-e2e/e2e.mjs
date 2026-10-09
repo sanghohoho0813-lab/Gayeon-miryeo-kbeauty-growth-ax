@@ -407,6 +407,49 @@ if (PHASE === "B") {
   const insp = await owner.getByTestId("inspection-guide").innerText();
   ok("Live 현장확인 가이드: DEMO 경고 없음 · 저장 위치 = 클라우드 DB · 현재 근거", (await owner.getByTestId("inspection-demo-warning").count()) === 0 && insp.includes("클라우드 데이터베이스(Supabase, PostgreSQL)에 저장") && (insp.match(/현재 근거/g) ?? []).length === 7 && !insp.includes("(DEMO)"));
 
+  // 10-1c. Demo 주소에서 만든 백업 파일 → Live로 이관 (비UUID ID·Demo 채널·이미 있는 SKU 포함), 다시 가져와도 중복 없음
+  const chSmart = "5f0c6a52-7d0e-4b8e-9d3a-2a1b3c4d5e6f", prodToner = "0b9e3f5a-1c2d-4e5f-8a9b-0c1d2e3f4a5b";
+  const transfer = {
+    kind: "miryeo-transfer", version: 1, exportedAt: new Date().toISOString(), fromMode: "demo", orgName: "가연인터내셔널 (Demo)",
+    org: { pilotStartedOn: day(30), axOwnerName: "이관 담당" },
+    channels: [{ id: "ch-direct", name: "직영몰 (Demo)", type: "직영몰", avgDiscountRate: 0.05, active: true }, { id: chSmart, name: "스마트스토어", type: "온라인몰", avgDiscountRate: 0.1, active: true }],
+    products: [
+      { id: "prod-legacy-9", sku: "MR-SERUM-09", name: "이관 세럼", category: "에센스/앰플", price: 41000, cost: 12000, status: "신규", concerns: ["수분"], isPublished: false, purchaseLinks: [], mainChannelIds: [], usageDays: 45, isDemo: false },
+      { id: prodToner, sku: "MR-TONER-01", name: "E2E 토너 (Demo에서 입력)", category: "토너/미스트", price: 30000, status: "신규", concerns: [], isPublished: true, purchaseLinks: [], mainChannelIds: [], isDemo: false },
+    ],
+    inventory: [{ productId: "prod-legacy-9", currentStock: 50, safetyStock: 10, incomingStock: 0 }],
+    sales: [
+      { id: "s1", productId: "prod-legacy-9", channelId: chSmart, saleDate: day(6), units: 2, revenue: 82000, source: "csv" },
+      { id: "s2", productId: prodToner, channelId: "ch-direct", saleDate: day(6), units: 1, revenue: 30000, source: "manual" },
+    ],
+    settlements: [{ id: "st-legacy-1", kind: "B2B", counterparty: "이관 도매처", amount: 2000000, paidAmount: 0, issuedOn: day(20), dueOn: day(5), status: "OPEN" }],
+  };
+  fs.writeFileSync(`${OUT}/transfer_from_demo.json`, JSON.stringify(transfer));
+  const pilotBefore = (await one("select pilot_started_on::text p, ax_owner_name a from organizations where id = $1", [orgId]));
+  await owner.goto(`${APP}/ax/data?tab=export`, { waitUntil: "networkidle" });
+  await owner.setInputFiles('[data-testid="transfer-file"]', `${OUT}/transfer_from_demo.json`);
+  await owner.getByTestId("transfer-plan").waitFor({ timeout: 10000 });
+  const tplan = await owner.getByTestId("transfer-plan").innerText();
+  ok("Live 이관 미리보기: 상품 새로 1·이미 있음 1(SKU) · 채널 새로 2 · 판매 2 · 정산 1 · 설정 유지 · Demo 이름 채널 경고", tplan.includes("상품 새로 1 · 이미 있음 1") && tplan.includes("채널 새로 2") && tplan.includes("판매 새로 2") && tplan.includes("정산 새로 1") && tplan.includes("설정 변경 없음") && tplan.includes("직영몰 (Demo)"), tplan.replace(/\n/g, " / "));
+  await owner.getByTestId("transfer-apply").click();
+  await owner.getByTestId("transfer-plan").waitFor({ state: "detached", timeout: 20000 });
+  const serum = await one("select id::text, cost, usage_days, is_demo from products where organization_id = $1 and sku = 'MR-SERUM-09'", [orgId]);
+  const tonerRow = await one("select id::text, name from products where organization_id = $1 and sku = 'MR-TONER-01'", [orgId]);
+  const smart = await one("select id::text from channels where organization_id = $1 and name = '스마트스토어'", [orgId]);
+  const demoCh = await one("select id::text from channels where organization_id = $1 and name = '직영몰 (Demo)'", [orgId]);
+  ok("Live 이관 → DB: 새 상품(UUID·원가·사용기간) · 기존 SKU 상품은 이름 유지", /^[0-9a-f-]{36}$/.test(serum?.id ?? "") && Number(serum.cost) === 12000 && serum.usage_days === 45 && serum.is_demo === false && tonerRow?.name === "E2E 토너" && smart?.id === chSmart && !!demoCh, JSON.stringify([serum, tonerRow, smart, demoCh]));
+  ok("Live 이관 → 판매 연결 (새 상품·새 채널 / 기존 상품·Demo 채널) · 재고 · 정산 · Pilot 설정 유지",
+    (await count("select count(*) n from sales_records where organization_id = $1 and product_id = $2 and channel_id = $3", [orgId, serum.id, smart.id])) === 1 &&
+    (await count("select count(*) n from sales_records where organization_id = $1 and product_id = $2 and channel_id = $3", [orgId, tonerRow.id, demoCh.id])) === 1 &&
+    (await count("select count(*) n from inventory where product_id = $1 and current_stock = 50", [serum.id])) === 1 &&
+    (await count("select count(*) n from settlements where organization_id = $1 and counterparty = '이관 도매처'", [orgId])) === 1 &&
+    JSON.stringify(await one("select pilot_started_on::text p, ax_owner_name a from organizations where id = $1", [orgId])) === JSON.stringify(pilotBefore));
+  const salesAfter = await count("select count(*) n from sales_records where organization_id = $1", [orgId]);
+  await owner.setInputFiles('[data-testid="transfer-file"]', `${OUT}/transfer_from_demo.json`);
+  await owner.getByTestId("transfer-plan").waitFor({ timeout: 10000 });
+  ok("Live 같은 파일 다시 → 새 항목 없음 (버튼 비활성) · DB 변화 없음", (await owner.getByTestId("transfer-apply").isDisabled()) && (await owner.getByTestId("transfer-apply").innerText()).includes("가져올 새 항목 없음") && (await count("select count(*) n from sales_records where organization_id = $1", [orgId])) === salesAfter);
+  await owner.getByRole("button", { name: "취소" }).last().click();
+
   // 10-2. 공개 전 점검 (/ax/system) — 정상 판정 + RLS를 끄면 노출을 잡아내는지
   const runCheck = async () => {
     await owner.locator('[data-testid="readiness-summary"]').getByText(/공개 가능|해결 필요/).waitFor({ timeout: 30000 });

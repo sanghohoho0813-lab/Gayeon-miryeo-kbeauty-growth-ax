@@ -1,8 +1,8 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-10-09 (PASS 8 — 계약 3단계 일부 개발: 실제 자료 적용·사업화 실적 자료·면담/현장확인 대비)
+LAST UPDATED: 2026-10-09 (PASS 9 — 작업 데이터 백업·이관, 사업화 자료 기간 선택)
 DELIVERY STAGE: 계약 제11조 2단계 개발 완료(1차 보고·5영업일 확인 대기) + **3단계 일부 개발 착수**(사용자 지시 2026-10-09: "3단계도 일부 개발, Supabase는 나중에 연동")
-CURRENT PASS: 8 — 3단계 개발 부분 선행(Supabase 연결 전). 판매 파일 하나로 실데이터 시작(미등록 상품·채널 즉시 등록 + 자료 진단), 사업화 실적 자료(`/ax/business`), 면담·현장확인 대비(`/ax/business?tab=inspection`). **push = Production 배포**(D-040)
+CURRENT PASS: 9 — 3단계 계속(Supabase 연결 전). Demo 주소에 넣은 실데이터를 백업 파일로 받아 두고 Live 전환 후 그대로 이관(중복 없음), 사업화 실적 자료 기간(최근 12개월·올해·작년). **push = Production 배포**(D-040)
 
 ## 계약 별지 제1호 대조 (2026-09-30 기준)
 | No | 핵심모듈 | 구현 | 화면 |
@@ -25,11 +25,20 @@ CURRENT PASS: 8 — 3단계 개발 부분 선행(Supabase 연결 전). 판매 �
 3단계 산출물: "실제 자료 적용·기능 보완, 벤처 신청/보완, 정책자금·보증용 사업화자료, 담당자 면담/현장확인 대비" (별지 제1호: "실제 자료 **또는 합리적인 샘플 자료**로 실제 업무에 쓸 수 있는지 확인")
 | 산출물 | 개발 부분 | 상태 | 남은 것 (막힌 이유) |
 |---|---|---|---|
-| 실제 자료 적용 | 판매 파일 하나로 시작: 미등록 상품·채널 즉시 등록(추정값 확인) + 자료 진단(기간·규모·합계·해석 실패) | PILOT — Demo 32/32 · Live E2E VERIFIED | 실제 판매·상품 엑셀 (USER), Live 전환 (USER: Supabase) |
+| 실제 자료 적용 | 판매 파일 하나로 시작: 미등록 상품·채널 즉시 등록(추정값 확인) + 자료 진단 + **Demo에서 입력한 실데이터 백업·Live 이관** | PILOT — Demo·Live E2E VERIFIED | 실제 판매·상품 엑셀 (USER), Live 전환 (USER: Supabase) |
 | 기능 보완 | 위 + 실데이터 시작 가이드·주간 운영 점검·공개 전 점검(PASS 5~6) | PILOT | 실사용 피드백 (Live 이후) |
 | 정책자금·보증용 사업화자료 | 사업화 실적 자료 — 기록만 집계(매출 추이·채널·B2B·수출·제품·고객 반응·AX 운영·출처), 인쇄/PDF·근거 CSV, Demo는 '제출 불가' | PILOT | 실데이터 (USER). 신청서 본문·재무·회사 개요는 개발 범위 밖 |
 | 벤처 신청/보완 | 사업화 실적 자료 + 기술자산 상태 + 현장확인 Q&A(특허·기술은 '대표 답변 준비') | 일부 | 특허기술자료·신청서 (개발 범위 밖) |
 | 담당자 면담/현장확인 대비 | 하루 전 점검·시연 순서 7단계(현재 근거 표시)·예상 질문 7개(시스템 사실만) | PILOT | 실데이터로 리허설 (Live 이후) |
+
+## PASS 9 변경 요약 (2026-10-09)
+| 항목 | 상태 |
+|---|---|
+| 작업 데이터 백업·이관 (데이터 관리 > 내보내기): 실데이터만(채널·상품·재고·판매·정산·Pilot 시작일·AX OWNER) JSON 백업 → Demo 복원 또는 Live 이관. 같은 SKU·채널명·정산·판매는 건너뜀(여러 번 가져와도 중복 없음), 기존 값 덮어쓰지 않음, 비UUID ID는 새 UUID. 고객 개인정보·행동·Action/Proof·Baseline 제외. 받기=대표·관리자, 가져오기=대표 | Demo VERIFIED (24/24) · Live VERIFIED (Demo 파일 → Live 이관·재가져오기 무변화) |
+| 파일 검사: JSON·종류·버전, 항목별 형식(카테고리·날짜·수량·참조), 20만 행·50MB 상한, `javascript:` 링크 제거, 이름의 HTML은 글자로만 | VERIFIED |
+| Demo 실데이터 백업 안내 배너 (데이터 관리) | VERIFIED |
+| 사업화 실적 자료 기간: 최근 12개월·올해·작년 (CSV 파일명에 기간) | VERIFIED |
+| 결함 수정: 판매 파일에서 등록하는 상품·채널 ID가 보안 컨텍스트가 아니면(사내 http 주소) UUID가 아니어서 Live 저장 실패 가능 → 항상 UUID | FIXED |
 
 ## PASS 8 변경 요약 (2026-10-09)
 | 항목 | 상태 |
@@ -164,7 +173,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 높이 < 약 880px이면 frame이 비율 축소 (내부 viewport 390 유지) — KNOWN
 
 ## 7. QA
-- 2026-10-09 (PASS 8): typecheck / build PASS, Route QA 33×8 이상 0, Demo Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · boot 5, 접근성 28화면 0건(차트 렌더 후), Live E2E 73/73 → `QA_REPORT.md`
+- 2026-10-09 (PASS 9): typecheck / build PASS, Route QA 33×8 이상 0, Demo Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5, 접근성 28화면 0건(차트 렌더 후), Live E2E 77/77 → `QA_REPORT.md`
 
 ## 8. USER ACTION QUEUE
 | # | 구분 | 작업 | 상태 |
@@ -204,6 +213,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 0. **시험버전 공개 + 1차 완료 보고** (계약 제12조: 보고 후 5영업일 이의 없으면 2단계 진행 확인) — USER ACTION 1~6 후 공개 URL을 `STAGE2_DELIVERY_REPORT.md`에 채워 발송
 1. (USER ACTION 1~6 완료 시) **실제 Supabase 연결 확인**: `/ax/system` 점검 결과 확인 → `e2e.mjs`와 같은 순서로 1회 (특히 Realtime, 초대·가입 메일 Redirect URL)
 2. 실제 판매·상품 엑셀 수령 → 데이터 관리에 그대로 올려 자료 진단·미등록 상품 등록 확인 → 열 별칭 보강 (Week 0). Demo 주소에서도 미리 시험 가능(이 브라우저에만 저장)
+2-0. Demo 주소에 실데이터를 넣었다면 **백업 파일을 주기적으로 받기** (브라우저에만 저장) → Live 전환 직후 대표 계정으로 데이터 관리 > 내보내기 > 백업 파일 가져오기
 2-1. 실데이터가 들어오면 사업화 실적 자료·현장확인 가이드를 실제 숫자로 리허설 (3단계 완료 근거)
 3. 고객 화면 공개 준비: 실제 제품 정보·구매 링크 확인, 봇 방지(R-14) 필요성 판단
 4. Week 1~4 운영 지원: 주간 운영 점검 6항목 기준값을 실제 입력 주기에 맞게 조정(`ROUTINE_RULES`), 운영 점검 알림(R-17) 필요성 판단
