@@ -10,11 +10,8 @@ import { formatDateKR, formatDateTimeKR } from "@/lib/date";
 import type { DateRange, MoneyKpiMeasure } from "@/lib/evidence";
 import type { BaselineSource, KpiBaseline } from "@/lib/types";
 
-export const BASELINE_SOURCE_LABEL: Record<BaselineSource, string> = {
-  SYSTEM: "시스템 측정",
-  SELF_REPORT: "담당자 자기기록",
-  DOCUMENT: "기존 문서·엑셀",
-};
+import { BASELINE_SOURCE_LABEL } from "@/lib/evidence";
+export { BASELINE_SOURCE_LABEL };
 
 /* Week 0 Baseline Lock — OWNER만. 잠근 값은 수정하지 않고, 다시 잠그면 이전 값은 이력으로 남는다. */
 export function BaselineLockModal({ kpi, range, onClose }: { kpi: MoneyKpiMeasure; range: DateRange; onClose: () => void }) {

@@ -382,6 +382,31 @@ if (PHASE === "B") {
   ok("고객 탈퇴 → auth.users·계정·구매기록 삭제", (await count("select count(*) n from auth.users where email = 'customer@miryeo.test'")) === 0 && (await count("select count(*) n from customer_accounts where organization_id = $1", [orgId])) === 0 && (await count("select count(*) n from customer_purchases where organization_id = $1", [orgId])) === 0);
   ok("탈퇴 후 추천 기록은 익명 통계로 유지", (await count("select count(*) n from beauty_recommendations where organization_id = $1 and customer_user_id is null", [orgId])) === 1);
 
+  // 10-1b. 실제 자료 적용 (3단계): 판매 파일의 미등록 상품·채널을 그 자리에서 등록 → 판매 연결 → 사업화 실적 자료
+  fs.writeFileSync(`${OUT}/sales_real.csv`, ["판매일,상품명,판매처,수량,결제금액", `${day(3)},E2E 신상 수분 크림,쿠팡,2,50000`, `${day(2)},E2E 신상 수분 크림,쿠팡,1,25000`, `${day(2)},E2E 토너,자사몰,1,30000`].join("\n"));
+  await owner.goto(`${APP}/ax/data`, { waitUntil: "networkidle" });
+  await owner.setInputFiles('[data-testid="sales-file"]', `${OUT}/sales_real.csv`);
+  await owner.getByTestId("import-masters").waitFor({ timeout: 10000 });
+  ok("Live 판매 파일: 미등록 상품 1·채널 1 + 추정(크림·25,000원·온라인몰)", (await owner.getByTestId("import-masters").innerText()).includes("상품 1개 · 채널 1개") && (await owner.getByLabel("E2E 신상 수분 크림 카테고리").inputValue()) === "크림" && (await owner.getByLabel("E2E 신상 수분 크림 판매가").inputValue()) === "25000" && (await owner.getByLabel("쿠팡 채널 유형").inputValue()) === "온라인몰");
+  await owner.getByTestId("register-masters").click();
+  await owner.getByTestId("import-masters").waitFor({ state: "detached", timeout: 15000 });
+  const newProd = await one("select id, sku, category, price, is_demo, is_published, status from products where organization_id = $1 and name = 'E2E 신상 수분 크림'", [orgId]);
+  const newCh = await one("select id, type, avg_discount_rate from channels where organization_id = $1 and name = '쿠팡'", [orgId]);
+  ok("Live 상품·채널 등록 → DB (비공개·실데이터·AUTO SKU / 온라인몰)", newProd?.category === "크림" && Number(newProd.price) === 25000 && newProd.is_demo === false && newProd.is_published === false && newProd.status === "신규" && /^AUTO-\d{6}-\d{2}$/.test(newProd.sku) && newCh?.type === "온라인몰" && Number(newCh.avg_discount_rate) === 0, JSON.stringify([newProd, newCh]));
+  await owner.getByText("정상 3행").waitFor({ timeout: 10000 });
+  await owner.getByRole("button", { name: "3행 저장 (Confirm)" }).click();
+  await owner.waitForTimeout(1200);
+  ok("Live 판매 3행 저장 · 새 상품·채널에 연결", (await count("select count(*) n from sales_records where organization_id = $1 and product_id = $2 and channel_id = $3", [orgId, newProd.id, newCh.id])) === 2);
+  await owner.goto(`${APP}/ax/business`, { waitUntil: "networkidle" });
+  await owner.getByTestId("business-report").waitFor({ timeout: 15000 });
+  const biz = await owner.getByTestId("business-report").innerText();
+  ok("Live 사업화 실적 자료: DEMO 경고 없음 · 실제 상품 매출 · 출처 행수", (await owner.getByTestId("business-demo-warning").count()) === 0 && biz.includes("SUPABASE LIVE") && biz.includes("E2E 신상 수분 크림") && biz.includes("파일 11") && !biz.includes("Demo"), biz.split("\n").find((l) => l.startsWith("판매 기록")));
+  await owner.screenshot({ path: `${OUT}/B_business_report.png`, fullPage: true });
+  await owner.goto(`${APP}/ax/business?tab=inspection`, { waitUntil: "networkidle" });
+  await owner.getByTestId("inspection-guide").waitFor({ timeout: 15000 });
+  const insp = await owner.getByTestId("inspection-guide").innerText();
+  ok("Live 현장확인 가이드: DEMO 경고 없음 · 저장 위치 = 클라우드 DB · 현재 근거", (await owner.getByTestId("inspection-demo-warning").count()) === 0 && insp.includes("클라우드 데이터베이스(Supabase, PostgreSQL)에 저장") && (insp.match(/현재 근거/g) ?? []).length === 7 && !insp.includes("(DEMO)"));
+
   // 10-2. 공개 전 점검 (/ax/system) — 정상 판정 + RLS를 끄면 노출을 잡아내는지
   const runCheck = async () => {
     await owner.locator('[data-testid="readiness-summary"]').getByText(/공개 가능|해결 필요/).waitFor({ timeout: 30000 });

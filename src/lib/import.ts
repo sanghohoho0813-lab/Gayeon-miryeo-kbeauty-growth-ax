@@ -252,3 +252,121 @@ export function validateProductRows(input: { body: string[][]; map: Record<Produ
     return { line: n + 2, raw, errors, value: next, mode: prev ? "update" : "new", changes };
   });
 }
+
+/* ---------- 실제 자료 적용 (계약 3단계): 판매 파일 하나로 시작 ----------
+   실제 판매 엑셀에는 아직 등록하지 않은 상품·채널이 섞여 있는 것이 보통이다.
+   → 파일에서 미등록 상품·채널을 모아 보여주고, 대표·관리자가 카테고리·판매가·채널 유형만 확인하면 바로 등록한다.
+   추정값(카테고리=상품명 키워드, 판매가=파일 매출÷수량, 채널 유형=이름 키워드)은 화면에 '추정'으로 표시하고 저장 전 확인받는다. */
+
+export interface UnknownProduct {
+  key: string;
+  sku: string;
+  name: string;
+  rows: number;
+  units: number;
+  revenue: number;
+  /** 파일의 매출 ÷ 수량 (할인 반영된 평균 단가 — 정가와 다를 수 있음) */
+  avgUnitPrice: number | null;
+  categoryGuess: ProductCategory | null;
+}
+export interface UnknownChannel { key: string; name: string; rows: number; typeGuess: Channel["type"] | null }
+
+const CHANNEL_TYPE_GUESS: [RegExp, Channel["type"]][] = [
+  [/수출|해외|export|global|amazon|아마존|shopee|쇼피|qoo10|큐텐|lazada|tiktok\s*shop/i, "수출"],
+  [/b2b|도매|납품|거래처|벤더|vendor/i, "B2B"],
+  [/라이브|live|인플루언서|공구|공동구매|방송/i, "라이브/인플루언서"],
+  [/백화점|매장|오프라인|면세|팝업|플래그십|store/i, "오프라인"],
+  [/자사몰|공식몰|직영|홈페이지|카페24|cafe24|브랜드몰/i, "직영몰"],
+  [/스마트스토어|네이버|쿠팡|11번가|지마켓|g마켓|옥션|무신사|29cm|w컨셉|올리브영|위메프|티몬|카카오|ssg|롯데온|컬리|마켓|몰|online/i, "온라인몰"],
+];
+export function guessChannelType(name: string): Channel["type"] | null {
+  return CHANNEL_TYPE_GUESS.find(([re]) => re.test(name))?.[1] ?? null;
+}
+
+export function findUnknownMasters(input: { body: string[][]; map: ColumnMap; products: Product[]; channels: Channel[] }): { products: UnknownProduct[]; channels: UnknownChannel[] } {
+  const { body, map, products, channels } = input;
+  const bySku = new Set(products.map((p) => p.sku.trim().toLowerCase()));
+  const byName = new Set(products.map((p) => p.name.trim().toLowerCase()));
+  const chNames = new Set(channels.map((c) => c.name.trim().toLowerCase()));
+  const chIds = new Set(channels.map((c) => c.id));
+  const cell = (raw: string[], f: SalesField) => (map[f] >= 0 ? (raw[map[f]] ?? "").trim() : "");
+  const prods = new Map<string, UnknownProduct>();
+  const chans = new Map<string, UnknownChannel>();
+  for (const raw of body) {
+    const sku = cell(raw, "sku");
+    const name = cell(raw, "productName");
+    const known = (sku && bySku.has(sku.toLowerCase())) || (name && byName.has(name.toLowerCase()));
+    if (!known && (sku || name)) {
+      const key = (sku || name).toLowerCase();
+      const u = prods.get(key) ?? { key, sku, name: name || sku, rows: 0, units: 0, revenue: 0, avgUnitPrice: null, categoryGuess: normalizeCategory(name || sku) };
+      if (!u.sku && sku) u.sku = sku;
+      if (u.name === u.sku && name) u.name = name;
+      u.rows++;
+      const units = normalizeNumber(cell(raw, "units"));
+      const rev = normalizeNumber(cell(raw, "revenue"));
+      if (Number.isInteger(units) && units > 0 && Number.isFinite(rev) && rev >= 0) { u.units += units; u.revenue += rev; }
+      prods.set(key, u);
+    }
+    const ch = cell(raw, "channel");
+    if (ch && !chNames.has(ch.toLowerCase()) && !chIds.has(ch)) {
+      const key = ch.toLowerCase();
+      const c = chans.get(key) ?? { key, name: ch, rows: 0, typeGuess: guessChannelType(ch) };
+      c.rows++;
+      chans.set(key, c);
+    }
+  }
+  for (const u of prods.values()) u.avgUnitPrice = u.units > 0 && u.revenue > 0 ? Math.round(u.revenue / u.units) : null;
+  return { products: [...prods.values()].sort((a, b) => b.rows - a.rows), channels: [...chans.values()].sort((a, b) => b.rows - a.rows) };
+}
+
+/** 파일에서 등록할 새 상품 — 비공개·실데이터·신규 상태. SKU가 없으면 겹치지 않는 임시 코드(AUTO-…)를 붙이고 화면에 '실제 코드로 교체' 안내 */
+export function newProductFromFile(input: { name: string; sku: string; category: ProductCategory; price: number }, takenSkus: Set<string>, id: string, today: string): Product {
+  let sku = input.sku.trim();
+  if (!sku) {
+    const base = `AUTO-${today.replace(/-/g, "").slice(2)}`;
+    let n = 1;
+    while (takenSkus.has(`${base}-${String(n).padStart(2, "0")}`.toLowerCase())) n++;
+    sku = `${base}-${String(n).padStart(2, "0")}`;
+  }
+  takenSkus.add(sku.toLowerCase());
+  return { id, sku, name: input.name.trim(), category: input.category, price: input.price, status: "신규", concerns: [], isPublished: false, purchaseLinks: [], mainChannelIds: [], isDemo: false };
+}
+
+/** 자료 진단 — 등록 여부와 무관하게 파일 자체를 요약 (기간·규모·합계·해석 실패) */
+export interface SalesDiagnosis {
+  rows: number;
+  dateOk: number;
+  from: string | null;
+  to: string | null;
+  days: number;
+  months: number;
+  products: number;
+  channels: number;
+  units: number;
+  revenue: number | null;
+  badDates: number;
+  badUnits: number;
+}
+export function diagnoseSales(body: string[][], map: ColumnMap): SalesDiagnosis {
+  const cell = (raw: string[], f: SalesField) => (map[f] >= 0 ? (raw[map[f]] ?? "").trim() : "");
+  const dates: string[] = [];
+  const prods = new Set<string>();
+  const chans = new Set<string>();
+  let units = 0, revenue = 0, badDates = 0, badUnits = 0;
+  for (const raw of body) {
+    const d = normalizeDate(cell(raw, "saleDate"));
+    if (d) dates.push(d); else badDates++;
+    const p = (cell(raw, "sku") || cell(raw, "productName")).toLowerCase();
+    if (p) prods.add(p);
+    const c = cell(raw, "channel").toLowerCase();
+    if (c) chans.add(c);
+    const u = normalizeNumber(cell(raw, "units"));
+    if (Number.isInteger(u) && u >= 0) units += u; else badUnits++;
+    const r = normalizeNumber(cell(raw, "revenue"));
+    if (Number.isFinite(r) && r >= 0) revenue += r;
+  }
+  dates.sort();
+  const from = dates[0] ?? null, to = dates[dates.length - 1] ?? null;
+  const days = from && to ? Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1 : 0;
+  return { rows: body.length, dateOk: dates.length, from, to, days, months: new Set(dates.map((d) => d.slice(0, 7))).size, products: prods.size, channels: chans.size, units, revenue: map.revenue >= 0 ? revenue : null, badDates, badUnits };
+}

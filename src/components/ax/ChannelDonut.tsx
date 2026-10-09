@@ -15,6 +15,8 @@ export function ChannelDonut({ data, centerLabel }: { data: DonutDatum[]; center
   return (
     <div className="flex flex-col items-center gap-5">
       <div className="relative h-[220px] w-[220px] shrink-0">
+        {/* 도넛은 시각 보조 — 같은 정보(채널·금액)를 오른쪽 목록이 글로 제공하므로 화면낭독기에서는 숨긴다 (recharts 조각은 이름 없는 role=img) */}
+        <div aria-hidden="true" className="h-full w-full">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -25,6 +27,7 @@ export function ChannelDonut({ data, centerLabel }: { data: DonutDatum[]; center
               outerRadius={100}
               paddingAngle={2}
               strokeWidth={0}
+              rootTabIndex={-1}
             >
               {data.map((_, i) => (
                 <Cell key={i} fill={CHART_VARS[i % CHART_VARS.length]} />
@@ -42,6 +45,7 @@ export function ChannelDonut({ data, centerLabel }: { data: DonutDatum[]; center
             />
           </PieChart>
         </ResponsiveContainer>
+        </div>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <div className="text-[1.35rem] font-bold leading-none">{formatKRW(total)}</div>
           <div className="mt-1 text-[0.8rem] text-ink-soft">{centerLabel}</div>

@@ -1,9 +1,15 @@
 import type { DataSnapshot } from "./data/source";
-import type { KpiBaseline, KpiKey } from "./types";
+import type { BaselineSource, KpiBaseline, KpiKey } from "./types";
 import { addDaysISO, todayISO } from "./date";
 
 /* Money KPI 3 측정 + Baseline 비교 — 실증·Evidence 화면과 주간 리포트가 같은 계산을 쓴다.
    Baseline이 없으면 개선률을 만들지 않는다 (TARGET: DO NOT INVENT). */
+
+export const BASELINE_SOURCE_LABEL: Record<BaselineSource, string> = {
+  SYSTEM: "시스템 측정",
+  SELF_REPORT: "담당자 자기기록",
+  DOCUMENT: "기존 문서·엑셀",
+};
 
 export interface DateRange {
   from: string; // YYYY-MM-DD (포함)

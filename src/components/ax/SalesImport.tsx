@@ -5,7 +5,8 @@ import { Download, FileUp } from "lucide-react";
 import { DataCard, StatusBadge } from "./Cards";
 import { toast } from "./Toast";
 import { useData, useModel } from "@/components/providers/DataProvider";
-import { autoMap, readTable, SALES_FIELDS, validateSalesRows, type ColumnMap, type SalesField } from "@/lib/import";
+import { autoMap, diagnoseSales, findUnknownMasters, readTable, SALES_FIELDS, validateSalesRows, type ColumnMap, type SalesField } from "@/lib/import";
+import { ImportMasters, SalesDiagnosisCard } from "./ImportMasters";
 
 /* 판매 파일 가져오기 — 1 Upload → 2 열 매핑 → 3 검증 → 4 Confirm. 기존 데이터는 변경하지 않고 추가만 한다. */
 export function SalesImport() {
@@ -52,7 +53,13 @@ export function SalesImport() {
     if (!table || !map || mappingErrors.length) return null;
     return validateSalesRows({ body: table.body, map, products: m.snapshot.products, channels, defaultChannelId: map.channel < 0 ? defaultChannel : null, existing: m.snapshot.sales });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table, map, defaultChannel, m.snapshot.products, m.snapshot.sales, mappingErrors.length]);
+  }, [table, map, defaultChannel, m.snapshot.products, m.snapshot.channels, m.snapshot.sales, mappingErrors.length]);
+  const diagnosis = useMemo(() => (table && map && !mappingErrors.length ? diagnoseSales(table.body, map) : null), [table, map, mappingErrors.length]);
+  const unknown = useMemo(
+    () => (table && map && !mappingErrors.length ? findUnknownMasters({ body: table.body, map, products: m.snapshot.products, channels }) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [table, map, m.snapshot.products, m.snapshot.channels, mappingErrors.length]
+  );
 
   const ok = rows?.filter((r) => r.value && !r.duplicate) ?? [];
   const dup = rows?.filter((r) => r.value && r.duplicate) ?? [];
@@ -104,6 +111,9 @@ export function SalesImport() {
           {mappingErrors.length > 0 && <p className="mt-2 text-[0.85rem]" style={{ color: "var(--danger)" }}>{mappingErrors.join(" · ")}</p>}
         </div>
       )}
+
+      {diagnosis && <SalesDiagnosisCard d={diagnosis} />}
+      {unknown && <ImportMasters products={unknown.products} channels={unknown.channels} />}
 
       {rows && (
         <div className="mt-4">

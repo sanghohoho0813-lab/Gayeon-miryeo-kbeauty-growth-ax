@@ -39,6 +39,8 @@ UI (src/app, src/components)
 ```
 - Schema / RLS: `supabase/migrations/001~007` (005·007 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
 - 월별 실적 `/ax/monthly`, 정산·미수금 `/ax/channels?tab=settlements`, 대표 브리핑 `src/lib/briefing.ts`, 내보내기 `/ax/data?tab=export`
+- 사업화·현장확인 `/ax/business` — 사업화 실적 자료(`src/lib/business-report.ts`, 인쇄·근거 CSV) / 면담·현장확인 대비(`src/components/ax/InspectionGuide.tsx`)
+- 판매 파일 자료 진단·미등록 상품/채널 즉시 등록: `src/lib/import.ts`(`diagnoseSales`, `findUnknownMasters`), `src/components/ax/ImportMasters.tsx`
 - 공개 전 점검 `/ax/system` (`src/lib/readiness.ts`, 서버 설정 `src/app/api/system/status/route.ts` — 값은 반환하지 않음), Supabase 일괄 설치 `supabase/setup_all.sql` (`npm run setup-sql`로 생성)
 - 주간 운영 점검 `src/lib/weekly-routine.ts` (시작 가이드 하단·주간 리포트·대시보드 배너)
 - 실데이터 시작 가이드 `/ax/start` (`src/lib/start-guide.ts`, 저장된 데이터로 자동 판정)

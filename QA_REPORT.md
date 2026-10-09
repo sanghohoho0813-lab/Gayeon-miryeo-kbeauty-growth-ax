@@ -1,4 +1,4 @@
-# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 7)
+# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 8)
 
 DATE: 2026-10-07 · Next.js 16.3.7 · MODE TESTED: DEMO + LIVE(로컬 Supabase 호환 스택) · BROWSER: Chromium (Playwright)
 
@@ -8,16 +8,17 @@ DATE: 2026-10-07 · Next.js 16.3.7 · MODE TESTED: DEMO + LIVE(로컬 Supabase �
 | `npm run typecheck` (tsc --noEmit) | PASS |
 | `npm run build` (Next 16, Turbopack) | PASS |
 | `npm audit` | 0 vulnerabilities (2026-10-07 공개된 sharp·source-map-js high 2건 → `npm audit fix`로 해소, 전체 회귀 재실행) |
-| **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 68/68** (A 7 + B 61 — 공개 전 점검 정상 판정, 판매 RLS 해제 시 노출 탐지, 점검 API 권한·키 값 미포함 포함) |
+| **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 73/73** (A 7 + B 66 — 공개 전 점검, 판매 파일의 미등록 상품·채널 등록→판매 연결, Live 사업화 실적 자료·현장확인 가이드 포함) |
+| **PASS 8 Demo** (자료 진단, 미등록 상품·채널 추정·필수값·등록·재검증·저장, 직원 안내만, 사업화 실적 자료 6섹션·완료된 달 비교·평가 문구 없음·CSV·인쇄, 현장확인 7단계·질문 7개·Demo 경고, 모바일·반폭 배치, 권한) | PASS 32/32 |
 | **PASS 7** 화면 설정 첫 화면 적용 `qa-boot` (JS 차단 상태 3종 + hydration 중 기본 테마 없음 + 설정 변경) | PASS 5/5 |
 | 보안 헤더·robots (Demo 로컬 + 환경변수 3조합 규칙 평가) | PASS |
 | **PASS 6 Demo** (공개 전 점검 Demo 판정·권한·API, 주간 운영 점검 시드 제외·실입력 정상·지연 탐지·주간 리포트·배너) | PASS 19/19 |
-| **접근성** axe-core WCAG 2.1 A/AA — 26개 화면 × 1440·390px (reduced motion) | **PASS 0건** (수정 전 4종: 대비·버튼 이름·라벨 불일치·스크롤 영역 키보드) |
+| **접근성** axe-core WCAG 2.1 A/AA — 28개 화면 × 1440·390px, **차트가 다 그려진 뒤 검사** (reduced motion) | **PASS 0건** (수정 전 4종: 대비·버튼 이름·라벨 불일치·스크롤 영역 키보드) |
 | **AI 브리핑** (가짜 Anthropic 서버 :4010) — 요청 형식(모델·effort·fallbacks·beta 헤더)·시스템 규칙·개인정보 미포함·근거 없는 숫자 폐기·거절 처리·직원 차단·임의 입력 거부 | PASS 11/11 |
 | AI 꺼짐(기본 빌드) `POST /api/ai/briefing` | 503 AI_DISABLED (호출 없음) |
 | 2단계 보완 Demo Flow (회원·마이페이지·재구매·정산·월별·브리핑·내보내기·권한·탈퇴) | PASS 41/41 |
 | PASS 3 Demo Flow (상품 일괄 등록·권한) | PASS 11/11 |
-| Route QA: 31 route(`/ax/start`·`/ax/system` 추가) × 8 viewport (1920/1440/1280/1024/768/430/390/360) — 가로 overflow, console error, HTTP error | PASS (0건) |
+| Route QA: 33 route(`/ax/start`·`/ax/system`·`/ax/business` 2탭 추가) × 8 viewport (1920/1440/1280/1024/768/430/390/360) — 가로 overflow, console error, HTTP error | PASS (0건) |
 | Whole-App Acceptance Flow (PASS 1 회귀) | PASS 31/31 |
 | PASS 2 Flow (Baseline·주간 리포트·PDF·파일 가져오기·구성원·권한) | PASS 33/33 |
 | DB 검증 `npm run verify:db` (Postgres 16 + Supabase auth stub): migration 001~007, RLS·트리거·이벤트 한도·고객/정산 97개 시나리오, 005~007 재실행 | PASS 97/97 |
@@ -61,6 +62,17 @@ B: 재로그인 / 채널 저장 / 상품 저장(공개·구매링크) / 상품 �
 ### PASS 5에서 발견·수정한 결함
 - 접근성: 상태 색(성공·주의)·금색 글자 대비 부족 → 토큰 조정(D-035), 아이콘만 있는 역할 버튼 이름 없음 → 숨김 텍스트, 알림 벨 라벨이 보이는 숫자와 불일치 → 수정, 가로 스크롤 표 키보드 접근 불가 → `tabIndex=0` 15곳
 - 테스트 환경: 시험용 XLSX 날짜 고정값 → 실행일 기준으로 재생성. playwright-core는 설치된 Chromium 1194에 맞춰 1.56 고정(SETUP §E)
+
+### PASS 8 보안 업데이트
+- 2026-10-09 `npm audit`: Next.js 16.0.0~16.3.7 high (이미지 최적화 SSRF, SSG/ISR 캐시 오염, metadata 이미지 경로 정보 노출 등 6건) → **Next.js 16.4.0**, `package.json` 하한 `^16.4.0`(새로 설치해도 취약 버전 불가). audit 0건, 전체 회귀(Demo·접근성·화면 폭·Live E2E) 재실행
+
+### PASS 8에서 발견·수정한 결함
+- **접근성 (잠복)**: 대시보드 채널 도넛의 조각이 이름 없는 `role=img`(12개)이고 차트 묶음이 빈 탭 정지점. 지금까지의 '0건'은 차트가 애니메이션으로 그려지기 **전에** 검사한 결과였음 → 도넛(같은 정보가 옆 목록에 글로 있음)을 화면낭독기에서 숨기고 탭 정지 제거, 검사 스크립트는 차트가 다 그려진 뒤 검사하도록 수정
+- 판매 가져오기 검증이 새 채널 등록에 반응하지 않음 (검증 의존성에 채널 누락) → 수정
+- 사업화 실적 자료 초안의 '최근 3개월' 비교가 진행 중인 이번 달(9일치)을 포함해 감소처럼 보임 → 완료된 달끼리 비교, 이번 달은 '진행 중' 표시
+- 현장확인 답변이 Demo에서 "처리방침 연결됨"이라고 말함(Demo 기본 버전 때문) → 실제 URL이 있을 때만
+- 미등록 상품 표가 반폭 카드에서 판매가 칸이 잘림 → 상품별 세로 배치 (390px·반폭에서 입력칸 위치 검사)
+- 테스트 정비: 시험용 XLSX를 실행일 날짜로 매번 다시 생성, `qa-boot`에 첫 방문 튜토리얼 표시 플래그
 
 ### PASS 7 — 공개 주소 점검·발견 결함
 - 공개 주소(DEMO) `curl` 점검: 23개 경로 200·DEMO 표기·런타임 오류 문구 없음, AI 브리핑 POST 503(꺼짐), HSTS 있음. 배포 전: robots 404·noindex 없음·보안 헤더 없음 → D-039로 수정

@@ -1,8 +1,8 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-10-07 (PASS 7 — 공개 Demo 배포 확인·보안 헤더·검색 노출 차단)
-DELIVERY STAGE: 계약 제11조 2단계 — 6개 핵심기능 초기버전 개발 완료, 시험버전 공개(URL)·1차 보고 대기
-CURRENT PASS: 7 — 공개 Demo 배포(https://gayeon-miryeo-kbeauty-growth-ax.vercel.app) 확인, 보안 헤더·검색 노출 차단. **push = Production 배포**(D-040). Live 전환·실제 Supabase 연결은 USER ACTION 대기
+LAST UPDATED: 2026-10-09 (PASS 8 — 계약 3단계 일부 개발: 실제 자료 적용·사업화 실적 자료·면담/현장확인 대비)
+DELIVERY STAGE: 계약 제11조 2단계 개발 완료(1차 보고·5영업일 확인 대기) + **3단계 일부 개발 착수**(사용자 지시 2026-10-09: "3단계도 일부 개발, Supabase는 나중에 연동")
+CURRENT PASS: 8 — 3단계 개발 부분 선행(Supabase 연결 전). 판매 파일 하나로 실데이터 시작(미등록 상품·채널 즉시 등록 + 자료 진단), 사업화 실적 자료(`/ax/business`), 면담·현장확인 대비(`/ax/business?tab=inspection`). **push = Production 배포**(D-040)
 
 ## 계약 별지 제1호 대조 (2026-09-30 기준)
 | No | 핵심모듈 | 구현 | 화면 |
@@ -20,6 +20,27 @@ CURRENT PASS: 7 — 공개 Demo 배포(https://gayeon-miryeo-kbeauty-growth-ax.v
 - **공개 주소(DEMO) 있음**: https://gayeon-miryeo-kbeauty-growth-ax.vercel.app — Vercel이 push마다 자동 배포 (2026-10-07 확인, 전 화면 200). Live 시험버전은 USER ACTION(Supabase·환경변수) 후 같은 주소에서 전환
 - Demo 주소를 시험버전으로 먼저 보고할지, Live 전환 후 보고할지는 **사용자 결정** (보고서 초안에 두 경우 모두 표기)
 계약 2단계 중 개발 외 결과물(특허기술자료, 벤처/기업정비 기초자료)은 이 저장소 범위 밖.
+
+## 계약 별지 제2호 3단계 대조 (2026-10-09)
+3단계 산출물: "실제 자료 적용·기능 보완, 벤처 신청/보완, 정책자금·보증용 사업화자료, 담당자 면담/현장확인 대비" (별지 제1호: "실제 자료 **또는 합리적인 샘플 자료**로 실제 업무에 쓸 수 있는지 확인")
+| 산출물 | 개발 부분 | 상태 | 남은 것 (막힌 이유) |
+|---|---|---|---|
+| 실제 자료 적용 | 판매 파일 하나로 시작: 미등록 상품·채널 즉시 등록(추정값 확인) + 자료 진단(기간·규모·합계·해석 실패) | PILOT — Demo 32/32 · Live E2E VERIFIED | 실제 판매·상품 엑셀 (USER), Live 전환 (USER: Supabase) |
+| 기능 보완 | 위 + 실데이터 시작 가이드·주간 운영 점검·공개 전 점검(PASS 5~6) | PILOT | 실사용 피드백 (Live 이후) |
+| 정책자금·보증용 사업화자료 | 사업화 실적 자료 — 기록만 집계(매출 추이·채널·B2B·수출·제품·고객 반응·AX 운영·출처), 인쇄/PDF·근거 CSV, Demo는 '제출 불가' | PILOT | 실데이터 (USER). 신청서 본문·재무·회사 개요는 개발 범위 밖 |
+| 벤처 신청/보완 | 사업화 실적 자료 + 기술자산 상태 + 현장확인 Q&A(특허·기술은 '대표 답변 준비') | 일부 | 특허기술자료·신청서 (개발 범위 밖) |
+| 담당자 면담/현장확인 대비 | 하루 전 점검·시연 순서 7단계(현재 근거 표시)·예상 질문 7개(시스템 사실만) | PILOT | 실데이터로 리허설 (Live 이후) |
+
+## PASS 8 변경 요약 (2026-10-09)
+| 항목 | 상태 |
+|---|---|
+| 판매 파일 가져오기: 파일에만 있는 상품·채널을 그 자리에서 등록 (카테고리=상품명 추정, 판매가=파일 매출÷수량 추정, 채널 유형=채널명 추정 — 모두 '추정' 표시·확인 후 저장, 대표·관리자만), SKU 없으면 AUTO 코드, 등록 후 자동 재검증 | PILOT — Demo VERIFIED, Live VERIFIED(로컬 스택: 실제 인증·RLS) |
+| 자료 진단 (파일 그대로 요약: 기간·행·상품·채널·수량·매출·해석 실패·4주 미만 경고) | Demo VERIFIED |
+| 사업화 실적 자료 `/ax/business` (대표·관리자) — 최근 12개월, 증감은 **완료된 달만** 비교, Live는 Demo 표시 상품·시드 제외, 평가·전망 문장 없음 | Demo·Live VERIFIED |
+| 면담·현장확인 대비 `/ax/business?tab=inspection` — Demo에서는 '현장확인에 Demo 숫자 사용 금지' 경고 | Demo·Live VERIFIED |
+| 보안: Next.js 16.3.7 → **16.4.0** (high 6건: 이미지 최적화 SSRF·캐시 오염 등), 하한 `^16.4.0` | FIXED — audit 0, 전체 회귀 재실행 |
+| 결함 수정: 판매 가져오기 검증이 새 채널 등록에 반응하지 않음(의존성 누락) | FIXED |
+| 결함 수정(접근성, 잠복): 채널 도넛 조각이 이름 없는 이미지·빈 탭 정지점 — 이전 '0건'은 차트가 그려지기 전 검사 결과. 도넛 숨김(옆 목록이 같은 정보 제공)·탭 정지 제거, 검사는 차트 렌더 후 | FIXED + VERIFIED (28화면 0건) |
 
 ## PASS 7 변경 요약 (2026-10-07)
 | 항목 | 상태 |
@@ -99,13 +120,14 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | 고객 인사이트 | PILOT | 이벤트 집계, 관심 점수, 실시간 피드 |
 | 제품·재고 | PILOT | 재고일수·추천발주(RULE/STAT) |
 | 채널·B2B·수출 | PILOT (OWNER/ADMIN) | 입력 기반 |
-| 데이터 관리 | PILOT | 단건 + 파일(CSV/XLSX, 열 매핑·검증·중복 감지), 샘플 템플릿 `public/samples/` |
+| 데이터 관리 | PILOT | 단건 + 파일(CSV/XLSX, 열 매핑·검증·중복 감지, 자료 진단, 미등록 상품·채널 즉시 등록), 샘플 템플릿 `public/samples/` |
 | 실증·Evidence | PILOT | Money KPI 3 + Baseline Lock·대비 변화, Proof 확정/반려, 수동 Proof, 12주 계획 |
 | 주간 Evidence 리포트 | PILOT | `/ax/reports/weekly`, 인쇄·PDF |
 | 설정 | PILOT | 7 Theme·글자·모션·역할매트릭스·Demo Reset·Pilot 시작일·AX OWNER·AI 상태·기술자산·구성원 |
 | 도입 배경(Why) | DEMO→설명 | 문서형 |
 | 실데이터 시작 가이드 | PILOT | `/ax/start`, 13단계 자동 판정 + 매주 운영 점검 6항목 |
 | 공개 전 점검 | PILOT | `/ax/system`, Live에서 DB·RLS·설정 자동 점검 |
+| 사업화·현장확인 | PILOT | `/ax/business` — 사업화 실적 자료(인쇄·CSV) / 면담·현장확인 대비 (대표·관리자) |
 | AI 요약(LLM) | READY | 대표 브리핑 Claude 문장화 구현·기본 꺼짐 (D-012, D-034) |
 
 ## 2. CUSTOMER FRONT (`/beauty`)
@@ -142,7 +164,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 높이 < 약 880px이면 frame이 비율 축소 (내부 viewport 390 유지) — KNOWN
 
 ## 7. QA
-- 2026-10-07 (PASS 6): typecheck / build PASS, Route QA 31×8 이상 0, Demo 31/31 · PASS2 33/33 · PASS3 11/11 · Stage2 41/41 · PASS6 19/19 (AI 11/11은 PASS 5), 접근성 26화면 0건, Live E2E 68/68, DB 97/97 + setup_all 스키마 동일 → `QA_REPORT.md`
+- 2026-10-09 (PASS 8): typecheck / build PASS, Route QA 33×8 이상 0, Demo Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · boot 5, 접근성 28화면 0건(차트 렌더 후), Live E2E 73/73 → `QA_REPORT.md`
 
 ## 8. USER ACTION QUEUE
 | # | 구분 | 작업 | 상태 |
@@ -181,7 +203,8 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 ## 10. NEXT PRIORITY
 0. **시험버전 공개 + 1차 완료 보고** (계약 제12조: 보고 후 5영업일 이의 없으면 2단계 진행 확인) — USER ACTION 1~6 후 공개 URL을 `STAGE2_DELIVERY_REPORT.md`에 채워 발송
 1. (USER ACTION 1~6 완료 시) **실제 Supabase 연결 확인**: `/ax/system` 점검 결과 확인 → `e2e.mjs`와 같은 순서로 1회 (특히 Realtime, 초대·가입 메일 Redirect URL)
-2. 실제 판매·상품 엑셀 수령 → 열 별칭 보강 → 첫 실데이터 입력 지원 (Week 0)
+2. 실제 판매·상품 엑셀 수령 → 데이터 관리에 그대로 올려 자료 진단·미등록 상품 등록 확인 → 열 별칭 보강 (Week 0). Demo 주소에서도 미리 시험 가능(이 브라우저에만 저장)
+2-1. 실데이터가 들어오면 사업화 실적 자료·현장확인 가이드를 실제 숫자로 리허설 (3단계 완료 근거)
 3. 고객 화면 공개 준비: 실제 제품 정보·구매 링크 확인, 봇 방지(R-14) 필요성 판단
 4. Week 1~4 운영 지원: 주간 운영 점검 6항목 기준값을 실제 입력 주기에 맞게 조정(`ROUTINE_RULES`), 운영 점검 알림(R-17) 필요성 판단
 5. (승인 시) AI 문장화 켜기 + 실호출 1회 확인 — D-034
