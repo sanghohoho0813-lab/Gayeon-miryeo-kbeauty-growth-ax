@@ -2,6 +2,7 @@ import type { DataSnapshot, DataSource } from "./data/source";
 import { uuidv4 } from "./data/source";
 import type { Channel, Inventory, MonthlyTarget, Product, ProductCategory, SalesRecord, Settlement, SettlementKind, SettlementStatus, SkinConcern, Texture } from "./types";
 import { realScope } from "./start-guide";
+import { isPracticeName, isPracticeSku } from "./practice-kit";
 
 /* 작업 데이터 백업·이관 (계약 3단계 "실제 자료 적용" — Supabase 연결 전 입력한 실데이터를 다시 입력하지 않게)
    - 내보내기: Demo 시드를 뺀 실데이터만 (채널·상품·재고·판매·정산 + Pilot 시작일·AX OWNER).
@@ -29,13 +30,26 @@ export interface TransferFile {
   monthlyTargets?: MonthlyTarget[];
 }
 
-export interface TransferSummary { channels: number; products: number; inventory: number; sales: number; settlements: number; targets: number; skippedDemoSales: number }
+export interface TransferSummary { channels: number; products: number; inventory: number; sales: number; settlements: number; targets: number; skippedDemoSales: number; /** 샘플 자료 연습 데이터(연습 모드 전체, SAMPLE-·샘플 이름) — 백업하지 않음 */ skippedPractice: number }
 
 /** 내보낼 실데이터. Demo 상품에 대한 판매는 빼고(시연용), 실판매가 쓴 Demo 채널은 함께 넣는다 (이름은 가져온 뒤 바꿀 수 있음). */
 export function buildTransfer(s: DataSnapshot, mode: "demo" | "live", now = new Date().toISOString()): { file: TransferFile; summary: TransferSummary } {
-  const real = realScope(s);
-  const productIds = real.ids;
-  const salesAll = real.sales;
+  const scope = realScope(s);
+  // 샘플 자료 연습: 연습 모드면 전부, 아니면 SAMPLE-·'샘플 ' 표시 자료를 뺀다 (가상 자료가 Live로 넘어가지 않게)
+  const practice = !!s.practice;
+  const products = scope.products.filter((p) => !practice && !isPracticeSku(p.sku) && !isPracticeName(p.name));
+  const productIds = new Set(products.map((p) => p.id));
+  const real = {
+    ...scope,
+    products,
+    ids: productIds,
+    channels: practice ? [] : scope.channels.filter((c) => !isPracticeName(c.name)),
+    inventory: scope.inventory.filter((i) => productIds.has(i.productId)),
+    settlements: practice ? [] : scope.settlements.filter((x) => !isPracticeName(x.counterparty)),
+  };
+  const skippedPractice = scope.products.length - products.length + (scope.channels.length - real.channels.length) + (scope.settlements.length - real.settlements.length);
+  const salesAll = scope.sales.filter((x) => !scope.ids.has(x.productId) || productIds.has(x.productId));
+  const skippedPracticeAll = skippedPractice + (scope.sales.length - salesAll.length);
   const sales = salesAll.filter((x) => productIds.has(x.productId));
   const usedChannels = new Set(sales.map((x) => x.channelId));
   const channels = s.channels.filter((c) => real.channels.some((r) => r.id === c.id) || usedChannels.has(c.id));
@@ -45,15 +59,15 @@ export function buildTransfer(s: DataSnapshot, mode: "demo" | "live", now = new 
     exportedAt: now,
     fromMode: mode,
     orgName: s.org.name,
-    org: { pilotStartedOn: s.org.pilotStartedOn ?? null, axOwnerName: s.org.axOwnerName ?? null },
+    org: practice ? { pilotStartedOn: null, axOwnerName: null } : { pilotStartedOn: s.org.pilotStartedOn ?? null, axOwnerName: s.org.axOwnerName ?? null },
     channels,
     products: real.products,
     inventory: real.inventory,
     sales,
     settlements: real.settlements,
-    monthlyTargets: (s.monthlyTargets ?? []).map((t) => ({ month: t.month, revenueTarget: t.revenueTarget, note: t.note ?? null })),
+    monthlyTargets: (practice ? [] : s.monthlyTargets ?? []).map((t) => ({ month: t.month, revenueTarget: t.revenueTarget, note: t.note ?? null })),
   };
-  return { file, summary: { channels: channels.length, products: real.products.length, inventory: real.inventory.length, sales: sales.length, settlements: real.settlements.length, targets: file.monthlyTargets!.length, skippedDemoSales: salesAll.length - sales.length } };
+  return { file, summary: { channels: channels.length, products: real.products.length, inventory: real.inventory.length, sales: sales.length, settlements: real.settlements.length, targets: file.monthlyTargets!.length, skippedDemoSales: salesAll.length - sales.length, skippedPractice: skippedPracticeAll } };
 }
 
 /* ---------- 파일 검사 ---------- */

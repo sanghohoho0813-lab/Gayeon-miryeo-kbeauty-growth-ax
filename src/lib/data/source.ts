@@ -52,6 +52,8 @@ export interface DataSnapshot {
   settlements: Settlement[];
   /** 월 매출 목표 — 조회 OWNER/ADMIN, 입력 OWNER (migration 008) */
   monthlyTargets: MonthlyTarget[];
+  /** Demo 전용: 샘플 자료 연습 모드 (Demo 시드 없이 빈 상태에서 샘플 파일로 실제 업무 리허설) */
+  practice?: boolean;
   loadedAt: string;
 }
 

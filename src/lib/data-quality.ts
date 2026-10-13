@@ -1,4 +1,5 @@
 import type { DataSnapshot } from "./data/source";
+import { isPracticeName, isPracticeSku } from "./practice-kit";
 
 /* 데이터 품질 점검 (계약 3단계 "실제 자료 적용") — 실제 엑셀을 옮기다 생기는 흔한 실수를 자동으로 찾는다.
    '오류'는 계산이 틀어지는 값, '확인'은 맞을 수도 있지만 사람이 한 번 봐야 하는 값. 값을 자동으로 바꾸지 않고 고칠 화면을 알려준다 — 미래 날짜·중복 판매만 대표·관리자가 확인 후 삭제(D-051). */
@@ -17,12 +18,21 @@ export interface QualityIssue {
 const UNIT_LOW = 0.3; // 판매 단가가 판매가의 30% 미만 → 단위·합계 혼동 의심
 const UNIT_HIGH = 1.5; // 판매가의 150% 초과
 
-export function checkDataQuality(s: DataSnapshot, today: string): QualityIssue[] {
+/** allowPractice: Demo 주소에서는 샘플 연습 자료가 정상 — Live에서는 오류 */
+export function checkDataQuality(s: DataSnapshot, today: string, opts: { allowPractice?: boolean } = {}): QualityIssue[] {
   const name = new Map(s.products.map((p) => [p.id, p.name]));
   const price = new Map(s.products.map((p) => [p.id, p.price]));
   const out: QualityIssue[] = [];
   const add = (i: Omit<QualityIssue, "count" | "samples">, list: string[]) => { if (list.length) out.push({ ...i, count: list.length, samples: list.slice(0, 5) }); };
   const future = s.sales.filter((x) => x.saleDate > today);
+
+  if (!opts.allowPractice) {
+    const pp = s.products.filter((p) => isPracticeSku(p.sku) || isPracticeName(p.name));
+    const pc = s.channels.filter((c) => isPracticeName(c.name));
+    const pIds = new Set(pp.map((p) => p.id));
+    add({ id: "practice-data", level: "오류", title: "연습용 샘플 자료가 실제 데이터에 섞여 있음", why: "SKU가 'SAMPLE-'이거나 이름이 '샘플'로 시작하는 가상 자료입니다. 매출·사업화 실적 자료에 그대로 합산되니 상품·채널을 정리하세요 (판매 기록 포함).", href: "/ax/data?tab=products" },
+      [...pp.map((p) => `${p.sku} ${p.name} (판매 ${s.sales.filter((x) => pIds.has(x.productId)).length}건)`), ...pc.map((c) => `채널 ${c.name}`)]);
+  }
 
   add({ id: "price-missing", level: "오류", title: "판매가가 0원인 상품", why: "추천 생산량·매출 자동 계산·고객 화면 가격이 틀립니다.", href: "/ax/data?tab=products" }, s.products.filter((p) => !(p.price > 0)).map((p) => p.name));
   add({ id: "cost-over-price", level: "오류", title: "원가가 판매가 이상인 상품", why: "마진이 0% 이하로 계산됩니다. 원가·판매가 단위(원/천원)를 확인하세요.", href: "/ax/data?tab=products" }, s.products.filter((p) => p.cost != null && p.price > 0 && p.cost >= p.price).map((p) => `${p.name} (원가 ${p.cost!.toLocaleString()} ≥ 판매가 ${p.price.toLocaleString()})`));

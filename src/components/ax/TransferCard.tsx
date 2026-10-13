@@ -71,7 +71,7 @@ export function TransferCard() {
         <div className="mt-3 grid gap-3 @3xl:grid-cols-2">
           <div className="rounded-xl border p-3.5" style={{ borderColor: "var(--border)" }}>
             <div className="flex items-center gap-2 font-semibold"><DatabaseBackup size={17} aria-hidden /> 백업 파일 받기</div>
-            <p className="mt-1 text-[0.84rem] tabular" data-testid="transfer-summary">실데이터: 상품 {summary.products} · 채널 {summary.channels} · 재고 {summary.inventory} · 판매 {summary.sales.toLocaleString()} · 정산 {summary.settlements} · 월 목표 {summary.targets}{summary.skippedDemoSales ? ` (Demo 상품 판매 ${summary.skippedDemoSales.toLocaleString()}건 제외)` : ""}</p>
+            <p className="mt-1 text-[0.84rem] tabular" data-testid="transfer-summary">실데이터: 상품 {summary.products} · 채널 {summary.channels} · 재고 {summary.inventory} · 판매 {summary.sales.toLocaleString()} · 정산 {summary.settlements} · 월 목표 {summary.targets}{summary.skippedDemoSales ? ` (Demo 상품 판매 ${summary.skippedDemoSales.toLocaleString()}건 제외)` : ""}{summary.skippedPractice ? ` · 샘플 연습 자료 ${summary.skippedPractice.toLocaleString()}건 제외` : ""}</p>
             <button className="btn-secondary mt-2 !min-h-[40px] text-[0.86rem]" disabled={!canExport || !hasReal} onClick={download} data-testid="transfer-download">백업 파일(.json) 받기</button>
             {!canExport && <p className="mt-1 text-[0.78rem] text-ink-soft">대표·관리자 권한</p>}
             {canExport && !hasReal && <p className="mt-1 text-[0.78rem] text-ink-soft">아직 직접 입력한 실데이터가 없습니다.</p>}

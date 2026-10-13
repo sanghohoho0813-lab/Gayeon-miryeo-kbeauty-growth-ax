@@ -64,6 +64,11 @@ if (PHASE === "A") {
   const t = await page.locator("body").innerText();
   ok("Live 대시보드: DEMO 표기 없음 · 빈 상태", !t.includes("DEMO DATA") && !t.includes("Demo 에센스"), t.slice(0, 120).replace(/\n/g, " / "));
   await page.screenshot({ path: `${OUT}/A_dashboard_empty.png`, fullPage: true });
+  // PASS 11: 상품·채널이 하나도 없는 첫날에도 판매 파일로 시작 (D-042) · Live에는 샘플 연습 없음
+  await page.goto(`${APP}/ax/data`, { waitUntil: "networkidle" });
+  ok("Live 첫날(상품·채널 0): 판매 파일 가져오기 바로 사용 가능", (await page.locator('[data-testid="sales-file"]').count()) === 1 && (await page.getByTestId("sales-start-from-file").isVisible()));
+  await page.goto(`${APP}/ax/start`, { waitUntil: "networkidle" });
+  ok("Live: 샘플 연습 카드·배너 없음", (await page.getByTestId("practice-card").count()) === 0 && (await page.getByTestId("practice-banner").count()) === 0);
   fs.writeFileSync(`${OUT}/org-id`, org.id);
   console.log(`ORG_ID=${org.id}`);
 }
@@ -98,12 +103,15 @@ if (PHASE === "B") {
   ok("상품 저장 → DB (공개·실데이터·구매링크)", prod?.is_published === true && prod?.is_demo === false && prod?.purchase_links?.[0]?.url === "https://example.com/toner");
 
   // 1-1. 상품 일괄 등록 (신규 1 + 기존 1 수정) → Live upsert
-  fs.writeFileSync(`${OUT}/products.csv`, ["상품코드,상품명,분류,판매가,라인", "MR-SUN-01,E2E 선크림,선크림,\"25,000\",", "MR-TONER-01,,,,E2E 라인"].join("\n"));
+  fs.writeFileSync(`${OUT}/products.csv`, ["상품코드,상품명,분류,판매가,라인,현재재고,안전재고", "MR-SUN-01,E2E 선크림,선크림,\"25,000\",,\"1,200\",100", "MR-TONER-01,,,,E2E 라인,,"].join("\n"));
   await owner.setInputFiles('[data-testid="product-file"]', `${OUT}/products.csv`);
   await owner.waitForTimeout(600);
   await owner.getByRole("button", { name: "2개 저장 (Confirm)" }).click();
   await owner.waitForTimeout(1500);
-  const sun = await one("select category, price, is_published from products where organization_id = $1 and sku = 'MR-SUN-01'", [orgId]);
+  const sun = await one("select id, category, price, is_published from products where organization_id = $1 and sku = 'MR-SUN-01'", [orgId]);
+  const sunInv = await one("select current_stock, safety_stock, incoming_stock from inventory where product_id = $1", [sun?.id]);
+  ok("상품 파일 재고 열 → 새 상품 저장 후 inventory (PASS 11)", sunInv?.current_stock === 1200 && sunInv?.safety_stock === 100 && sunInv?.incoming_stock === 0, JSON.stringify(sunInv));
+  ok("재고 칸이 빈 기존 상품은 재고를 만들지 않음", (await count("select count(*) n from inventory i join products p on p.id = i.product_id where p.sku = 'MR-TONER-01' and p.organization_id = $1", [orgId])) === 0);
   const ton = await one("select line, price, is_published from products where organization_id = $1 and sku = 'MR-TONER-01'", [orgId]);
   ok("상품 일괄 등록 → DB (신규 비공개 · 기존은 라인만 갱신)", sun?.category === "선케어" && Number(sun.price) === 25000 && sun.is_published === false && ton?.line === "E2E 라인" && Number(ton.price) === 30000 && ton.is_published === true);
 
@@ -491,6 +499,12 @@ if (PHASE === "B") {
   await owner.locator('[data-fix="future-sale"]').click();
   await owner.waitForTimeout(1500);
   ok("Live 품질 정리: 미래 날짜 판매 삭제 (DB) · 다른 판매 유지", (await count("select count(*) n from sales_records where organization_id = $1 and source = 'e2e-future'", [orgId])) === 0 && (await count("select count(*) n from sales_records where organization_id = $1", [orgId])) === salesAfter && (await owner.locator('[data-issue="future-sale"]').count()) === 0);
+
+  // 10-1e. PASS 11 — 연습용 샘플 자료가 Live에 섞이면 품질 점검 오류
+  const sp = await one("insert into products (organization_id, sku, name, category, price) values ($1, 'SAMPLE-ESS-01', '샘플 수분 에센스', '에센스/앰플', 32000) returning id", [orgId]);
+  await owner.goto(`${APP}/ax/data?tab=quality`, { waitUntil: "networkidle" });
+  ok("Live 품질 점검: 연습용 샘플 자료 섞임 → 오류", await owner.locator('[data-issue="practice-data"]').waitFor({ timeout: 10000 }).then(async () => (await owner.locator('[data-issue="practice-data"]').innerText()).includes("SAMPLE-ESS-01"), () => false));
+  await db.query("delete from products where id = $1", [sp.id]);
 
   // 10-2. 공개 전 점검 (/ax/system) — 정상 판정 + RLS를 끄면 노출을 잡아내는지
   const runCheck = async () => {

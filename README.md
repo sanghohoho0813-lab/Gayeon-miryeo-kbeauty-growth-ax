@@ -39,6 +39,7 @@ UI (src/app, src/components)
 ```
 - Schema / RLS: `supabase/migrations/001~008` (005·007·008 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
 - 월별 실적 `/ax/monthly`, 정산·미수금 `/ax/channels?tab=settlements`, 대표 브리핑 `src/lib/briefing.ts`, 내보내기 `/ax/data?tab=export`
+- 샘플 자료 연습 모드(Demo 전용) `src/lib/practice-kit.ts`(가상 파일 생성), `src/components/ax/PracticeKit.tsx` → `/ax/start` · '최근 4주' 기준일 = 마지막 판매일 `src/lib/model.ts`(`salesAsOf`, D-053) · 3단계 보고서 초안 `STAGE3_DELIVERY_REPORT.md` (PASS 11)
 - 생산 착수 일정(OEM 생산기간·MOQ) `src/lib/analytics.ts`(`PLANNING`) → `/ax/products?tab=production` · 월 목표 `src/lib/targets.ts`, `MonthlyTargetCard` · Action 사후 성과 `src/lib/action-outcome.ts` · 데이터 품질 점검 `src/lib/data-quality.ts` → `/ax/data?tab=quality` (PASS 10)
 - 작업 데이터 백업·이관 `src/lib/transfer.ts`, `src/components/ax/TransferCard.tsx` (Demo 실데이터 → 파일 → Live/복원)
 - 사업화·현장확인 `/ax/business` — 사업화 실적 자료(`src/lib/business-report.ts`, 인쇄·근거 CSV) / 면담·현장확인 대비(`src/components/ax/InspectionGuide.tsx`)
@@ -56,7 +57,7 @@ UI (src/app, src/components)
 - Canonical 7 Theme: `src/app/globals.css`, `src/components/providers/SettingsProvider.tsx`
 
 ## Project Memory
-`PROJECT_SPEC.md` · `PROJECT_STATE.md` · `DECISIONS.md` · `QA_REPORT.md` · `RECOMMENDATIONS.md` · `EVIDENCE_PLAN.md` · `AX_COACH_PLAN.md` · `PROOF_EVENT_SCHEMA.md` · `SETUP.md`
+`PROJECT_SPEC.md` · `PROJECT_STATE.md` · `STAGE2_DELIVERY_REPORT.md` · `STAGE3_DELIVERY_REPORT.md` · `DECISIONS.md` · `QA_REPORT.md` · `RECOMMENDATIONS.md` · `EVIDENCE_PLAN.md` · `AX_COACH_PLAN.md` · `PROOF_EVENT_SCHEMA.md` · `SETUP.md`
 
 다음 세션에서 "다음 단계 진행해줘"라고 하면 SPEC → STATE → DECISIONS → EVIDENCE_PLAN 순으로 읽고 STATE의 NEXT PRIORITY부터 진행합니다.
 

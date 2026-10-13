@@ -1,8 +1,8 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-10-13 (PASS 10 — OEM 생산기간 반영 생산 착수 일정, 월 매출 목표, Action 사후 성과, 데이터 품질 점검)
+LAST UPDATED: 2026-10-13 (PASS 11 — 샘플 자료로 3단계 업무 검증·연습 모드, 첫날 판매 파일 시작 결함 수정, 마지막 판매일 기준 분석, 3단계 보고서 초안)
 DELIVERY STAGE: 계약 제11조 2단계 개발 완료(1차 보고·5영업일 확인 대기) + **3단계 일부 개발 착수**(사용자 지시 2026-10-09: "3단계도 일부 개발, Supabase는 나중에 연동")
-CURRENT PASS: 10 — 3단계 기능 보완(Supabase 연결 전). 핵심모듈 ② 남은 틈(OEM 생산기간이 발주량 계산에 미반영) 해소, 월 목표·달성률, 완료 Action 전후 자동 측정, 데이터 품질 점검·정리. migration 008 추가. **push = Production 배포**(D-040)
+CURRENT PASS: 11 — 3단계 완료 준비(Supabase 연결 전). 별지 제1호 '실제 자료 **또는 합리적인 샘플 자료**' → 샘플 자료 연습 모드로 실제 첫날 업무 전 과정을 검증하고 `STAGE3_DELIVERY_REPORT.md` 초안 작성. 검증 중 실제 운영에 영향이 큰 결함 2건 수정(빈 조직에서 판매 파일 시작 불가, 몰아 올린 판매로 성장률 왜곡). **push = Production 배포**(D-040)
 
 ## 계약 별지 제1호 대조 (2026-09-30 기준)
 | No | 핵심모듈 | 구현 | 화면 |
@@ -25,11 +25,23 @@ CURRENT PASS: 10 — 3단계 기능 보완(Supabase 연결 전). 핵심모듈 �
 3단계 산출물: "실제 자료 적용·기능 보완, 벤처 신청/보완, 정책자금·보증용 사업화자료, 담당자 면담/현장확인 대비" (별지 제1호: "실제 자료 **또는 합리적인 샘플 자료**로 실제 업무에 쓸 수 있는지 확인")
 | 산출물 | 개발 부분 | 상태 | 남은 것 (막힌 이유) |
 |---|---|---|---|
-| 실제 자료 적용 | 판매 파일 하나로 시작: 미등록 상품·채널 즉시 등록(추정값 확인) + 자료 진단 + **Demo에서 입력한 실데이터 백업·Live 이관** | PILOT — Demo·Live E2E VERIFIED | 실제 판매·상품 엑셀 (USER), Live 전환 (USER: Supabase) |
+| 실제 자료 적용 | 판매 파일 하나로 시작(**빈 조직에서도**, PASS 11): 미등록 상품·채널 즉시 등록(추정값 확인) + 자료 진단 + 상품 정보·**재고** 파일 + Demo에서 입력한 실데이터 백업·Live 이관 · **샘플 자료 전 과정 검증 완료**(PASS 11) | PILOT — 샘플 자료 VERIFIED · Demo·Live E2E VERIFIED | 실제 판매·상품 엑셀 (USER), Live 전환 (USER: Supabase), 보고 방식 결정 (USER) |
 | 기능 보완 | 위 + 실데이터 시작 가이드·주간 운영 점검·공개 전 점검(PASS 5~6) + **생산 착수 일정·월 목표·Action 사후 성과·데이터 품질 점검(PASS 10)** | PILOT — Demo·Live E2E VERIFIED | 실사용 피드백 (Live 이후), 실제 생산기간·MOQ·월 목표 (USER) |
 | 정책자금·보증용 사업화자료 | 사업화 실적 자료 — 기록만 집계(매출 추이·채널·B2B·수출·제품·고객 반응·AX 운영·출처), 인쇄/PDF·근거 CSV, Demo는 '제출 불가' | PILOT | 실데이터 (USER). 신청서 본문·재무·회사 개요는 개발 범위 밖 |
 | 벤처 신청/보완 | 사업화 실적 자료 + 기술자산 상태 + 현장확인 Q&A(특허·기술은 '대표 답변 준비') | 일부 | 특허기술자료·신청서 (개발 범위 밖) |
-| 담당자 면담/현장확인 대비 | 하루 전 점검·시연 순서 7단계(현재 근거 표시)·예상 질문 7개(시스템 사실만) | PILOT | 실데이터로 리허설 (Live 이후) |
+| 담당자 면담/현장확인 대비 | 하루 전 점검·시연 순서 7단계(현재 근거 표시)·예상 질문 7개(시스템 사실만) + 샘플 자료 연습 모드로 리허설 가능 | PILOT | 실데이터로 리허설 (Live 이후) |
+
+**3단계 보고서 초안**: `STAGE3_DELIVERY_REPORT.md` — 샘플 자료 검증 결과·발견 결함·실제 자료 적용에 필요한 것·보고 방식 결정(가/나/다). `[ ]` 칸은 발송 전 채움.
+
+## PASS 11 변경 요약 (2026-10-13)
+| 항목 | 상태 |
+|---|---|
+| 샘플 자료 연습 모드 (`/ax/start`, Demo 주소·대표만): 빈 Demo로 시작 → 오늘 기준 가상 파일 3개(판매 8주·상품 정보·재고·추가 1주, 실수 3종 포함) → 연습 순서 7단계 → 끝내기(시연 데이터 복원). 모든 화면·인쇄물에 연습 배너, 백업·이관 제외, Live 품질 점검 '샘플 자료 섞임' 오류 | Demo VERIFIED (리허설 51항목) · Live VERIFIED (혼입 경고) |
+| **결함 수정**: 상품·채널 0개인 첫날 판매 화면이 '상품 먼저 등록'만 보여 판매 파일로 시작 불가 → 파일 가져오기 항상 표시 (D-054) | Demo·Live VERIFIED |
+| **결함 수정**: 판매를 몰아 올리면 입력 전 날을 0으로 세어 판매속도·성장률 왜곡(+50% 상품이 −7%) → '최근 4주'를 마지막 판매일 기준, 2일 이상 늦으면 대시보드 안내 (D-053). 재고·착수 마감은 오늘 기준 | VERIFIED |
+| 상품 파일 재고 열(현재·안전·입고예정) — 재고 현황 엑셀 한 번에, 재고현황 내보내기 파일 재업로드 가능 | Demo·Live VERIFIED |
+| 시작 가이드 '다음 단계' 버튼 모바일 넘침 수정, 연습 상태·빈 상태 14화면 390px 점검 | VERIFIED |
+| `STAGE3_DELIVERY_REPORT.md` 3단계 보고서 초안 | DRAFT (USER 결정 대기) |
 
 ## PASS 10 변경 요약 (2026-10-13)
 | 항목 | 상태 |
@@ -183,6 +195,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 높이 < 약 880px이면 frame이 비율 축소 (내부 viewport 390 유지) — KNOWN
 
 ## 7. QA
+- 2026-10-13 (PASS 11): typecheck / build / audit 0 PASS, DB 117/117, Live E2E 90/90, **샘플 자료 리허설 51/51**, 연습 상태 접근성 0건(11화면×2폭), Demo PASS10 42 · Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5, Route 34×8 이상 0, 접근성 30화면 0건 (AI 11은 PASS 10 결과 — 이번 변경은 AI 경로 미변경, Demo 수치 동일) → `QA_REPORT.md`
 - 2026-10-13 (PASS 10): typecheck / build / audit 0 PASS, DB 117/117 (001~008), Live E2E 85/85, Demo PASS10 42 · Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5 · AI 11, Route 34×8 이상 0, 접근성 30화면 0건 → `QA_REPORT.md`
 - 2026-10-09 (PASS 9): typecheck / build PASS, Route QA 33×8 이상 0, Demo Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5, 접근성 28화면 0건(차트 렌더 후), Live E2E 77/77 → `QA_REPORT.md`
 
@@ -205,6 +218,8 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | 8-4 | DATA | 거래처별 청구·입금 현황 (미수금 초기값) | WAITING |
 | 8-5 | DATA | 제품별 OEM 생산기간(일)·최소 생산수량 — 생산 착수 마감일 계산 (미입력 시 기존 소진일 기준) | WAITING |
 | 8-6 | DATA | 월 매출 목표 (대표 입력, 시스템이 만들지 않음) | WAITING |
+| 8-7 | DECISION | 3단계 보고 방식 (샘플 자료 검증 / 실제 자료 적용 후 / 둘 다) — `STAGE3_DELIVERY_REPORT.md` §6 | WAITING |
+| 8-8 | (선택) PRACTICE | 대표·AX OWNER가 Demo 주소 `/ax/start` > 샘플 자료로 연습하기 (약 30분, 이 브라우저만) | OPTIONAL |
 | 9 | PEOPLE | AX OWNER 지정, ADMIN/STAFF 계정 목록 | WAITING |
 | 9-1 | DECISION | 대표 브리핑 AI 문장화 사용 여부 (외부 AI 사용료 고객사 부담, 계약 제16조) → 사용 시 `ANTHROPIC_API_KEY`(서버 전용)·`AI_BRIEFING_ENABLED=true`·`NEXT_PUBLIC_AI_BRIEFING=on` | WAITING |
 | 9-2 | REPORT | `STAGE2_DELIVERY_REPORT.md`의 `[ ]` 칸 확인 후 발송 (공개 URL 확보 후) | WAITING |
@@ -223,9 +238,12 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - AI 사용 한도(시간당 20회)는 서버 인스턴스 메모리 기준 — 서버리스 인스턴스가 여러 개면 합산되지 않음
 - 생산 계획 상수(안전 14일·입고 후 42일·50개 단위)는 업계 일반값 — 실제 OEM 계약 조건(분할 입고·포장재 별도 리드타임)을 받으면 조정 (`PLANNING`)
 - Action 사후 성과는 전후 비교(인과 아님). 판매가 적은 상품은 14일 일평균의 변동이 큼
+- '최근 4주' 기준일은 조직 전체의 마지막 판매일 — 채널마다 입력 시점이 크게 다르면(예: 도매만 월 1회) 늦은 채널의 최근 매출이 낮게 보일 수 있음 (D-053)
+- 샘플 연습 자료 수치는 실행일에 따라 행 수가 조금 달라짐(요일 패턴) — 보고서 §2의 숫자는 실행일 기준
 - 품질 점검의 '단가 이상'(판매가 30% 미만·150% 초과) 기준은 휴리스틱 — 묶음·증정 판매가 많으면 '확인'이 자주 뜰 수 있음
 
 ## 10. NEXT PRIORITY
+0-1. **3단계 보고 방식 결정** (USER): `STAGE3_DELIVERY_REPORT.md` §6 — 샘플 자료 검증으로 보고 / 실제 자료 적용 후 보고 / 둘 다. 실제 자료가 오면 Demo 주소 '샘플 자료로 연습하기'와 같은 순서로 적용하고 §2 표를 실제 숫자로 다시 채운다
 0. **시험버전 공개 + 1차 완료 보고** (계약 제12조: 보고 후 5영업일 이의 없으면 2단계 진행 확인) — USER ACTION 1~6 후 공개 URL을 `STAGE2_DELIVERY_REPORT.md`에 채워 발송
 1. (USER ACTION 1~6 완료 시) **실제 Supabase 연결 확인**: `/ax/system` 점검 결과 확인 → `e2e.mjs`와 같은 순서로 1회 (특히 Realtime, 초대·가입 메일 Redirect URL)
 2. 실제 판매·상품 엑셀 수령 → 데이터 관리에 그대로 올려 자료 진단·미등록 상품 등록 확인 → 열 별칭 보강 (Week 0). Demo 주소에서도 미리 시험 가능(이 브라우저에만 저장)

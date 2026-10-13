@@ -11,6 +11,8 @@ import { todayISO } from "./date";
 export interface AxModel {
   snapshot: DataSnapshot;
   today: string;
+  /** 판매 분석 기준일 — 마지막 판매일(오늘 이후 날짜 제외). 판매를 몰아 올려 최근 며칠이 비면 '최근 4주'를 여기서 끊는다 (D-053) */
+  salesAsOf: string;
   productById: Map<string, Product>;
   metrics: Map<string, ProductMetrics>;
   channelStats: ChannelStats[];
@@ -24,11 +26,14 @@ export interface AxModel {
 
 export function buildModel(snapshot: DataSnapshot): AxModel {
   const today = todayISO();
+  // 판매를 며칠씩 몰아 올리면 아직 입력하지 않은 날이 0으로 세어져 판매속도·성장률이 낮게 나온다 → 마지막 판매일 기준 4주 (D-053)
+  const lastSale = snapshot.sales.reduce((a, s) => (s.saleDate <= today && s.saleDate > a ? s.saleDate : a), "");
+  const salesAsOf = lastSale && lastSale < today ? lastSale : today;
   const productById = new Map(snapshot.products.map((p) => [p.id, p]));
   const metrics = new Map(
-    snapshot.products.map((p) => [p.id, computeProductMetrics(p, snapshot.inventory.find((i) => i.productId === p.id), snapshot.sales, today)])
+    snapshot.products.map((p) => [p.id, computeProductMetrics(p, snapshot.inventory.find((i) => i.productId === p.id), snapshot.sales, today, salesAsOf)])
   );
-  const channelStats = computeChannelStats(snapshot.channels.filter((c) => c.active), snapshot.sales, today);
+  const channelStats = computeChannelStats(snapshot.channels.filter((c) => c.active), snapshot.sales, salesAsOf);
   const kpis = computeKpis(snapshot.products, metrics, channelStats, snapshot.sales);
   const customer = computeCustomerInsight(snapshot.customerEvents);
   const candidates = generateCandidates({
@@ -38,7 +43,7 @@ export function buildModel(snapshot: DataSnapshot): AxModel {
   });
   const actions = sortActions(snapshot.actions);
   return {
-    snapshot, today, productById, metrics, channelStats, kpis, customer, candidates, actions,
+    snapshot, today, salesAsOf, productById, metrics, channelStats, kpis, customer, candidates, actions,
     missions: todayMissions(actions),
     candidateByRule: new Map(candidates.map((c) => [c.ruleKey, c])),
   };

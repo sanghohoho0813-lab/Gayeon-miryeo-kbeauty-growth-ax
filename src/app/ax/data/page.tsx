@@ -92,6 +92,29 @@ function NeedRole({ perm }: { perm: string }) {
 /* ---------- 판매 ---------- */
 function SalesTab() {
   const m = useModel();
+  // 상품·채널이 하나도 없는 첫날에도 판매 파일로 시작할 수 있어야 한다 (D-042) — 직접 입력 카드만 안내로 바꾼다
+  const noMasters = m.snapshot.products.length === 0 || !m.snapshot.channels.some((c) => c.active);
+  return (
+    <div className="grid gap-6 @4xl:grid-cols-2">
+      {noMasters ? (
+        <DataCard title="판매 1건 입력">
+          <div data-testid="sales-start-from-file">
+            <p className="text-[0.92rem] text-ink-soft">직접 입력하려면 상품과 채널이 먼저 필요합니다.</p>
+            <p className="mt-2 text-[0.92rem]"><b>판매 파일로 바로 시작</b>할 수 있습니다: &lsquo;판매 파일 가져오기&rsquo;에 쇼핑몰 주문 엑셀(또는 CSV)을 올리면 파일 속 상품·채널을 그 자리에서 등록하고 판매까지 저장합니다.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href="/ax/data?tab=products" className="btn-secondary">상품 먼저 등록</Link>
+              <Link href="/ax/data?tab=channels" className="btn-secondary">채널 먼저 등록</Link>
+            </div>
+          </div>
+        </DataCard>
+      ) : <ManualSaleCard />}
+      <SalesImport />
+    </div>
+  );
+}
+
+function ManualSaleCard() {
+  const m = useModel();
   const { busy, save } = useSave();
   const channels = m.snapshot.channels.filter((c) => c.active);
   const products = m.snapshot.products;
@@ -104,10 +127,7 @@ function SalesTab() {
     return p ? Math.round(units * p.price * (1 - (c?.avgDiscountRate ?? 0))) : 0;
   };
 
-  if (products.length === 0 || channels.length === 0) return <EmptyState title="판매 입력 전에 상품과 채널을 먼저 등록하세요" action={<Link href="/ax/data?tab=products" className="btn-primary">상품 등록</Link>} />;
-
   return (
-    <div className="grid gap-6 @4xl:grid-cols-2">
       <DataCard title="판매 1건 입력">
         <div className="grid gap-3 @xl:grid-cols-2">
           <div><label className="field-label" htmlFor="s-date">판매일 (또는 집계일)</label><input id="s-date" type="date" className="field" value={f.saleDate} onChange={(e) => setF({ ...f, saleDate: e.target.value })} /></div>
@@ -134,9 +154,6 @@ function SalesTab() {
           </ul>
         )}
       </DataCard>
-
-      <SalesImport />
-    </div>
   );
 }
 

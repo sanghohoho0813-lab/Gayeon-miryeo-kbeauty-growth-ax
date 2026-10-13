@@ -28,6 +28,8 @@ interface DemoDB extends Omit<DataSnapshot, "loadedAt"> {
   seedSales?: number;
   /** PASS 10: Demo 상품 생산기간·MOQ 채움 */
   pass10?: boolean;
+  /** PASS 11: 샘플 자료 연습 모드 — 시드 없이 시작 */
+  practice?: boolean;
   beautyResults: DemoBeautyResult[];
   seededOn: string;
   updatedAt: string;
@@ -62,6 +64,19 @@ function seed(): DemoDB {
     stage2: true,
     seedSales: 2,
     pass10: true,
+  };
+}
+
+/** 샘플 자료 연습 — Live 첫날처럼 빈 상태. Demo 시드를 다시 채우지 않도록 시드 플래그는 켠다 */
+function emptyPractice(): DemoDB {
+  const now = new Date().toISOString();
+  return {
+    version: 2, seededOn: todayISO(), updatedAt: now,
+    org: { name: "샘플 연습 (Demo)", pilotStartedOn: null },
+    products: [], inventory: [], production: [], channels: [], sales: [], b2b: [], exports: [],
+    customers: [], customerEvents: [], actions: [], actionEvents: [], proofEvents: [], techAssets: [], baselines: [],
+    customerAccounts: [], customerPurchases: [], settlements: [], monthlyTargets: [], beautyResults: [],
+    stage2: true, seedSales: 2, pass10: true, practice: true,
   };
 }
 
@@ -243,6 +258,11 @@ export const demoSource: DataSource = {
     write(seed());
   },
 };
+
+/** Demo 전용: 샘플 자료 연습 시작 (이 브라우저의 Demo 데이터를 비움 — 끝나면 reset()으로 시연 데이터 복원) */
+export function startPracticeDemo() {
+  write(emptyPractice());
+}
 
 /** 고객 계정 Demo 구현(customer-account.ts)용 — 같은 Demo DB를 읽고 쓴다 */
 export const demoDb = { read: () => read(), mutate: (fn: (db: DemoDB) => void) => mutate(fn), CHANGE_EVENT };

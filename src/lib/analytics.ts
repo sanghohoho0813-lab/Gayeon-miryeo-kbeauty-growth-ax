@@ -81,8 +81,9 @@ function revenueBetween(sales: SalesRecord[], filter: (s: SalesRecord) => boolea
   return total;
 }
 
-export function computeProductMetrics(product: Product, inventory: Inventory | undefined, sales: SalesRecord[], today: string): ProductMetrics {
-  const weekly = weeklyUnits(sales, (s) => s.productId === product.id, today);
+/** asOf: 판매 분석 기준일 (마지막 판매일 — D-053). 재고·착수 마감은 오늘(today) 기준 */
+export function computeProductMetrics(product: Product, inventory: Inventory | undefined, sales: SalesRecord[], today: string, asOf: string = today): ProductMetrics {
+  const weekly = weeklyUnits(sales, (s) => s.productId === product.id, asOf);
   const recent4wUnits = sum(weekly.slice(4));
   const prev4wUnits = sum(weekly.slice(0, 4));
   const growthRate = prev4wUnits > 0 ? (recent4wUnits - prev4wUnits) / prev4wUnits : recent4wUnits > 0 ? 1 : 0;
@@ -90,7 +91,7 @@ export function computeProductMetrics(product: Product, inventory: Inventory | u
   const currentStock = inventory?.currentStock ?? 0;
   const daysOfStock = dailyVelocity > 0 ? currentStock / dailyVelocity : Infinity;
   const marginRate = product.cost != null && product.price > 0 ? (product.price - product.cost) / product.price : null;
-  const recent4wRevenue = revenueBetween(sales, (s) => s.productId === product.id, 0, 28, today);
+  const recent4wRevenue = revenueBetween(sales, (s) => s.productId === product.id, 0, 28, asOf);
 
   let stockStatus: StockStatus = "안정";
   if (!inventory) stockStatus = "데이터 없음";

@@ -38,9 +38,9 @@ export function ProductImport() {
   // SKU 열만 필수 — 제품명·카테고리·판매가는 '새 SKU'에만 필요 (행 검증에서 확인). 기존 상품의 생산기간만 바꾸는 파일도 받을 수 있게
   const mappingErrors = map && map.sku < 0 ? ["SKU 열 선택 필요"] : [];
   const rows = useMemo(
-    () => (table && map && mappingErrors.length === 0 ? validateProductRows({ body: table.body, map, existing: m.snapshot.products }) : null),
+    () => (table && map && mappingErrors.length === 0 ? validateProductRows({ body: table.body, map, existing: m.snapshot.products, inventory: m.snapshot.inventory }) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [table, map, m.snapshot.products, mappingErrors.length]
+    [table, map, m.snapshot.products, m.snapshot.inventory, mappingErrors.length]
   );
   const valid = rows?.filter((r) => r.value && (r.mode === "new" || (r.changes?.length ?? 0) > 0)) ?? [];
   const created = valid.filter((r) => r.mode === "new").length;
@@ -50,7 +50,7 @@ export function ProductImport() {
 
   return (
     <DataCard title="상품 일괄 등록 (CSV · 엑셀)" className="mt-6" action={<a href="/samples/products_template.csv" download className="btn-secondary !min-h-[40px] text-[0.86rem]"><Download size={15} aria-hidden /> 상품 템플릿</a>}>
-      <p className="mb-3 text-[0.88rem] text-ink-soft">SKU가 이미 있으면 파일에 값이 있는 항목만 바꾸고, 빈 칸은 기존 값을 유지합니다 (예: SKU·생산기간 두 열만 있는 파일로 생산기간만 입력). 효능·인증 문구는 입력하지 않습니다 (피부 고민은 추천 분류일 뿐입니다).</p>
+      <p className="mb-3 text-[0.88rem] text-ink-soft">SKU가 이미 있으면 파일에 값이 있는 항목만 바꾸고, 빈 칸은 기존 값을 유지합니다 (예: SKU·생산기간 두 열만 있는 파일로 생산기간만 입력, SKU·재고 열로 재고 현황만 입력). 효능·인증 문구는 입력하지 않습니다 (피부 고민은 추천 분류일 뿐입니다).</p>
       <label className="flex min-h-[100px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-5 text-center transition-colors hover:bg-surface-muted" style={{ borderColor: "var(--border)" }}>
         <FileUp size={24} className="text-ink-soft" aria-hidden />
         <span className="break-all font-semibold">{fileName || "상품 목록 파일 선택 (.csv, .xlsx)"}</span>
@@ -90,7 +90,7 @@ export function ProductImport() {
                 {rows.slice(0, 200).map((r) => (
                   <tr key={r.line} className="border-t" style={{ borderColor: "var(--border)" }}>
                     <td className="px-3 py-1.5">{r.line}</td>
-                    <td className="px-3 py-1.5">{r.value ? `${r.value.sku} · ${r.value.name} · ${r.value.category} · ${formatPrice(r.value.price)}${r.value.isPublished ? " · 공개" : ""}` : r.raw.join(" | ")}</td>
+                    <td className="px-3 py-1.5">{r.value ? `${r.value.sku} · ${r.value.name} · ${r.value.category} · ${formatPrice(r.value.price)}${r.value.isPublished ? " · 공개" : ""}${r.inventory ? ` · 재고 ${r.inventory.currentStock.toLocaleString()}개` : ""}` : r.raw.join(" | ")}</td>
                     <td className="px-3 py-1.5" style={{ color: r.errors.length ? "var(--danger)" : r.mode === "new" ? "var(--success)" : "var(--primary)" }}>
                       {r.errors.length ? r.errors.join(", ") : r.mode === "new" ? "신규 등록" : r.changes?.length ? `수정: ${r.changes.join(", ")}` : "변경 없음"}
                     </td>
@@ -104,7 +104,12 @@ export function ProductImport() {
               setBusy({ done: 0, total: valid.length });
               try {
                 await run(async (s) => {
-                  for (const [i, r] of valid.entries()) { await s.upsertProduct(r.value!); setBusy({ done: i + 1, total: valid.length }); }
+                  // 상품 먼저 → 재고 (Live: 재고는 상품 행을 참조)
+                  for (const [i, r] of valid.entries()) {
+                    await s.upsertProduct(r.value!);
+                    if (r.inventory) await s.upsertInventory(r.inventory);
+                    setBusy({ done: i + 1, total: valid.length });
+                  }
                 });
                 toast(`상품 ${created}개 등록 · ${updated}개 수정했습니다`);
                 reset();

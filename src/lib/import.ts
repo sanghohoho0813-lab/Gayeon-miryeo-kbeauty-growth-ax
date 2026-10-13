@@ -1,4 +1,5 @@
-import type { Channel, Product, ProductCategory, SalesRecord, SkinConcern, Texture } from "./types";
+import type { Channel, Inventory, Product, ProductCategory, SalesRecord, SkinConcern, Texture } from "./types";
+import { uuidv4 } from "./data/source";
 import { parseCSV, type RowResult } from "./csv";
 
 /* 판매 데이터 가져오기 — 실제 현업 파일(쇼핑몰 주문 엑셀, 자체 집계표)의 열 이름이 제각각이므로
@@ -141,7 +142,7 @@ function cellToString(c: unknown): string {
 }
 
 /* ---------- 상품 일괄 등록 (SKU 기준: 없으면 신규, 있으면 파일에 값이 있는 항목만 갱신) ---------- */
-export type ProductField = "sku" | "name" | "category" | "price" | "cost" | "line" | "concerns" | "texture" | "routineStep" | "usageDays" | "leadTimeDays" | "moq" | "purchaseUrl" | "isPublished";
+export type ProductField = "sku" | "name" | "category" | "price" | "cost" | "line" | "concerns" | "texture" | "routineStep" | "usageDays" | "leadTimeDays" | "moq" | "currentStock" | "safetyStock" | "incomingStock" | "purchaseUrl" | "isPublished";
 
 export const PRODUCT_FIELDS: FieldDef<ProductField>[] = [
   { key: "sku", label: "SKU / 상품코드", required: true, hint: "상품을 구분하는 고유 코드", aliases: ["sku", "상품코드", "제품코드", "품번", "자체상품코드", "관리코드", "itemcode"] },
@@ -156,6 +157,9 @@ export const PRODUCT_FIELDS: FieldDef<ProductField>[] = [
   { key: "usageDays", label: "사용기간 일수 (선택)", required: false, hint: "1개 사용 기간, 재구매 예상 계산", aliases: ["usagedays", "usage_days", "사용기간", "사용일수", "사용주기", "소진기간"] },
   { key: "leadTimeDays", label: "OEM 생산기간 일수 (선택)", required: false, hint: "발주→입고 일수, 생산 착수 마감일 계산", aliases: ["leadtime", "lead_time", "leadtimedays", "생산기간", "리드타임", "생산리드타임", "제조기간", "납기일수", "생산소요일"] },
   { key: "moq", label: "최소 생산수량 (선택)", required: false, hint: "MOQ, 개", aliases: ["moq", "최소생산수량", "최소주문수량", "최소발주수량", "최소수량"] },
+  { key: "currentStock", label: "현재 재고 (선택)", required: false, hint: "개 — 재고 현황 엑셀을 함께 올릴 때", aliases: ["currentstock", "current_stock", "stock", "현재재고", "재고", "재고수량", "현재고", "보유재고", "재고량", "가용재고"] },
+  { key: "safetyStock", label: "안전 재고 (선택)", required: false, hint: "이 수량 아래면 주의", aliases: ["safetystock", "safety_stock", "안전재고", "최소재고", "적정재고"] },
+  { key: "incomingStock", label: "입고 예정 수량 (선택)", required: false, hint: "이미 발주·생산 중인 수량 (날짜 아님)", aliases: ["incomingstock", "incoming_stock", "입고예정수량", "입고예정", "입고수량", "발주잔량", "미입고수량"] },
   { key: "purchaseUrl", label: "구매 링크 (선택)", required: false, hint: "https://…", aliases: ["url", "link", "구매링크", "구매url", "상품url", "상품링크", "링크"] },
   { key: "isPublished", label: "고객 화면 공개 (선택)", required: false, hint: "Y/N, 공개/비공개. 비우면 신규는 비공개", aliases: ["ispublished", "is_published", "공개", "공개여부", "노출", "노출여부", "published"] },
 ];
@@ -199,10 +203,16 @@ function normalizeBool(raw: string): boolean | null {
   return null;
 }
 
-export interface ProductImportRow extends RowResult<Product> { mode?: "new" | "update"; changes?: string[] }
+export interface ProductImportRow extends RowResult<Product> {
+  mode?: "new" | "update";
+  changes?: string[];
+  /** 재고 열이 있는 행만 — 기존 재고에 파일 값만 덮어쓴 결과 (상품 저장 후 저장) */
+  inventory?: Inventory;
+}
 
-export function validateProductRows(input: { body: string[][]; map: Record<ProductField, number>; existing: Product[] }): ProductImportRow[] {
+export function validateProductRows(input: { body: string[][]; map: Record<ProductField, number>; existing: Product[]; inventory?: Inventory[] }): ProductImportRow[] {
   const { body, map, existing } = input;
+  const invBy = new Map((input.inventory ?? []).map((i) => [i.productId, i]));
   const bySku = new Map(existing.map((p) => [p.sku.trim().toLowerCase(), p]));
   const seen = new Set<string>();
   const cell = (raw: string[], f: ProductField) => (map[f] >= 0 ? (raw[map[f]] ?? "").trim() : "");
@@ -215,7 +225,7 @@ export function validateProductRows(input: { body: string[][]; map: Record<Produ
     const prev = bySku.get(sku.toLowerCase());
     const next: Product = prev
       ? structuredClone(prev)
-      : { id: `new-prod-${n}-${Date.now()}`, sku, name: "", category: "에센스/앰플", price: 0, status: "신규", concerns: [], isPublished: false, purchaseLinks: [], mainChannelIds: [] };
+      : { id: uuidv4(), sku, name: "", category: "에센스/앰플", price: 0, status: "신규", concerns: [], isPublished: false, purchaseLinks: [], mainChannelIds: [] };
     const changes: string[] = [];
     const set = <K extends keyof Product>(k: K, v: Product[K], label: string) => {
       if (JSON.stringify(next[k]) !== JSON.stringify(v)) changes.push(label);
@@ -246,6 +256,19 @@ export function validateProductRows(input: { body: string[][]; map: Record<Produ
     if (leadRaw) { const v = Number(leadRaw.replace(/[^0-9]/g, "")); if (v >= 1 && v <= 365) set("leadTimeDays", v, "생산기간"); else errors.push(`생산기간 1~365일: ${leadRaw}`); }
     const moqRaw = cell(raw, "moq");
     if (moqRaw) { const v = normalizeNumber(moqRaw); if (Number.isInteger(v) && v >= 0 && v <= 10_000_000) set("moq", v, "최소 생산수량"); else errors.push(`최소 생산수량 오류: ${moqRaw}`); }
+    // 재고 — 파일에 값이 있는 칸만 바꾸고, 없는 칸은 기존 재고(없으면 0)
+    const prevInv = prev ? invBy.get(prev.id) : undefined;
+    let inv: Inventory | undefined;
+    const invFields: [ProductField, "currentStock" | "safetyStock" | "incomingStock", string][] = [["currentStock", "currentStock", "현재 재고"], ["safetyStock", "safetyStock", "안전 재고"], ["incomingStock", "incomingStock", "입고 예정"]];
+    for (const [f, k, label] of invFields) {
+      const v0 = cell(raw, f);
+      if (!v0) continue;
+      const v = normalizeNumber(v0.replace(/개$/, ""));
+      if (!Number.isInteger(v) || v < 0 || v > 10_000_000) { errors.push(/\d{4}[-./]\d{1,2}/.test(v0) ? `${label}: 날짜가 아닌 수량을 넣으세요 (${v0})` : `${label} 오류: ${v0}`); continue; }
+      inv ??= { productId: next.id, currentStock: prevInv?.currentStock ?? 0, safetyStock: prevInv?.safetyStock ?? 0, incomingStock: prevInv?.incomingStock ?? 0, incomingDate: prevInv?.incomingDate ?? null };
+      if (inv[k] !== v || !prevInv) { if (!changes.includes("재고")) changes.push("재고"); }
+      inv[k] = v;
+    }
     const url = cell(raw, "purchaseUrl");
     if (url) {
       if (!/^https?:\/\/\S+$/i.test(url)) errors.push(`구매 링크 형식 오류: ${url}`);
@@ -255,7 +278,7 @@ export function validateProductRows(input: { body: string[][]; map: Record<Produ
     if (pubRaw) { const b = normalizeBool(pubRaw); if (b == null) errors.push(`공개 여부 인식 불가: ${pubRaw}`); else set("isPublished", b, "공개 여부"); }
     next.isDemo = false;
     if (errors.length) return { line: n + 2, raw, errors };
-    return { line: n + 2, raw, errors, value: next, mode: prev ? "update" : "new", changes };
+    return { line: n + 2, raw, errors, value: next, mode: prev ? "update" : "new", changes, inventory: inv };
   });
 }
 

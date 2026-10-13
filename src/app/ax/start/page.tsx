@@ -8,6 +8,7 @@ import { useModel } from "@/components/providers/DataProvider";
 import { buildStartGuide, guideProgress, type StepPhase } from "@/lib/start-guide";
 import { isLive } from "@/lib/config";
 import { WeeklyRoutineList } from "@/components/ax/WeeklyRoutine";
+import { PracticeCard } from "@/components/ax/PracticeKit";
 
 /* 실데이터 시작 가이드 — Week 0 체크리스트 (자동 판정) */
 export default function StartGuidePage() {
@@ -19,13 +20,14 @@ export default function StartGuidePage() {
     <div className="mx-auto max-w-[1000px]">
       <PageHeader title="실데이터 시작 가이드" description="Demo가 아닌 가연인터내셔널의 실제 데이터로 운영을 시작하는 순서입니다. 입력하면 자동으로 완료 표시됩니다." />
       {!isLive && <p className="mb-4 rounded-xl p-3 text-[0.9rem]" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>DEMO 모드: Demo 시드 데이터는 완료로 세지 않습니다. 직접 입력한 항목만 반영됩니다.</p>}
+      <PracticeCard />
       <DataCard>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-[0.85rem] font-semibold text-ink-soft">필수 단계 진행</div>
             <div className="tabular text-[1.8rem] font-bold" data-testid="guide-progress">{p.done} / {p.total}</div>
           </div>
-          {p.next && <Link href={p.next.href} className="btn-primary">다음: {p.next.title} <ChevronRight size={16} aria-hidden /></Link>}
+          {p.next && <Link href={p.next.href} className="btn-primary !h-auto max-w-full !whitespace-normal py-2 text-left">다음: {p.next.title} <ChevronRight size={16} className="shrink-0" aria-hidden /></Link>}
         </div>
         <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-valuenow={p.done} aria-valuemin={0} aria-valuemax={p.total} aria-label="시작 가이드 진행률">
           <div className="bar-reveal h-full rounded-full" style={{ width: `${Math.round(p.ratio * 100)}%`, background: "var(--primary)" }} />

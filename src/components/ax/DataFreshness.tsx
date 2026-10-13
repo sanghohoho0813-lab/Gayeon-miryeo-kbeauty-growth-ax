@@ -12,7 +12,7 @@ export function DataFreshness() {
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border bg-surface px-3 py-1.5 text-[0.8rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>
       <Database size={14} aria-hidden />
-      <span className="font-semibold" style={{ color: isLive ? "var(--success)" : "var(--warning)" }}>{isLive ? "SUPABASE LIVE" : "DEMO DATA"}</span>
+      <span className="font-semibold" style={{ color: isLive ? "var(--success)" : "var(--warning)" }}>{isLive ? "SUPABASE LIVE" : m.snapshot.practice ? "DEMO · 샘플 연습" : "DEMO DATA"}</span>
       <span>불러옴 {formatDateTimeKR(m.snapshot.loadedAt)}</span>
       <span>· 최근 판매일 {formatDateKR(m.kpis.lastSaleDate)}</span>
       <span>· 상태 {health}</span>

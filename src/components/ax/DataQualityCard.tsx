@@ -10,6 +10,7 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { useModel } from "@/components/providers/DataProvider";
 import { checkDataQuality } from "@/lib/data-quality";
+import { isLive } from "@/lib/config";
 
 export function DataQualityCard() {
   const m = useModel();
@@ -17,7 +18,7 @@ export function DataQualityCard() {
   const { role } = useSession();
   const [busy, setBusy] = useState(false);
   const canFix = can(role, "edit_master");
-  const issues = checkDataQuality(m.snapshot, m.today);
+  const issues = checkDataQuality(m.snapshot, m.today, { allowPractice: !isLive });
   const fix = async (label: string, ids: string[]) => {
     if (!window.confirm(`${label}할까요? 지운 판매는 되돌릴 수 없습니다. (필요하면 먼저 내보내기 탭에서 판매기록을 받아 두세요)`)) return;
     setBusy(true);

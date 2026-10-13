@@ -45,7 +45,7 @@ export function SalesImport() {
         map.saleDate < 0 && "판매일 열 선택 필요",
         map.units < 0 && "수량 열 선택 필요",
         map.sku < 0 && map.productName < 0 && "SKU 또는 상품명 열 선택 필요",
-        map.channel < 0 && !defaultChannel && "채널 열 또는 기본 채널 필요",
+        map.channel < 0 && !defaultChannel && (channels.length === 0 ? "채널 열 필요 — 등록된 채널이 없어 기본 채널을 고를 수 없습니다 (파일에 판매처 열을 넣거나 채널 탭에서 먼저 등록)" : "채널 열 또는 기본 채널 필요"),
       ].filter(Boolean) as string[]
     : [];
 

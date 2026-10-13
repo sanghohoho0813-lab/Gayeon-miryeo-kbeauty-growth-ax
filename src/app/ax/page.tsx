@@ -19,6 +19,7 @@ import { targetProgress } from "@/lib/targets";
 import { summarizeReceivables } from "@/lib/settlements";
 import { CalendarRange, Wallet } from "lucide-react";
 import { useModel } from "@/components/providers/DataProvider";
+import { daysBetween, formatDateKR } from "@/lib/date";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { formatKRW, formatPct, matrixZone, OPEN_STATUSES, productInsight } from "@/lib/analytics";
@@ -52,6 +53,11 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeader title="오늘의 MIRYEO Growth Dashboard" description="매출·재고·채널·고객 흐름을 확인하고, 지금 먼저 할 일을 처리합니다. 분석 기준: 최근 4주 vs 이전 4주." actions={<DataFreshness />} />
+      {daysBetween(m.salesAsOf, m.today) >= 2 && (
+        <p className="-mt-2 mb-4 text-[0.86rem] text-ink-soft" data-testid="sales-asof">
+          판매가 {formatDateKR(m.salesAsOf)}까지 입력되어 있어 &lsquo;최근 4주&rsquo;는 그날까지로 계산합니다 (입력 전 {daysBetween(m.salesAsOf, m.today)}일을 판매 0으로 보지 않음). 재고·착수 마감은 오늘 기준입니다.
+        </p>
+      )}
 
       <div className="stagger grid grid-cols-1 gap-4 @md:grid-cols-2 @4xl:grid-cols-4" data-tour="kpis">
         {fin ? (
