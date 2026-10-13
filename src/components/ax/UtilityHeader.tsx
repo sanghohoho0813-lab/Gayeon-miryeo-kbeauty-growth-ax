@@ -3,19 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, ChevronDown, LogOut, Menu, MonitorSmartphone, Palette, RefreshCw, Settings, X } from "lucide-react";
+import { ChevronDown, LogOut, Menu, MonitorSmartphone, Palette, RefreshCw, Settings, X } from "lucide-react";
 import { NavList } from "./Sidebar";
 import { ThemePickerPanel } from "./ThemePicker";
 import { LiveClock } from "./LiveClock";
 import { OPEN_DRAWER_EVENT } from "./MobileBottomNav";
 import { QuickJump, QuickJumpButton } from "./QuickJump";
+import { NotificationCenter } from "./NotificationCenter";
 import { DeviceSwitch } from "@/components/device/DeviceView";
 import { useSession } from "@/components/providers/SessionProvider";
 import { useData } from "@/components/providers/DataProvider";
 import { ROLE_LABEL } from "@/lib/permissions";
 import { isLive } from "@/lib/config";
 import { formatDateTimeKR, periodLabel } from "@/lib/date";
-import { OPEN_STATUSES } from "@/lib/analytics";
 import type { Role } from "@/lib/types";
 
 function useClickOutside<T extends HTMLElement>(open: boolean, close: () => void) {
@@ -96,7 +96,6 @@ export function UtilityHeader() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const themeRef = useClickOutside<HTMLDivElement>(themeOpen, () => setThemeOpen(false));
-  const openCount = model?.actions.filter((a) => OPEN_STATUSES.includes(a.status)).length ?? 0;
 
   useEffect(() => setDrawerOpen(false), [pathname]);
   useEffect(() => {
@@ -135,14 +134,7 @@ export function UtilityHeader() {
           <RefreshCw size={19} className={spinning ? "animate-spin" : ""} />
         </button>
 
-        <Link href="/ax/growth" className="relative flex h-11 w-11 items-center justify-center rounded-lg hover:bg-surface-muted" aria-label={`처리할 Action ${openCount}`}>
-          <Bell size={20} />
-          {openCount > 0 && (
-            <span className="tabular absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[0.68rem] font-bold text-white" style={{ background: "var(--danger)" }}>
-              {openCount}
-            </span>
-          )}
-        </Link>
+        <NotificationCenter />
 
         <div className="relative hidden @sm:block" ref={themeRef}>
           <button className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-surface-muted" aria-label="화면 색 고르기" aria-expanded={themeOpen} onClick={() => setThemeOpen((v) => !v)}>

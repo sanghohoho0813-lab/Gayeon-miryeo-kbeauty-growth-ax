@@ -470,6 +470,14 @@ if (PHASE === "B") {
   ok("Live 상품 폼: 생산기간 20 · MOQ 300 → products (008)", leadRow?.lead_time_days === 20 && leadRow?.moq === 300, JSON.stringify(leadRow));
   await owner.goto(`${APP}/ax/products?tab=production`, { waitUntil: "networkidle" });
   ok("Live 생산 착수 일정에 표시", await owner.locator('[data-schedule="MR-TONER-01"]').waitFor({ timeout: 10000 }).then(() => true, () => false));
+  // PASS 13 — 알림 센터: Live 데이터에서 계산 (저장 없음), 버튼 이름의 개수 = 목록 개수, 위험 → 주의 → 결과 → 안내 순
+  await owner.getByTestId("notice-open").click();
+  await owner.getByTestId("notice-panel").waitFor({ timeout: 5000 });
+  const liveNotices = await owner.locator("[data-notice]").evaluateAll((els) => els.map((e) => [e.getAttribute("data-notice"), e.getAttribute("data-tone"), e.getAttribute("href")]));
+  const bellName = await owner.getByTestId("notice-open").evaluate((e) => e.querySelector(".sr-only").textContent.trim());
+  const toneRank = liveNotices.map(([, t]) => ({ danger: 0, warning: 1, success: 2, info: 3 })[t]);
+  ok("Live 알림 센터: 열림 · 개수 일치 · 위험순 · 화면 연결", bellName.startsWith(`알림 ${liveNotices.length}건`) && toneRank.every((v, i) => i === 0 || toneRank[i - 1] <= v) && liveNotices.every(([, , h]) => h.startsWith("/ax")), `${bellName} / ${liveNotices.map((x) => x[0]).join(",")}`);
+  await owner.keyboard.press("Escape");
   const kstMonth = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(new Date()).slice(0, 7);
   await owner.goto(`${APP}/ax/monthly`, { waitUntil: "networkidle" });
   await owner.fill("#target-input", "5,000,000");

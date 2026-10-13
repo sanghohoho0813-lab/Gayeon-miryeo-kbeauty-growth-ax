@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { ChevronRight, Pencil } from "lucide-react";
+import { useNarrow } from "@/lib/use-narrow";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, InsightCard, StatusBadge, saleStatusTone, stockStatusTone } from "@/components/ax/Cards";
 import { Drawer, Modal } from "@/components/ax/Modal";
@@ -63,6 +64,7 @@ function ProductsTab({ onSelect }: { onSelect: (p: Product) => void }) {
   const { role } = useSession();
   const fin = can(role, "view_financials");
   const [category, setCategory] = useState("전체");
+  const narrow = useNarrow();
   const products = m.snapshot.products;
   if (products.length === 0) return <EmptyState title="상품이 없습니다" action={<Link href="/ax/data" className="btn-primary">상품 등록</Link>} />;
   const categories = ["전체", ...Array.from(new Set(products.map((p) => p.category)))];
@@ -73,6 +75,33 @@ function ProductsTab({ onSelect }: { onSelect: (p: Product) => void }) {
         {categories.map((c) => <option key={c}>{c}</option>)}
       </select>
     }>
+      {narrow ? (
+        // 모바일: 표(9열) 대신 상품 카드 — 이름이 단어마다 끊기던 문제 해결 (PASS 13)
+        <ul className="space-y-2.5" data-testid="product-cards">
+          {list.map((p) => {
+            const mm = m.metrics.get(p.id)!;
+            return (
+              <li key={p.id}>
+                <button onClick={() => onSelect(p)} className="row-hover flex w-full items-start gap-3 rounded-xl border p-3 text-left" style={{ borderColor: "var(--border)" }} data-product-card={p.sku}>
+                  <span className="h-14 w-11 shrink-0 rounded-lg bg-surface-muted p-1" aria-hidden><ProductVisual category={p.category} variant={p.id.length} className="h-full" /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-1.5"><span className="font-semibold leading-snug">{p.name}</span>{p.isDemo && <span className="badge" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>DEMO</span>}</span>
+                    <span className="block text-[0.78rem] text-ink-soft">{p.sku} · {p.category}</span>
+                    <span className="tabular mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.85rem]">
+                      <span>{formatPrice(p.price)}</span>
+                      {fin && <span className="text-ink-soft">마진 {mm.marginRate != null ? `${Math.round(mm.marginRate * 100)}%` : "-"}</span>}
+                      <span>재고 {mm.currentStock.toLocaleString()}</span>
+                      <span>4주 {mm.recent4wUnits.toLocaleString()} <b className="font-semibold" style={{ color: mm.growthRate >= 0 ? "var(--success)" : "var(--danger)" }}>{formatPct(mm.growthRate)}</b></span>
+                    </span>
+                    <span className="mt-1.5 flex flex-wrap gap-1.5"><StatusBadge tone={saleStatusTone(p.status)}>{p.status}</StatusBadge>{p.isPublished ? <StatusBadge tone="success">공개</StatusBadge> : <StatusBadge tone="neutral">비공개</StatusBadge>}</span>
+                  </span>
+                  <ChevronRight size={18} className="mt-1 shrink-0 text-ink-soft" aria-hidden />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
       <div tabIndex={0} className="table-scroll">
         <table className="text-[0.93rem]">
           <thead>
@@ -106,6 +135,7 @@ function ProductsTab({ onSelect }: { onSelect: (p: Product) => void }) {
           </tbody>
         </table>
       </div>
+      )}
     </DataCard>
   );
 }
@@ -121,6 +151,8 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
     .filter((r) => status === "전체" || r.mm.stockStatus === status)
     .sort((a, b) => a.mm.daysOfStock - b.mm.daysOfStock);
   const canEdit = can(role, "edit_operational");
+  const narrow = useNarrow();
+  const openEdit = (p: Product, inv?: Inventory) => setEdit({ product: p, inv: inv ?? { productId: p.id, currentStock: 0, safetyStock: 0, incomingStock: 0 } });
 
   return (
     <>
@@ -131,6 +163,27 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
           ))}
         </div>
       }>
+        {narrow ? (
+          <ul className="space-y-2.5" data-testid="inventory-cards">
+            {rows.map(({ p, mm, inv }) => (
+              <li key={p.id} className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }} data-inv-card={p.sku}>
+                <div className="flex items-start justify-between gap-2">
+                  <button onClick={() => onSelect(p)} className="min-w-0 text-left"><span className="block font-semibold leading-snug">{p.name}</span><span className="block text-[0.78rem] text-ink-soft">{p.sku}</span></button>
+                  <StatusBadge tone={stockStatusTone(mm.stockStatus)}>{mm.stockStatus}</StatusBadge>
+                </div>
+                <dl className="tabular mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-[0.88rem]">
+                  <div><dt className="text-[0.76rem] text-ink-soft">현재 재고</dt><dd className="font-semibold">{inv ? `${inv.currentStock.toLocaleString()}개` : "미입력"}</dd></div>
+                  <div><dt className="text-[0.76rem] text-ink-soft">예상 소진</dt><dd className="font-semibold">{Number.isFinite(mm.daysOfStock) && inv ? `약 ${Math.round(mm.daysOfStock)}일` : "-"}</dd></div>
+                  <div><dt className="text-[0.76rem] text-ink-soft">일 판매속도</dt><dd>{mm.dailyVelocity.toFixed(1)}개/일</dd></div>
+                  <div><dt className="text-[0.76rem] text-ink-soft">입고 예정</dt><dd>{inv?.incomingStock ? `${inv.incomingStock.toLocaleString()}개` : "-"}</dd></div>
+                  <div data-deadline={p.sku}><dt className="text-[0.76rem] text-ink-soft">생산 착수</dt><dd><DeadlineBadge mm={mm} /></dd></div>
+                  <div><dt className="text-[0.76rem] text-ink-soft">추천 생산량</dt><dd className="font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}</dd></div>
+                </dl>
+                {canEdit && <button className="btn-secondary mt-2.5 !min-h-[40px] w-full text-[0.86rem]" onClick={() => openEdit(p, inv)} aria-label={`${p.name} 재고 수정`}><Pencil size={15} aria-hidden /> 재고 수정</button>}
+              </li>
+            ))}
+          </ul>
+        ) : (
         <div tabIndex={0} className="table-scroll">
           <table className="text-[0.93rem]">
             <thead>
@@ -151,7 +204,7 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
                   <td className="py-3 pr-4"><StatusBadge tone={stockStatusTone(mm.stockStatus)}>{mm.stockStatus}</StatusBadge></td>
                   <td className="py-3">
                     {canEdit && (
-                      <button className="btn-ghost !min-h-[38px] !px-2.5 text-[0.85rem]" onClick={() => setEdit({ product: p, inv: inv ?? { productId: p.id, currentStock: 0, safetyStock: 0, incomingStock: 0 } })} aria-label={`${p.name} 재고 수정`}>
+                      <button className="btn-ghost !min-h-[38px] !px-2.5 text-[0.85rem]" onClick={() => openEdit(p, inv)} aria-label={`${p.name} 재고 수정`}>
                         <Pencil size={15} aria-hidden /> 수정
                       </button>
                     )}
@@ -161,6 +214,7 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
             </tbody>
           </table>
         </div>
+        )}
         <p className="mt-3 text-[0.8rem] text-ink-soft">
           생산기간 입력 상품: 추천 생산량 = 예측 일판매 × (생산기간 + 안전 {PLANNING.safetyDays}일 + 입고 후 {PLANNING.coverDays}일) − (현재 + 입고 예정), 최소 생산수량 이상·{PLANNING.roundTo}개 단위 · 착수 마감 = 가용 재고가 생산기간 + 안전일수보다 먼저 바닥나기 전 날.
           미입력 상품: 6주 예상 판매 − 현재 − 입고 예정. 예측 일판매 = 최근 4주 판매속도 × 추세 보정. (RULE, 사람 승인 필요)
@@ -217,10 +271,35 @@ function ProductionSchedule() {
     .filter((x) => x.mm && x.mm.leadTimeDays != null && x.mm.daysToDeadline != null)
     .sort((a, b) => a.mm.daysToDeadline! - b.mm.daysToDeadline!);
   const missing = m.snapshot.products.filter((p) => p.leadTimeDays == null);
+  const narrow = useNarrow();
+  const activeText = (active: typeof rows[number]["active"], mm: ProductMetrics) => (
+    <>
+      {active.length ? active.map((x) => `${x.status} ${x.quantity.toLocaleString()}개`).join(", ") : <span className="text-ink-soft">없음</span>}
+      {active.some((x) => x.status !== "계획") && (mm.daysToDeadline ?? 1) <= 0 && <span className="block text-[0.74rem]" style={{ color: "var(--warning)" }}>진행 중 수량이 재고의 '입고 예정'에 들어갔는지 확인</span>}
+    </>
+  );
   return (
     <DataCard title="생산 착수 일정 (OEM 생산기간 반영)" className="mb-6" action={<Link href="/ax/data?tab=products" className="btn-secondary !min-h-[40px] text-[0.86rem]">생산기간 입력</Link>}>
       <p className="mb-3 text-[0.86rem] text-ink-soft">가용 재고(현재 + 입고 예정)가 생산기간 + 안전 {PLANNING.safetyDays}일보다 먼저 바닥나기 전에 생산을 시작해야 품절 없이 입고됩니다. 마감이 가까운 순서입니다.</p>
-      {rows.length === 0 ? <EmptyState title="생산기간이 입력된 상품이 없습니다" desc="상품별 OEM 생산기간(발주→입고 일수)을 입력하면 착수 마감일과 추천 생산량을 계산합니다." /> : (
+      {rows.length === 0 ? <EmptyState title="생산기간이 입력된 상품이 없습니다" desc="상품별 OEM 생산기간(발주→입고 일수)을 입력하면 착수 마감일과 추천 생산량을 계산합니다." /> : narrow ? (
+        <ul className="space-y-2.5" data-testid="production-schedule">
+          {rows.map(({ p, mm, active }) => (
+            <li key={p.id} className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }} data-schedule={p.sku}>
+              <div className="flex items-start justify-between gap-2">
+                <span className="min-w-0"><span className="block font-semibold leading-snug">{p.name}</span><span className="block text-[0.76rem] text-ink-soft">{p.sku}</span></span>
+                <DeadlineBadge mm={mm} />
+              </div>
+              <dl className="tabular mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-[0.88rem]">
+                <div><dt className="text-[0.76rem] text-ink-soft">추천 생산량</dt><dd className="font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}</dd></div>
+                <div><dt className="text-[0.76rem] text-ink-soft">가용 재고</dt><dd>{mm.availableStock.toLocaleString()}개 · 약 {Math.round(mm.availableStock / mm.forecastDaily)}일분</dd></div>
+                <div><dt className="text-[0.76rem] text-ink-soft">생산기간 · 최소수량</dt><dd>{mm.leadTimeDays}일{p.moq ? ` · ${p.moq.toLocaleString()}개` : ""}</dd></div>
+                <div><dt className="text-[0.76rem] text-ink-soft">예측 일판매</dt><dd>{mm.forecastDaily.toFixed(1)}개</dd></div>
+              </dl>
+              <div className="mt-2 text-[0.84rem]"><span className="text-[0.76rem] text-ink-soft">진행 중 생산 </span>{activeText(active, mm)}</div>
+            </li>
+          ))}
+        </ul>
+      ) : (
         <div tabIndex={0} className="table-scroll">
           <table className="text-[0.92rem]" data-testid="production-schedule">
             <thead>
@@ -237,10 +316,7 @@ function ProductionSchedule() {
                   <td className="tabular py-3 pr-4">{mm.availableStock.toLocaleString()}개<div className="text-[0.72rem] text-ink-soft">약 {Math.round(mm.availableStock / mm.forecastDaily)}일분</div></td>
                   <td className="tabular py-3 pr-4">{mm.forecastDaily.toFixed(1)}개</td>
                   <td className="tabular py-3 pr-4 font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}</td>
-                  <td className="py-3 text-[0.84rem]">
-                    {active.length ? active.map((x) => `${x.status} ${x.quantity.toLocaleString()}개`).join(", ") : <span className="text-ink-soft">없음</span>}
-                    {active.some((x) => x.status !== "계획") && (mm.daysToDeadline ?? 1) <= 0 && <span className="block text-[0.74rem]" style={{ color: "var(--warning)" }}>진행 중 수량이 재고의 '입고 예정'에 들어갔는지 확인</span>}
-                  </td>
+                  <td className="py-3 text-[0.84rem]">{activeText(active, mm)}</td>
                 </tr>
               ))}
             </tbody>
@@ -257,11 +333,31 @@ function ProductionTab() {
   const m = useModel();
   const plans = m.snapshot.production;
   const tone = (s: string) => (s === "생산중" ? "info" : s === "입고예정" ? "warning" : s === "완료" ? "success" : "neutral") as "info";
+  const narrow = useNarrow();
   return (
     <>
     <ProductionSchedule />
     <DataCard title="OEM 생산 현황" action={<Link href="/ax/data?tab=production" className="btn-secondary !min-h-[40px] text-[0.86rem]">생산 계획 입력</Link>}>
-      {plans.length === 0 ? <EmptyState title="생산 계획이 없습니다" /> : (
+      {plans.length === 0 ? <EmptyState title="생산 계획이 없습니다" /> : narrow ? (
+        <ul className="space-y-2.5" data-testid="production-cards">
+          {plans.map((pr) => {
+            const p = m.productById.get(pr.productId);
+            const mm = p ? m.metrics.get(p.id) : undefined;
+            return (
+              <li key={pr.id} className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
+                <div className="flex items-start justify-between gap-2"><span className="font-semibold leading-snug">{p?.name ?? "-"}</span><StatusBadge tone={tone(pr.status)}>{pr.status}</StatusBadge></div>
+                <div className="mt-0.5 text-[0.8rem] text-ink-soft">{pr.partner}</div>
+                <dl className="tabular mt-2 grid grid-cols-3 gap-x-2 text-[0.86rem]">
+                  <div><dt className="text-[0.74rem] text-ink-soft">수량</dt><dd>{pr.quantity.toLocaleString()}개</dd></div>
+                  <div><dt className="text-[0.74rem] text-ink-soft">최근 생산</dt><dd>{formatDateKR(pr.lastProducedAt)}</dd></div>
+                  <div><dt className="text-[0.74rem] text-ink-soft">입고 예정</dt><dd>{formatDateKR(pr.expectedArrival)}</dd></div>
+                </dl>
+                {mm && <div className="mt-2"><StatusBadge tone={stockStatusTone(mm.stockStatus)}>재고 {mm.stockStatus}</StatusBadge></div>}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
         <div tabIndex={0} className="table-scroll">
           <table className="text-[0.93rem]">
             <thead>

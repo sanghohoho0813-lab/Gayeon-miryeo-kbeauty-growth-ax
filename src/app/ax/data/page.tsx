@@ -45,7 +45,7 @@ function Inner() {
   return (
     <div>
       <PageHeader title="데이터 관리" description="실제 데이터 1~2건부터 직접 넣어볼 수 있습니다. 재고는 상품·재고 화면에서 바로 수정합니다." actions={<DataFreshness />} />
-      {!isLive && <p className="mb-4 rounded-xl p-3 text-[0.9rem]" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>DEMO 모드: 입력값은 이 브라우저의 Demo 저장소에만 저장됩니다. 실제 저장은 Live 모드(Supabase)에서 이뤄집니다.</p>}
+      {!isLive && <p className="mb-4 rounded-xl px-3 py-2 text-[0.88rem]" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}><b className="font-semibold">DEMO</b> — 입력값은 이 브라우저에만 저장됩니다 (실제 저장은 Live 전환 후).</p>}
       {!isLive && tab !== "export" && <BackupReminder />}
       <Tabs tabs={TABS} value={tab} onChange={(t) => router.replace(`/ax/data?tab=${t}`, { scroll: false })} />
       {tab === "sales" && <SalesTab />}
