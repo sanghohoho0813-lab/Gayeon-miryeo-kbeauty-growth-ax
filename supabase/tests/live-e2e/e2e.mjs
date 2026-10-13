@@ -478,6 +478,13 @@ if (PHASE === "B") {
   const toneRank = liveNotices.map(([, t]) => ({ danger: 0, warning: 1, success: 2, info: 3 })[t]);
   ok("Live 알림 센터: 열림 · 개수 일치 · 위험순 · 화면 연결", bellName.startsWith(`알림 ${liveNotices.length}건`) && toneRank.every((v, i) => i === 0 || toneRank[i - 1] <= v) && liveNotices.every(([, , h]) => h.startsWith("/ax")), `${bellName} / ${liveNotices.map((x) => x[0]).join(",")}`);
   await owner.keyboard.press("Escape");
+  // PASS 14 — 대표 보고 모드: Live 데이터로 생성, 모든 장 LIVE 표시 · DEMO 경고 없음
+  await owner.goto(`${APP}/ax/present`, { waitUntil: "networkidle" });
+  await owner.getByTestId("present-page").waitFor({ timeout: 10000 });
+  const deckTxt = await owner.getByTestId("present").innerText();
+  ok("Live 보고 모드: 9장 · LIVE 실데이터 · DEMO 경고 없음", (await owner.getByTestId("present-page").innerText()) === "1 / 9" && deckTxt.includes("LIVE 실데이터") && !deckTxt.includes("DEMO —") && !deckTxt.includes("DEMO 데이터"), deckTxt.slice(0, 80));
+  await owner.keyboard.press("Escape");
+  await owner.waitForURL((u) => u.pathname === "/ax", { timeout: 10000 }).catch(() => undefined);
   const kstMonth = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(new Date()).slice(0, 7);
   await owner.goto(`${APP}/ax/monthly`, { waitUntil: "networkidle" });
   await owner.fill("#target-input", "5,000,000");

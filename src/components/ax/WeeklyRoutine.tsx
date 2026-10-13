@@ -4,11 +4,12 @@ import Link from "next/link";
 import { CheckCircle2, CircleAlert } from "lucide-react";
 import { useModel } from "@/components/providers/DataProvider";
 import { buildWeeklyRoutine, routineProgress } from "@/lib/weekly-routine";
+import { isLive } from "@/lib/config";
 
 /* 주간 운영 점검 목록 — 시작 가이드·주간 리포트(인쇄 포함) 공통. print=true면 링크 버튼을 숨긴다. */
 export function WeeklyRoutineList({ print = false }: { print?: boolean }) {
   const m = useModel();
-  const items = buildWeeklyRoutine(m.snapshot, m.today);
+  const items = buildWeeklyRoutine(m.snapshot, m.today, { allowPractice: !isLive });
   const p = routineProgress(items);
   return (
     <div data-testid="weekly-routine" data-done={p.done} data-total={p.total}>

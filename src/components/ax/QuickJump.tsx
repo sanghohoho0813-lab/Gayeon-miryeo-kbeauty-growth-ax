@@ -18,6 +18,7 @@ type Group = "화면" | "상품" | "Action";
 interface Item { id: string; group: Group; label: string; hint?: string; href: string; keys: string; requires?: Permission }
 
 const SUB_PAGES: Omit<Item, "id" | "group">[] = [
+  { label: "대표 보고 모드 (슬라이드)", hint: "대시보드", href: "/ax/present", keys: "보고 발표 슬라이드 프레젠테이션 회의 경영 present" },
   { label: "재고 현황", hint: "상품·재고·생산", href: "/ax/products?tab=inventory", keys: "재고 품절 소진 안전재고 입고예정" },
   { label: "OEM 생산 · 생산 착수 일정", hint: "상품·재고·생산", href: "/ax/products?tab=production", keys: "생산 착수 마감 리드타임 생산기간 moq oem 발주" },
   { label: "B2B 거래처", hint: "채널·B2B·수출", href: "/ax/channels?tab=b2b", keys: "b2b 도매 납품 거래처", requires: "view_commercial" },
@@ -100,6 +101,7 @@ export function QuickJump() {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
       const typing = !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
+      if (window.location.pathname.startsWith("/ax/present")) return; // 보고 모드는 자체 키(←/→·숫자)를 쓴다
       if ((e.key === "k" || e.key === "K") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); show(); }
       else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); show(); }
     };

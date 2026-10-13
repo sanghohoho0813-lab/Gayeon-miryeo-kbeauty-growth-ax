@@ -10,6 +10,7 @@ import { ExportButton } from "./ExportButton";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { formatKRW, formatPrice } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
+import { useNarrow } from "@/lib/use-narrow";
 import { outstanding, overdueDays, SETTLEMENT_KIND_LABEL, SETTLEMENT_STATUS_LABEL, statusFor, summarizeReceivables } from "@/lib/settlements";
 import type { Settlement, SettlementKind } from "@/lib/types";
 
@@ -22,6 +23,7 @@ export function Settlements() {
   const [filter, setFilter] = useState<Filter>("open");
   const [edit, setEdit] = useState<Settlement | null>(null);
   const [pay, setPay] = useState<Settlement | null>(null);
+  const narrow = useNarrow();
   const list = m.snapshot.settlements;
   const sum = summarizeReceivables(list, m.today);
   const rows = [...list]
@@ -31,7 +33,7 @@ export function Settlements() {
 
   return (
     <div className="space-y-6">
-      <div className="stagger grid grid-cols-1 gap-4 @md:grid-cols-2 @4xl:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 @md:gap-4 @4xl:grid-cols-4 [&>*:nth-child(3)]:col-span-2 @md:[&>*:nth-child(3)]:col-span-1 [&>*:last-child]:col-span-2 @md:[&>*:last-child]:col-span-1">
         <KpiCard label="받을 돈 (미수금)" value={sum.outstanding} format={formatKRW} sub={`${sum.openCount}건`} icon={<Wallet size={20} />} />
         <KpiCard label="연체 금액" value={sum.overdueAmount} format={formatKRW} sub={sum.overdueCount ? `${sum.overdueCount}건 · 최장 ${sum.maxOverdueDays}일` : "연체 없음"} iconTone="var(--danger)" />
         <KpiCard label="30일 내 입금 예정" value={sum.dueIn30} format={formatKRW} sub="기한 도래 예정 잔액" />
@@ -56,7 +58,30 @@ export function Settlements() {
             <button key={f} role="radio" aria-checked={filter === f} onClick={() => setFilter(f)} className="pressable min-h-[38px] rounded-xl border px-3 text-[0.86rem] font-semibold" style={filter === f ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : { borderColor: "var(--border)", color: "var(--text-secondary)" }}>{l}</button>
           ))}
         </div>
-        {rows.length === 0 ? <EmptyState title="해당하는 정산 내역이 없습니다" desc="B2B 납품·수출 선적·판매채널 월 정산처럼 받을 돈이 생기면 청구액과 입금 기한을 기록하세요." /> : (
+        {rows.length === 0 ? <EmptyState title="해당하는 정산 내역이 없습니다" desc="B2B 납품·수출 선적·판매채널 월 정산처럼 받을 돈이 생기면 청구액과 입금 기한을 기록하세요." /> : narrow ? (
+          <ul className="space-y-2.5" data-testid="settlement-cards">
+            {rows.map((s) => {
+              const od = overdueDays(s, m.today);
+              const o = outstanding(s);
+              const tone: Tone = s.status === "PAID" ? "success" : s.status === "CANCELLED" ? "neutral" : od > 0 ? "danger" : s.status === "PARTIAL" ? "warning" : "info";
+              return (
+                <li key={s.id} className="rounded-xl border p-3" style={{ borderColor: od > 0 ? "color-mix(in srgb, var(--danger) 35%, var(--border))" : "var(--border)" }} data-settlement-card={s.id}>
+                  <div className="flex items-start justify-between gap-2"><span className="font-semibold leading-snug">{s.counterparty}</span><StatusBadge tone={tone}>{od > 0 ? `연체 ${od}일` : SETTLEMENT_STATUS_LABEL[s.status]}</StatusBadge></div>
+                  <p className="mt-0.5 text-[0.8rem] text-ink-soft">{SETTLEMENT_KIND_LABEL[s.kind]}{s.description ? ` · ${s.description}` : ""} · 청구 {formatDateKR(s.issuedOn)}{s.paidAmount > 0 ? ` · 입금 ${formatKRW(s.paidAmount)}` : ""}</p>
+                  <dl className="tabular mt-2 grid grid-cols-3 gap-x-2 text-[0.86rem]">
+                    <div><dt className="text-[0.74rem] text-ink-soft">잔액</dt><dd className="font-bold">{formatKRW(o)}</dd></div>
+                    <div><dt className="text-[0.74rem] text-ink-soft">청구액</dt><dd>{formatKRW(s.amount)}</dd></div>
+                    <div><dt className="text-[0.74rem] text-ink-soft">입금 기한</dt><dd>{s.dueOn ? formatDateKR(s.dueOn) : "-"}</dd></div>
+                  </dl>
+                  <div className="mt-2.5 flex gap-2">
+                    {o > 0 && <button className="btn-secondary !min-h-[40px] flex-1 text-[0.86rem]" onClick={() => setPay(s)} aria-label={`${s.counterparty} 입금 기록`}>입금 기록</button>}
+                    <button className="btn-ghost !min-h-[40px] flex-1 text-[0.86rem]" onClick={() => setEdit(s)} aria-label={`${s.counterparty} 정산 수정`}>수정</button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
           <div tabIndex={0} className="table-scroll">
             <table className="text-[0.9rem]" data-testid="settlement-table">
               <thead>

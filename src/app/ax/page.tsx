@@ -18,11 +18,12 @@ import { buildWeeklyRoutine, routineProgress } from "@/lib/weekly-routine";
 import { change, marginRate, monthlySummary } from "@/lib/monthly";
 import { targetProgress } from "@/lib/targets";
 import { summarizeReceivables } from "@/lib/settlements";
-import { CalendarRange, Wallet } from "lucide-react";
+import { CalendarRange, Presentation, Wallet } from "lucide-react";
 import { useModel } from "@/components/providers/DataProvider";
 import { daysBetween, formatDateKR } from "@/lib/date";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
+import { isLive } from "@/lib/config";
 import { formatKRW, formatPct, matrixZone, OPEN_STATUSES, productInsight } from "@/lib/analytics";
 import type { GrowthAction } from "@/lib/types";
 
@@ -48,7 +49,7 @@ export default function DashboardPage() {
   /* 화면 순서 (PASS 12): 핵심 숫자 → 오늘 먼저 할 일 + 브리핑 → 분석(탭 하나) — 길이 절반, 판단에 필요한 것부터 */
   return (
     <div>
-      <PageHeader title="오늘의 Growth Dashboard" description="핵심 숫자와 오늘 먼저 할 일. 분석 기준: 최근 4주 vs 이전 4주." actions={<DataFreshness />} />
+      <PageHeader title="오늘의 Growth Dashboard" description="핵심 숫자와 오늘 먼저 할 일. 분석 기준: 최근 4주 vs 이전 4주." actions={<><Link href="/ax/present" className="btn-secondary !min-h-[40px] text-[0.86rem]" data-testid="open-present"><Presentation size={16} aria-hidden /> 보고 모드</Link><DataFreshness /></>} />
       {daysBetween(m.salesAsOf, m.today) >= 2 && (
         <p className="-mt-2 mb-4 text-[0.86rem] text-ink-soft" data-testid="sales-asof">
           판매가 {formatDateKR(m.salesAsOf)}까지 입력되어 있어 &lsquo;최근 4주&rsquo;는 그날까지로 계산합니다 (입력 전 {daysBetween(m.salesAsOf, m.today)}일을 판매 0으로 보지 않음). 재고·착수 마감은 오늘 기준입니다.
@@ -290,7 +291,7 @@ function StartGuideBanner() {
 /* 시작 가이드를 마친 뒤: 주간 운영 점검 요약 (모두 정상이면 숨김) */
 function RoutineBanner() {
   const m = useModel();
-  const r = routineProgress(buildWeeklyRoutine(m.snapshot, m.today));
+  const r = routineProgress(buildWeeklyRoutine(m.snapshot, m.today, { allowPractice: !isLive }));
   if (r.done >= r.total) return null;
   return (
     <Link href="/ax/start#routine" data-testid="routine-banner" className="ax-card ax-card-hover mt-4 flex items-center gap-3 p-3.5 @md:p-4">

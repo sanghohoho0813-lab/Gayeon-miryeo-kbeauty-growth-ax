@@ -39,6 +39,7 @@ UI (src/app, src/components)
 ```
 - Schema / RLS: `supabase/migrations/001~008` (005·007·008 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
 - 월별 실적 `/ax/monthly`, 정산·미수금 `/ax/channels?tab=settlements`, 대표 브리핑 `src/lib/briefing.ts`, 내보내기 `/ax/data?tab=export`
+- 고도화·UI/UX (PASS 14): 대표 보고 모드 `src/app/ax/present/page.tsx` + `src/lib/present.ts`(슬라이드 목록·권한·주간 매출), 순위 막대 `src/components/ax/RankBars.tsx`(채널 비교), 실증·Evidence 12주 타임라인·한글 표기(`PROOF_TYPE_LABEL` in `src/lib/evidence.ts`), 설정 바로가기, 주간 점검 품질 항목 `src/lib/weekly-routine.ts`
 - UI/UX·고도화 (PASS 13): 알림 센터 `src/lib/notifications.ts`(계산형 — 해결하면 사라짐) + `src/components/ax/NotificationCenter.tsx`(헤더 종 아이콘), 모바일 표→카드 `src/lib/use-narrow.ts`(상품·재고·생산 화면), 월 이동 줄(`/ax/monthly` 모바일), 탭 가장자리 흐림·자동 스크롤 `Tabs.tsx`
 - UI/UX (PASS 12): 대시보드 `src/app/ax/page.tsx`(핵심 숫자 → 오늘 할 일+브리핑 → 분석 탭), 빠른 이동 `src/components/ax/QuickJump.tsx`(Ctrl/⌘+K), 컴팩트 행 `ActionRow`·stat tile `KpiCard`(`src/components/ax/Cards.tsx`), 접근성 탭 `Tabs.tsx`, 차트 애니메이션 규칙 `useChartMotion`(`TrendChart.tsx`)
 - 샘플 자료 연습 모드(Demo 전용) `src/lib/practice-kit.ts`(가상 파일 생성), `src/components/ax/PracticeKit.tsx` → `/ax/start` · '최근 4주' 기준일 = 마지막 판매일 `src/lib/model.ts`(`salesAsOf`, D-053) · 3단계 보고서 초안 `STAGE3_DELIVERY_REPORT.md` (PASS 11)

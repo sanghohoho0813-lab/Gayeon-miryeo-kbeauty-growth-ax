@@ -27,17 +27,18 @@ export function ThemePickerPanel({ onClose, bare = false }: { onClose?: () => vo
               role="radio"
               aria-checked={active}
               onClick={() => setTheme(t.id)}
-              className="pressable flex items-center gap-3 rounded-xl border-2 p-2.5 text-left transition-colors hover:bg-surface-muted"
+              className="pressable flex flex-col gap-2 rounded-xl border-2 p-2.5 text-left transition-colors hover:bg-surface-muted"
               style={{ borderColor: active ? "var(--primary)" : "var(--border)" }}
             >
-              <span className="flex overflow-hidden rounded-md border" style={{ borderColor: "var(--border)" }} aria-hidden>
-                {t.colors.map((c) => <span key={c} className="h-6 w-3.5" style={{ background: c }} />)}
+              {/* 이름이 3줄로 끊기지 않게: 번호·이름 한 줄 + 아래에 색 띠 (PASS 14) */}
+              <span className="flex w-full items-center gap-2">
+                <span className="tabular text-[0.72rem] font-semibold text-ink-soft">{t.no}</span>
+                <span className="min-w-0 flex-1 truncate text-[0.88rem] font-semibold leading-tight">{t.name}</span>
+                {active && <Check size={16} className="shrink-0" style={{ color: "var(--primary)" }} aria-label="선택됨" />}
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[0.72rem] font-semibold text-ink-soft">{t.no}</span>
-                <span className="block text-[0.88rem] font-semibold leading-tight">{t.name}</span>
+              <span className="flex h-3 w-full overflow-hidden rounded-md border" style={{ borderColor: "var(--border)" }} aria-hidden>
+                {t.colors.map((c) => <span key={c} className="h-full flex-1" style={{ background: c }} />)}
               </span>
-              {active && <Check size={16} style={{ color: "var(--primary)" }} aria-label="선택됨" />}
             </button>
           );
         })}

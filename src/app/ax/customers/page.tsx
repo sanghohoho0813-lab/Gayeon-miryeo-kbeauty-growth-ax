@@ -15,10 +15,12 @@ import { useModel } from "@/components/providers/DataProvider";
 import { EVENT_LABEL, formatPct, INTEREST_GROWTH_MIN, INTEREST_THRESHOLD } from "@/lib/analytics";
 import { relativeKR } from "@/lib/date";
 import type { GrowthAction } from "@/lib/types";
+import { useNarrow } from "@/lib/use-narrow";
 
 export default function CustomersPage() {
   const m = useModel();
   const [open, setOpen] = useState<GrowthAction | null>(null);
+  const narrow = useNarrow();
   const c = m.customer;
   const interestActions = m.actions.filter((a) => a.category === "고객 관심" || a.category === "재구매");
   const maxScore = Math.max(1, ...c.productInterest.map((p) => p.recentScore));
@@ -27,15 +29,15 @@ export default function CustomersPage() {
   return (
     <div>
       <PageHeader
-        title="고객 인사이트 — Customer Event Bridge"
-        description="MIRYEO AI Beauty에서 고객이 한 행동(익명 세션)이 이곳에 쌓이고, 관심이 오르면 Growth Action으로 이어집니다."
+        title="고객 인사이트"
+        description="MIRYEO AI Beauty에서 고객이 한 행동(익명 세션)이 이곳에 쌓이고, 관심이 오르면 Growth Action으로 이어집니다 (Customer Event Bridge)."
         actions={<><AiReadyButton spec={AI_SPECS.customer} /><DataFreshness /></>}
       />
 
-      <div className="stagger grid grid-cols-1 gap-4 @md:grid-cols-2 @4xl:grid-cols-4" data-tour="customer-bridge">
+      <div className="stagger grid grid-cols-2 gap-3 @md:gap-4 @4xl:grid-cols-4" data-tour="customer-bridge">
         <KpiCard label="Finder 시작 (7일)" value={c.recent.finder_start} format={(v) => `${Math.round(v)}건`} sub={`이전 7일 ${c.prev.finder_start}`} />
         <KpiCard label="Finder 완료 (7일)" value={c.recent.finder_complete} format={(v) => `${Math.round(v)}건`} sub={`이전 7일 ${c.prev.finder_complete}`} />
-        <KpiCard label="Passport 저장 (7일)" value={c.recent.passport_save} format={(v) => `${Math.round(v)}건`} sub="PRIMARY CONVERSION" />
+        <KpiCard label="Passport 저장 (7일)" value={c.recent.passport_save} format={(v) => `${Math.round(v)}건`} sub="핵심 전환 행동" />
         <KpiCard label="Finder → Passport 전환" value={(c.conversionRecent ?? 0) * 100} format={(v) => (c.conversionRecent == null ? "-" : `${v.toFixed(1)}%`)} sub={`이전 7일 ${formatPct(c.conversionPrev, false)} · Baseline 미확정`} href="/ax/reports" />
       </div>
 
@@ -67,7 +69,28 @@ export default function CustomersPage() {
         <p className="mb-3 text-[0.86rem] text-ink-soft">
           점수 = 조회×0.2 + 찜×2 + 추천노출×1 + Passport 저장×3 + 구매채널 이동×2 (RULE). {INTEREST_THRESHOLD}점 이상이면서 +{Math.round(INTEREST_GROWTH_MIN * 100)}% 이상이면 &lsquo;고객 관심 상승&rsquo; Action 생성.
         </p>
-        {c.productInterest.length === 0 ? <EmptyState title="관심 데이터가 없습니다" desc="고객 화면에서 제품 조회·찜·Finder가 발생하면 계산됩니다." /> : (
+        {c.productInterest.length === 0 ? <EmptyState title="관심 데이터가 없습니다" desc="고객 화면에서 제품 조회·찜·Finder가 발생하면 계산됩니다." /> : narrow ? (
+          <ul className="space-y-2" data-testid="interest-cards">
+            {c.productInterest.map((pi) => {
+              const p = m.productById.get(pi.productId);
+              const act = m.actions.find((a) => a.ruleKey === `interest:${pi.productId}` && a.status !== "DISMISSED");
+              const over = pi.recentScore >= INTEREST_THRESHOLD;
+              return (
+                <li key={pi.productId} className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }} data-interest-card={pi.productId}>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="min-w-0 font-semibold leading-snug">{p?.name ?? pi.productId}</span>
+                    <b className="tabular shrink-0 text-[0.9rem]" style={{ color: (pi.growth ?? 1) >= 0 ? "var(--success)" : "var(--danger)" }}>{pi.growth == null ? "신규" : formatPct(pi.growth)}</b>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2"><span className="tabular w-9 shrink-0 font-bold">{pi.recentScore}</span><MiniBar ratio={pi.recentScore / maxScore} color={over ? "var(--chart-3)" : "var(--chart-5)"} /></div>
+                  <div className="mt-1.5 flex items-center justify-between gap-2 text-[0.8rem] text-ink-soft">
+                    <span className="tabular">이전 {pi.prevScore} · Passport {pi.recentCounts.passport_save ?? 0} · 찜 {pi.recentCounts.wishlist_add ?? 0} · 이동 {pi.recentCounts.outbound_purchase_click ?? 0}</span>
+                    {act && <button className="badge pressable shrink-0" style={{ background: "var(--primary-soft)", color: "var(--primary)" }} onClick={() => setOpen(act)}>{act.status === "DONE" ? "완료됨" : "처리하기"}</button>}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
           <div tabIndex={0} className="table-scroll">
             <table className="text-[0.93rem]">
               <thead>

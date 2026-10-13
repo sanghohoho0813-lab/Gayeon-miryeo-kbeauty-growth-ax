@@ -76,12 +76,17 @@ export function KpiCard({
 }
 
 /* ---------- Section Card ---------- */
-export function DataCard({ title, action, children, className = "", tourId, id }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; tourId?: string; id?: string }) {
+export function DataCard({ title, subtitle, action, children, className = "", tourId, id }: { title?: ReactNode; subtitle?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; tourId?: string; id?: string }) {
   return (
     <section id={id} data-tour={tourId} className={`ax-card min-w-0 p-4 @md:p-5 @3xl:p-6 ${className}`}>
       {(title || action) && (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 @md:mb-4 @md:gap-3">
-          {title && <h2 className="text-[1.08rem] font-bold leading-snug @md:text-[1.15rem] @3xl:text-[1.25rem]">{title}</h2>}
+          {title && (subtitle ? (
+            <div className="min-w-0">
+              <h2 className="text-[1.08rem] font-bold leading-snug @md:text-[1.15rem] @3xl:text-[1.25rem]">{title}</h2>
+              <p className="mt-0.5 text-[0.84rem] text-ink-soft">{subtitle}</p>
+            </div>
+          ) : <h2 className="text-[1.08rem] font-bold leading-snug @md:text-[1.15rem] @3xl:text-[1.25rem]">{title}</h2>)}
           {action}
         </div>
       )}

@@ -25,6 +25,15 @@ const FONT_OPTIONS: { id: FontScale; label: string; desc: string }[] = [
   { id: "default", label: "기본", desc: "19px" },
   { id: "large", label: "크게", desc: "21px" },
 ];
+/* 긴 설정 화면 — 위에 섹션 바로가기 (PASS 14) */
+const SECTIONS = [
+  { id: "display", label: "화면" },
+  { id: "roles", label: "역할·권한" },
+  { id: "data", label: "데이터" },
+  { id: "pilot", label: "실증 운영" },
+  { id: "assets", label: "기술·사업화 자산" },
+  { id: "members", label: "구성원" },
+] as const;
 const TECH_STATUS: TechAssetStatus[] = ["미확인", "준비중", "검토중", "출원예정", "출원완료", "인증완료", "해당없음"];
 
 export default function SettingsPage() {
@@ -41,9 +50,14 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-[1100px]">
       <PageHeader title="설정" description="화면·역할·데이터·실증 운영·기술자산을 관리합니다." />
+      <nav aria-label="설정 바로가기" className="-mt-1 mb-5 flex flex-wrap gap-1.5" data-testid="settings-nav">
+        {SECTIONS.map((x) => (
+          <a key={x.id} href={`#${x.id}`} className="pressable inline-flex min-h-[38px] items-center rounded-full border bg-surface px-3.5 text-[0.86rem] font-semibold text-ink-soft hover:text-ink" style={{ borderColor: "var(--border)" }}>{x.label}</a>
+        ))}
+      </nav>
 
       <div className="grid grid-cols-1 gap-6 @4xl:grid-cols-2">
-        <DataCard title="화면 — 테마 (Canonical 7)" tourId="settings-display">
+        <DataCard title="화면 — 테마 (7가지)" tourId="settings-display" id="display">
           <ThemePickerPanel bare />
           <p className="mt-3 text-[0.82rem] text-ink-soft">본문·표·폼은 테마와 무관하게 중립색으로 유지됩니다. 선택한 테마는 고객 화면 브랜드 색과 Mobile 미리보기에도 함께 반영됩니다.</p>
         </DataCard>
@@ -75,13 +89,13 @@ export default function SettingsPage() {
           </DataCard>
         </div>
 
-        <DataCard title="역할 · 권한" className="@4xl:col-span-2">
+        <DataCard title="역할 · 권한" className="@4xl:col-span-2" id="roles">
           <div className="grid grid-cols-1 gap-5 @3xl:grid-cols-2">
             <div>
               <div className="font-semibold">현재: {ROLE_LABEL[role]} ({role}){isLive ? ` · ${userEmail}` : " · Demo"}</div>
               <p className="mt-1 text-[0.86rem] text-ink-soft">{isLive ? "역할은 organization_members에서 OWNER가 관리합니다." : "Demo에서는 역할을 바꿔 메뉴·민감정보·버튼 차이를 확인할 수 있습니다."}</p>
               <div className="mt-3"><RoleMenu inline /></div>
-              <p className="mt-3 text-[0.82rem] text-ink-soft">AX OWNER(실증 책임자)는 로그인 역할과 별개입니다: <b>{m.snapshot.org.axOwnerName || "REQUIRED / UNASSIGNED"}</b></p>
+              <p className="mt-3 text-[0.82rem] text-ink-soft">AX OWNER(실증 책임자)는 로그인 역할과 별개입니다: <b>{m.snapshot.org.axOwnerName || "미지정 (REQUIRED / UNASSIGNED)"}</b></p>
             </div>
             <div tabIndex={0} className="table-scroll">
               <table className="!min-w-[420px] text-[0.86rem]">
@@ -99,11 +113,11 @@ export default function SettingsPage() {
           </div>
         </DataCard>
 
-        <DataCard title="데이터">
+        <DataCard title="데이터" id="data">
           <dl className="space-y-2 text-[0.92rem]">
             {[
-              ["Data Mode", <StatusBadge key="m" tone={isLive ? "success" : "warning"}>{DATA_MODE.toUpperCase()}</StatusBadge>],
-              ["Data Source", isLive ? (liveConfigured ? "Supabase (RLS 적용)" : "설정 누락") : "브라우저 Demo 저장소 (시연용)"],
+              ["데이터 모드", <StatusBadge key="m" tone={isLive ? "success" : "warning"}>{DATA_MODE.toUpperCase()}</StatusBadge>],
+              ["데이터 출처", isLive ? (liveConfigured ? "Supabase (RLS 적용)" : "설정 누락") : "브라우저 Demo 저장소 (시연용)"],
               ["불러온 시각", formatDateTimeKR(m.snapshot.loadedAt)],
               ["상품 / 판매 행", `${m.snapshot.products.length}개 / ${m.snapshot.sales.length}행 (직접 입력 ${m.snapshot.sales.filter((s) => s.source !== "seed").length})`],
               ["고객 이벤트", `${m.customer.totalCount.toLocaleString()}건 (실제 발생 ${m.customer.liveCount})`],
@@ -147,7 +161,7 @@ export default function SettingsPage() {
           </div>
         </DataCard>
 
-        <DataCard title="기술·사업화 자산" className="@4xl:col-span-2">
+        <DataCard title="기술·사업화 자산" className="@4xl:col-span-2" id="assets">
           <p className="mb-3 text-[0.88rem] text-ink-soft">실제 확인된 상태와 번호만 입력합니다. 확인 전에는 &lsquo;미확인&rsquo;으로 두며, 번호를 임의로 만들지 않습니다.</p>
           <ul className="grid gap-3 @3xl:grid-cols-2">
             {m.snapshot.techAssets.map((t) => <TechAssetRow key={t.id} t={t} editable={owner} onSave={async (next) => {

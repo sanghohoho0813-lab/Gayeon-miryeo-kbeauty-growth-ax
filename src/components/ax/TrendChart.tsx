@@ -51,39 +51,6 @@ export function WeeklyTrend({ weekly, height = 200 }: { weekly: number[]; height
   );
 }
 
-/** 채널 비교 가로 Bar */
-export function ChannelBars({
-  data,
-  height = 240,
-  unit = "억",
-}: {
-  data: { name: string; value: number }[];
-  height?: number;
-  unit?: string;
-}) {
-  const motion = useChartMotion();
-  return (
-    <div style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 0, left: 8 }}>
-          <CartesianGrid stroke="var(--border)" horizontal={false} />
-          <XAxis type="number" tick={{ fontSize: "0.75rem", fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} />
-          <YAxis
-            type="category"
-            dataKey="name"
-            width={118}
-            tick={{ fontSize: "0.82rem", fill: "var(--text-primary)" }}
-            tickLine={false}
-            axisLine={false}
-          />
-          <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${v}${unit}`, "매출"]} />
-          <Bar dataKey="value" fill="var(--chart-2)" radius={[0, 4, 4, 0]} barSize={20} isAnimationActive={motion} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
 /** 고객 이벤트 일별 추이 (14일) */
 export function DailyEvents({ data, height = 240 }: { data: { date: string; finder: number; passport: number; wishlist: number; outbound: number }[]; height?: number }) {
   const motion = useChartMotion();

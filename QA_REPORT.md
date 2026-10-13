@@ -1,4 +1,4 @@
-# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 13)
+# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 14)
 
 DATE: 2026-10-13 · Next.js 16.4.0 · MODE TESTED: DEMO + LIVE(로컬 Supabase 호환 스택) · BROWSER: Chromium (Playwright)
 
@@ -7,8 +7,9 @@ DATE: 2026-10-13 · Next.js 16.4.0 · MODE TESTED: DEMO + LIVE(로컬 Supabase �
 |---|---|
 | `npm run typecheck` (tsc --noEmit) | PASS |
 | `npm run build` (Next 16, Turbopack) | PASS |
-| `npm audit` | 0 vulnerabilities (2026-10-13) |
-| **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 91/91** (A 9 + B 82 — PASS 13: 알림 센터가 Live 데이터에서 계산·개수 일치·위험순·화면 연결. PASS 11: 상품·채널 0개인 첫날 판매 파일 가져오기 표시, Live에 샘플 연습 없음, 상품 파일 재고 열 → inventory(새 상품 UUID 연결·빈 칸은 재고 미생성), 샘플 자료 혼입 시 품질 점검 오류 포함) |
+| `npm audit` | 0 vulnerabilities (2026-10-14) |
+| **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 92/92** (A 9 + B 83 — PASS 14: 보고 모드가 Live 데이터로 9장 생성·LIVE 표시·DEMO 경고 없음. PASS 13: 알림 센터가 Live 데이터에서 계산·개수 일치·위험순·화면 연결. PASS 11: 상품·채널 0개인 첫날 판매 파일 가져오기 표시, Live에 샘플 연습 없음, 상품 파일 재고 열 → inventory(새 상품 UUID 연결·빈 칸은 재고 미생성), 샘플 자료 혼입 시 품질 점검 오류 포함) |
+| **PASS 14 고도화·UI/UX** `qa-pass14` (채널 순위 막대 정렬·이름 겹침 없음·이전 4주 선·스크린리더 증감·표도 매출순, 모바일 채널·B2B·수출·정산 카드·KPI 2열·정산 카드 입금 기록·가로 넘침 0, 고객 제목·관심 카드 이름 잘림 없음, 실증 내부 코드 노출 없음·12주 타임라인(시작 전·Week 2 단계 상태)·Money KPI 한글+REQUIRED 표기 유지·Before/After 접기·Proof 한글·결과 확정, 주간 리포트 Proof 한글·보고 모드 링크, 설정 바로가기 6개·헤더에 가리지 않는 이동·테마 이름 1줄, **보고 모드** 열기·전체 덮기·표지·키보드 →/숫자/End/Home·점 목록·주소 ?s·대시보드와 같은 4주 매출·주간 4주 합 = 4주 매출·'/' 비활성·axe 0·인쇄 9쪽(앱 숨김)·Esc 복귀·직원 6장·빠른 이동·모바일 폭·버튼, 주간 점검 7항목·품질 오류 발생/연결, 빈 데이터 안내) | PASS 57/57 (2회) |
 | **PASS 13 UI/UX·알림 센터** `qa-pass13` (모바일 390: 상품·재고·생산 착수·OEM 현황 표→카드 개수·내용·직원 마진 숨김·카드→상세·재고 수정·상태 필터·가로 넘침 0, 월별 '‹ 월 ›' 높이·이전/다음·처음 달 비활성, 데이터 관리 탭 가장자리 흐림·뒤쪽 탭 자동 스크롤·Home 키, 데이터 상태 1줄, 알림 센터 개수·이름·위험순·첫 알림 포커스·내용·axe 0·Esc 포커스 복귀·바깥 클릭·화면 이동, 역할(대표 확정 대기·관리자·직원 연체 없음), 품질 오류·입력 10일 지연 발생→수정 시 사라짐, 빈 상태, 모바일 패널 폭·제목 1줄, PC 표·12개월 버튼 유지) | PASS 55/55 (2회 연속) |
 | **PASS 12 UI/UX** `qa-pass12` (대시보드 순서·PC 나란히·길이, 브리핑 접기·위험 문장 우선·aria-expanded, 분석 탭 4개·키보드 ←→End·탭 기억·직원 권한, 빠른 이동 Ctrl+K·/·재고 이동·SKU→상품 상세·초성·결과 없음·Action→처리 화면·주소 정리·Esc 포커스 복귀·직원 권한·입력칸 '/' 무시·열린 상태 axe 0, Growth 상태 필터 개수·잘림 없음·오늘의 Mission 맨 위·중복 카드 없음·정산 필터, 사이드바 높이 860 메뉴 13개, 모바일 KPI 2열·첫 할 일 위치·길이·라벨 1줄, 고객 화면 줄바꿈, 차트 실선 격자·2px·움직임 줄이기 즉시 렌더) | PASS 46/46 (3회 연속) |
 | **PASS 11 샘플 자료 리허설** `qa-practice` (빈 Demo → 가상 파일 3개 내려받기·고정 난수 → 판매 728행·미등록 상품 6/채널 4 추정 일치 → 상품 정보·재고 → 품질 점검 천원 단위 발견·수정 → 시작 가이드 판정 → 생산 착수·과잉·생산 확대 판단과 근거 → 설정·목표 → 처리·Proof 확정 → 추가 1주(중복 자동 제외·연도 오타 정리) → 대시보드·주간 리포트·사업화 자료·인쇄 표시 → 백업 제외 → 끝내기 복원, 빈 상태·연습 상태 14화면 390px, 마지막 판매일 기준 분석) | PASS 51/51 |
@@ -19,12 +20,12 @@ DATE: 2026-10-13 · Next.js 16.4.0 · MODE TESTED: DEMO + LIVE(로컬 Supabase �
 | **PASS 7** 화면 설정 첫 화면 적용 `qa-boot` (JS 차단 상태 3종 + hydration 중 기본 테마 없음 + 설정 변경) | PASS 5/5 |
 | 보안 헤더·robots (Demo 로컬 + 환경변수 3조합 규칙 평가) | PASS |
 | **PASS 6 Demo** (공개 전 점검 Demo 판정·권한·API, 주간 운영 점검 시드 제외·실입력 정상·지연 탐지·주간 리포트·배너) | PASS 19/19 |
-| **접근성** axe-core WCAG 2.1 A/AA — 30개 화면(품질 점검·생산 착수 일정 추가) × 1440·390px, **차트가 다 그려진 뒤 검사** (reduced motion) | **PASS 0건** (수정 전 4종: 대비·버튼 이름·라벨 불일치·스크롤 영역 키보드) |
+| **접근성** axe-core WCAG 2.1 A/AA — 34개 화면(보고 모드 2·B2B·수출 추가) × 1440·390px, **차트가 다 그려진 뒤 검사** (reduced motion) | **PASS 0건** (수정 전 4종: 대비·버튼 이름·라벨 불일치·스크롤 영역 키보드) |
 | **AI 브리핑** (가짜 Anthropic 서버 :4010) — 요청 형식(모델·effort·fallbacks·beta 헤더)·시스템 규칙·개인정보 미포함·근거 없는 숫자 폐기·거절 처리·직원 차단·임의 입력 거부 | PASS 11/11 |
 | AI 꺼짐(기본 빌드) `POST /api/ai/briefing` | 503 AI_DISABLED (호출 없음) |
 | 2단계 보완 Demo Flow (회원·마이페이지·재구매·정산·월별·브리핑·내보내기·권한·탈퇴) | PASS 41/41 |
 | PASS 3 Demo Flow (상품 일괄 등록·권한) | PASS 11/11 |
-| Route QA: 34 route(`/ax/data?tab=quality` 추가) × 8 viewport (1920/1440/1280/1024/768/430/390/360) — 가로 overflow, console error, HTTP error | PASS (0건) |
+| Route QA: 35 route(`/ax/present` 추가) × 8 viewport (1920/1440/1280/1024/768/430/390/360) — 가로 overflow, console error, HTTP error | PASS (0건) |
 | Whole-App Acceptance Flow (PASS 1 회귀) | PASS 31/31 |
 | PASS 2 Flow (Baseline·주간 리포트·PDF·파일 가져오기·구성원·권한) | PASS 33/33 |
 | DB 검증 `npm run verify:db` (Postgres 16 + Supabase auth stub): migration 001~008, RLS·트리거·이벤트 한도·고객/정산·생산기간/월 목표 117개 시나리오, 005~008 재실행 | PASS 117/117 |
@@ -68,6 +69,14 @@ B: 재로그인 / 채널 저장 / 상품 저장(공개·구매링크) / 상품 �
 ### PASS 5에서 발견·수정한 결함
 - 접근성: 상태 색(성공·주의)·금색 글자 대비 부족 → 토큰 조정(D-035), 아이콘만 있는 역할 버튼 이름 없음 → 숨김 텍스트, 알림 벨 라벨이 보이는 숫자와 불일치 → 수정, 가로 스크롤 표 키보드 접근 불가 → `tabIndex=0` 15곳
 - 테스트 환경: 시험용 XLSX 날짜 고정값 → 실행일 기준으로 재생성. playwright-core는 설치된 Chromium 1194에 맞춰 1.56 고정(SETUP §E)
+
+### PASS 14에서 발견·수정한 결함 (화면 진단 + 보고 모드)
+- 채널 비교 차트: 축 라벨 폭이 고정이라 긴 채널명(오프라인 스토어·라이브 커머스)이 서로 겹쳐 읽을 수 없음(PC·모바일) → 순위 막대(D-060)
+- 실증·Evidence: 내부 규칙·코드(DO NOT INVENT, NOT STARTED, RESULT CONFIRMED, INVENTORY_RISK_RESPONSE)가 대표 화면에 그대로 노출 → 한글 우선(D-062)
+- 설정: 테마 이름이 3줄로 끊김('딥/네이비/블루') → 이름 한 줄 + 색 띠. 개발 중 '구성원' 바로가기에 같은 id가 두 번 생기는 결함을 테스트가 발견해 수정
+- 고객 인사이트·정산·수출·B2B·채널 상세 표가 390px에서 가로 스크롤(이름 단어마다 줄바꿈) → 모바일 카드
+- 보고 모드(개발 중 발견): 본문 영역(@container)이 position:fixed를 가두어 사이드바·헤더가 슬라이드 위에 보임 → body 바로 아래에 그림. 인쇄용 사본이 화면 슬라이드와 같은 표식을 가져 테스트가 모호 → 화면 슬라이드로 범위 한정, 인쇄 사본은 넘길 때 다시 그리지 않게
+- 고객 일별 행동 차트가 전체 화면 캡처에서 비어 보임 → 확인 결과 애니메이션 중 캡처(움직임 줄이기에서는 정상, D-057 규칙 적용됨). 결함 아님
 
 ### PASS 13에서 발견·수정한 결함 (UI/UX 진단 + 알림 센터)
 - 모바일 390: 상품·재고 표의 제품명이 단어마다 줄바꿈(Demo/앰플/B), 생산 착수·추천 생산량 칸이 화면 밖 → 카드로 바꿔 그림(D-058)

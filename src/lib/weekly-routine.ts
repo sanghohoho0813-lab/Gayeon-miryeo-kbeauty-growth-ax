@@ -3,13 +3,14 @@ import { realScope } from "./start-guide";
 import { summarizeReceivables } from "./settlements";
 import { daysBetween, formatDateKR } from "./date";
 import { formatPrice } from "./analytics";
+import { checkDataQuality } from "./data-quality";
 
 /* 주간 운영 점검 (12주 실증 Week 1~4 이후 매주) — AX OWNER가 주 1회 확인.
    "데이터 입력이 멈추면 가치가 0" (QA Five Devil Q2) → 입력 공백·처리 지연을 저장된 데이터로 자동 판정.
    입력 항목(판매·재고·미수금)은 Demo 시드를 세지 않는다. */
 
 export interface RoutineItem {
-  id: "sales" | "inventory" | "review" | "progress" | "proof" | "overdue";
+  id: "sales" | "inventory" | "quality" | "review" | "progress" | "proof" | "overdue";
   title: string;
   done: boolean;
   detail: string;
@@ -20,7 +21,8 @@ export interface RoutineItem {
 
 export const ROUTINE_RULES = { salesDays: 7, inventoryDays: 7, reviewDays: 3, progressDays: 14 } as const;
 
-export function buildWeeklyRoutine(s: DataSnapshot, today: string): RoutineItem[] {
+/** opts.allowPractice — Demo 샘플 연습 중에는 연습 자료를 오류로 세지 않는다 (data-quality와 같은 규칙) */
+export function buildWeeklyRoutine(s: DataSnapshot, today: string, opts: { allowPractice: boolean } = { allowPractice: false }): RoutineItem[] {
   const R = ROUTINE_RULES;
   const r = realScope(s);
   const lastSale = r.sales.reduce<string | null>((a, x) => (!a || x.saleDate > a ? x.saleDate : a), null);
@@ -33,6 +35,8 @@ export function buildWeeklyRoutine(s: DataSnapshot, today: string): RoutineItem[
   const stuck = s.actions.filter((a) => a.status === "IN_PROGRESS" && daysBetween(a.updatedAt, today) > R.progressDays);
   const drafts = r.proofs.filter((p) => p.status === "RECORDED");
   const rec = summarizeReceivables(r.settlements, today);
+  // R-22 (PASS 14): 실데이터를 올린 뒤 놓치기 쉬운 품질 오류 — 판매가 0원·원가 단위·미래 날짜 등 계산을 틀어지게 하는 것
+  const errs = checkDataQuality(s, today, opts).filter((x) => x.level === "오류");
 
   return [
     {
@@ -46,6 +50,12 @@ export function buildWeeklyRoutine(s: DataSnapshot, today: string): RoutineItem[
       done: r.products.length > 0 && staleInv.length === 0,
       detail: r.products.length === 0 ? "실제 상품 없음" : staleInv.length ? `${staleInv.length}개 상품 미갱신: ${staleInv.slice(0, 3).map((p) => p.name).join(", ")}${staleInv.length > 3 ? " 외" : ""}` : `${r.products.length}개 모두 최신`,
       href: "/ax/products?tab=inventory",
+    },
+    {
+      id: "quality", title: "데이터 품질 오류 정리", rule: "계산을 틀어지게 하는 오류 0건 (판매가 0원·원가 단위·미래 날짜 등)",
+      done: errs.length === 0,
+      detail: errs.length ? `${errs.length}종: ${errs.slice(0, 2).map((x) => x.title).join(", ")}${errs.length > 2 ? " 외" : ""}` : "오류 없음",
+      href: "/ax/data?tab=quality",
     },
     {
       id: "review", title: "새 Action 검토", rule: `생긴 지 ${R.reviewDays}일 넘은 미검토 Action 0건`,

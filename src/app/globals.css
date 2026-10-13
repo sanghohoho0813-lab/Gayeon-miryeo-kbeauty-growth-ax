@@ -173,6 +173,8 @@ body {
   box-shadow: var(--shadow-card);
   transition: transform 0.16s ease-out, box-shadow 0.16s ease-out, border-color 0.16s ease-out;
 }
+/* #앵커로 이동할 때 제목이 고정 헤더 뒤로 숨지 않게 */
+.ax-card[id] { scroll-margin-top: 5.5rem; }
 .ax-card-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
 .ax-card-hover:active { transform: translateY(0); }
 
@@ -252,4 +254,9 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   .ax-card { box-shadow: none !important; break-inside: avoid; }
   .print-break-avoid { break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* 대표 보고 모드: 슬라이드 1장 = 가로 A4 1쪽 */
+  body.present-open > *:not([data-present-root]) { display: none !important; }
+  .present-print-page { page: slides; break-after: page; break-inside: avoid; }
+  .present-print-page:last-child { break-after: auto; }
 }
+@page slides { size: A4 landscape; margin: 10mm; }

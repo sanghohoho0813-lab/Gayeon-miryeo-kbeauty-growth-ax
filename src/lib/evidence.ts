@@ -1,5 +1,5 @@
 import type { DataSnapshot } from "./data/source";
-import type { BaselineSource, KpiBaseline, KpiKey } from "./types";
+import type { BaselineSource, KpiBaseline, KpiKey, ProofEventType } from "./types";
 import { addDaysISO, todayISO } from "./date";
 
 /* Money KPI 3 측정 + Baseline 비교 — 실증·Evidence 화면과 주간 리포트가 같은 계산을 쓴다.
@@ -131,3 +131,15 @@ export function weekRange(anyDate: string): DateRange {
 export function inDateRange(iso: string, r: DateRange): boolean {
   return inRange(iso, r);
 }
+
+/** Proof 종류 화면 표시 이름 (코드는 저장값 그대로) */
+export const PROOF_TYPE_LABEL: Record<ProofEventType, string> = {
+  INVENTORY_RISK_RESPONSE: "재고 위험 대응",
+  PRODUCTION_ADJUSTMENT: "생산 조정",
+  CHANNEL_STRATEGY: "채널 전략",
+  CUSTOMER_INTEREST_RESPONSE: "고객 관심 대응",
+  B2B_FOLLOWUP: "B2B 후속",
+  REPURCHASE_OUTREACH: "재구매 안내",
+  SETTLEMENT_FOLLOWUP: "정산 회수",
+  MANUAL: "수동 기록",
+};

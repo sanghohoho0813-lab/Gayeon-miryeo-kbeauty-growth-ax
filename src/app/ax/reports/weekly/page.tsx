@@ -3,7 +3,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Printer } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Presentation, Printer } from "lucide-react";
 import { StatusBadge } from "@/components/ax/Cards";
 import { BriefingCard } from "@/components/ax/BriefingCard";
 import { WeeklyRoutineList } from "@/components/ax/WeeklyRoutine";
@@ -15,7 +15,7 @@ import { can } from "@/lib/permissions";
 import { isLive, DATA_SOURCE_LABEL } from "@/lib/config";
 import { addDaysISO, daysBetween, formatDateKR, formatDateTimeKR } from "@/lib/date";
 import { formatKRW } from "@/lib/analytics";
-import { formatChange, formatKpiValue, inDateRange, measureMoneyKpis, weekRange } from "@/lib/evidence";
+import { formatChange, formatKpiValue, inDateRange, measureMoneyKpis, PROOF_TYPE_LABEL, weekRange } from "@/lib/evidence";
 import type { KpiSnapshot } from "@/lib/types";
 
 /* 주간 Evidence 리포트 — 시스템에 기록된 사실만 집계. 인쇄(PDF 저장)용 레이아웃. */
@@ -66,6 +66,7 @@ function Inner() {
           <button className="btn-secondary !min-h-[40px] !px-3" aria-label="이전 주" onClick={() => go(addDaysISO(r.from, -7))}><ChevronLeft size={17} /></button>
           <span className="tabular min-w-[190px] text-center text-[0.92rem] font-semibold">{formatDateKR(r.from)} ~ {formatDateKR(r.to)}</span>
           <button className="btn-secondary !min-h-[40px] !px-3" aria-label="다음 주" disabled={isCurrent} onClick={() => go(addDaysISO(r.from, 7))}><ChevronRight size={17} /></button>
+          <Link href="/ax/present" className="btn-secondary !min-h-[40px] text-[0.9rem]"><Presentation size={16} aria-hidden /> 보고 모드</Link>
           <button className="btn-primary !min-h-[40px] text-[0.9rem]" onClick={() => window.print()}><Printer size={16} aria-hidden /> 인쇄 / PDF 저장</button>
         </div>
       </div>
@@ -150,7 +151,7 @@ function Inner() {
                 <li key={p.id} className="print-break-avoid rounded-xl border p-3.5 text-[0.88rem]" style={{ borderColor: "var(--border)" }}>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <StatusBadge tone={p.status === "RESULT_CONFIRMED" ? "success" : p.status === "REJECTED" ? "neutral" : "info"}>{p.status === "RESULT_CONFIRMED" ? "결과 확정" : p.status === "REJECTED" ? "반려" : "측정중"}</StatusBadge>
-                    <StatusBadge tone="neutral">{p.eventType}</StatusBadge>
+                    <StatusBadge tone="neutral">{PROOF_TYPE_LABEL[p.eventType] ?? p.eventType}</StatusBadge>
                     <span className="text-ink-soft">{formatDateTimeKR(p.createdAt)} · {p.actorName}</span>
                   </div>
                   <p className="mt-1.5"><b>Trigger</b> {p.trigger}</p>
