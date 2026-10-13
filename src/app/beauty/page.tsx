@@ -44,12 +44,12 @@ export default function BeautyHome() {
 
       {/* 피부 고민 */}
       <section className="mt-12">
-        <div className="mb-5 flex items-end justify-between">
+        <div className="mb-5 flex items-end justify-between gap-3">
           <div>
             <h2 className="font-display text-[1.5rem] font-bold" style={{ color: "var(--b-navy)" }}>피부 고민별 추천</h2>
             <p className="mt-1 text-[0.92rem]" style={{ color: "var(--b-text-soft)" }}>지금 필요한 케어를 골라보세요</p>
           </div>
-          <Link href="/beauty/products" className="text-[0.9rem] font-semibold hover:underline" style={{ color: "var(--b-text-soft)" }}>전체 보기 →</Link>
+          <Link href="/beauty/products" className="inline-flex min-h-[44px] shrink-0 items-center whitespace-nowrap text-[0.9rem] font-semibold hover:underline" style={{ color: "var(--b-text-soft)" }}>전체 보기 →</Link>
         </div>
         <div className="grid grid-cols-3 gap-3 @3xl:grid-cols-6">
           {CONCERNS.map((c) => (
@@ -88,12 +88,12 @@ export default function BeautyHome() {
 
       {/* 추천 제품 */}
       <section className="mt-12">
-        <div className="mb-5 flex items-end justify-between">
+        <div className="mb-5 flex items-end justify-between gap-3">
           <div>
             <h2 className="font-display text-[1.5rem] font-bold" style={{ color: "var(--b-navy)" }}>MIRYEO 추천 제품</h2>
             <p className="mt-1 text-[0.92rem]" style={{ color: "var(--b-text-soft)" }}>베스트·신제품을 먼저 보여드려요</p>
           </div>
-          <Link href="/beauty/products" className="text-[0.9rem] font-semibold hover:underline" style={{ color: "var(--b-text-soft)" }}>전체 보기 →</Link>
+          <Link href="/beauty/products" className="inline-flex min-h-[44px] shrink-0 items-center whitespace-nowrap text-[0.9rem] font-semibold hover:underline" style={{ color: "var(--b-text-soft)" }}>전체 보기 →</Link>
         </div>
         <div className="grid grid-cols-2 gap-4 @3xl:grid-cols-4">
           {recommended.map((p) => <BeautyProductCard key={p.id} product={p} aiBadge={p.isBest ? "추천" : undefined} />)}

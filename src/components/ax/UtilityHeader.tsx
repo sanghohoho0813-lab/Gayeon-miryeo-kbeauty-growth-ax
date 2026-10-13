@@ -8,6 +8,7 @@ import { NavList } from "./Sidebar";
 import { ThemePickerPanel } from "./ThemePicker";
 import { LiveClock } from "./LiveClock";
 import { OPEN_DRAWER_EVENT } from "./MobileBottomNav";
+import { QuickJump, QuickJumpButton } from "./QuickJump";
 import { DeviceSwitch } from "@/components/device/DeviceView";
 import { useSession } from "@/components/providers/SessionProvider";
 import { useData } from "@/components/providers/DataProvider";
@@ -122,6 +123,7 @@ export function UtilityHeader() {
 
         <div className="flex-1" />
 
+        <QuickJumpButton />
         <DeviceSwitch labelClass="hidden @5xl:inline" />
 
         <button
@@ -162,6 +164,7 @@ export function UtilityHeader() {
         <RoleMenu />
       </div>
 
+      <QuickJump />
       {drawerOpen && (
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="전체 메뉴">
           <button className="route-fade absolute inset-0 bg-black/45" aria-label="메뉴 닫기" tabIndex={-1} onClick={() => setDrawerOpen(false)} />

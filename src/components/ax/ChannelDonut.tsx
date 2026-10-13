@@ -2,6 +2,7 @@
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { formatKRW } from "@/lib/analytics";
+import { useChartMotion } from "./TrendChart";
 
 const CHART_VARS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--accent)"];
 
@@ -12,6 +13,7 @@ export interface DonutDatum {
 
 export function ChannelDonut({ data, centerLabel }: { data: DonutDatum[]; centerLabel: string }) {
   const total = data.reduce((a, b) => a + b.value, 0);
+  const motion = useChartMotion();
   return (
     <div className="flex flex-col items-center gap-5">
       <div className="relative h-[220px] w-[220px] shrink-0">
@@ -28,6 +30,7 @@ export function ChannelDonut({ data, centerLabel }: { data: DonutDatum[]; center
               paddingAngle={2}
               strokeWidth={0}
               rootTabIndex={-1}
+              isAnimationActive={motion}
             >
               {data.map((_, i) => (
                 <Cell key={i} fill={CHART_VARS[i % CHART_VARS.length]} />

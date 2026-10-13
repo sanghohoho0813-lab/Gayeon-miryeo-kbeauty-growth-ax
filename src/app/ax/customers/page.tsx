@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Radio } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
-import { ActionSummaryCard, DataCard, KpiCard, MiniBar } from "@/components/ax/Cards";
+import { ActionRow, DataCard, KpiCard, MiniBar } from "@/components/ax/Cards";
 import { DailyEvents } from "@/components/ax/TrendChart";
 import { ActionDrawer } from "@/components/ax/ActionDrawer";
 import { CustomerMembers } from "@/components/ax/CustomerMembers";
@@ -116,7 +116,7 @@ export default function CustomersPage() {
 
         <DataCard title="고객 관련 Action">
           {interestActions.length === 0 ? <EmptyState title="고객 관련 Action이 없습니다" /> : (
-            <div className="grid gap-3">{interestActions.slice(0, 4).map((a) => <ActionSummaryCard key={a.id} action={a} onOpen={() => setOpen(a)} />)}</div>
+            <div className="grid gap-2.5">{interestActions.slice(0, 4).map((a) => <ActionRow key={a.id} action={a} onOpen={() => setOpen(a)} />)}</div>
           )}
         </DataCard>
       </div>

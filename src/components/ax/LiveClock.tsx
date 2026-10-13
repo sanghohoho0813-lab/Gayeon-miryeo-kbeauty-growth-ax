@@ -16,8 +16,8 @@ export function LiveClock({ compact = false }: { compact?: boolean }) {
   const time = new Intl.DateTimeFormat("ko-KR", { timeZone: TIME_ZONE, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(now);
   return (
     <span className="tabular inline-flex flex-col leading-tight" aria-label={`현재 ${date} ${time}`}>
-      <span className="text-[0.78rem] text-ink-soft">{date}</span>
-      <span className="text-[0.95rem] font-semibold">{time}</span>
+      <span className="whitespace-nowrap text-[0.78rem] text-ink-soft">{date}</span>
+      <span className="whitespace-nowrap text-[0.95rem] font-semibold">{time}</span>
     </span>
   );
 }

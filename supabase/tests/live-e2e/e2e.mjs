@@ -287,6 +287,7 @@ if (PHASE === "B") {
   await owner.goto(`${APP}/ax/monthly`, { waitUntil: "networkidle" });
   ok("월별 실적 (Live 판매 행)", (await owner.getByTestId("monthly-products").innerText()).includes("E2E 토너"));
   await owner.goto(`${APP}/ax`, { waitUntil: "networkidle" });
+  if (await owner.getByTestId("briefing-toggle").count()) await owner.getByTestId("briefing-toggle").click(); // PASS 12: 중요 문장만 먼저 → 전체 펼침
   const brief = await owner.getByTestId("briefing-lines").innerText();
   ok("대표 브리핑 (Live): 미수금·재고 문장", brief.includes("미수금") && brief.includes("재고"), (await owner.getByTestId("briefing-headline").innerText()));
   await owner.goto(`${APP}/ax/data?tab=export`, { waitUntil: "networkidle" });

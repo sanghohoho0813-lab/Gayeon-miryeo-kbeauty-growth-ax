@@ -44,9 +44,9 @@ export function BeautyProductCard({ product, aiBadge }: { product: Product; aiBa
         <div className="mt-1.5 flex flex-wrap gap-1">
           {product.concerns.slice(0, 2).map((c) => <span key={c} className="rounded-full px-2 py-0.5 text-[0.72rem] font-semibold" style={{ background: "var(--b-surface-warm)", color: "var(--b-text-soft)" }}>#{c}</span>)}
         </div>
-        <div className="mt-auto flex items-end justify-between pt-3">
-          <div className="tabular text-[1.05rem] font-bold">₩{product.price.toLocaleString()}</div>
-          {product.isDemo && <span className="text-[0.7rem]" style={{ color: "var(--b-text-soft)" }}>Demo 제품</span>}
+        <div className="mt-auto flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 pt-3">
+          <div className="tabular whitespace-nowrap text-[1.05rem] font-bold">₩{product.price.toLocaleString()}</div>
+          {product.isDemo && <span className="whitespace-nowrap text-[0.7rem]" style={{ color: "var(--b-text-soft)" }}>Demo 제품</span>}
         </div>
       </Link>
     </div>

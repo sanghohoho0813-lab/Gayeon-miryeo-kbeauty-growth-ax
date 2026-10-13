@@ -39,6 +39,7 @@ UI (src/app, src/components)
 ```
 - Schema / RLS: `supabase/migrations/001~008` (005·007·008 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
 - 월별 실적 `/ax/monthly`, 정산·미수금 `/ax/channels?tab=settlements`, 대표 브리핑 `src/lib/briefing.ts`, 내보내기 `/ax/data?tab=export`
+- UI/UX (PASS 12): 대시보드 `src/app/ax/page.tsx`(핵심 숫자 → 오늘 할 일+브리핑 → 분석 탭), 빠른 이동 `src/components/ax/QuickJump.tsx`(Ctrl/⌘+K), 컴팩트 행 `ActionRow`·stat tile `KpiCard`(`src/components/ax/Cards.tsx`), 접근성 탭 `Tabs.tsx`, 차트 애니메이션 규칙 `useChartMotion`(`TrendChart.tsx`)
 - 샘플 자료 연습 모드(Demo 전용) `src/lib/practice-kit.ts`(가상 파일 생성), `src/components/ax/PracticeKit.tsx` → `/ax/start` · '최근 4주' 기준일 = 마지막 판매일 `src/lib/model.ts`(`salesAsOf`, D-053) · 3단계 보고서 초안 `STAGE3_DELIVERY_REPORT.md` (PASS 11)
 - 생산 착수 일정(OEM 생산기간·MOQ) `src/lib/analytics.ts`(`PLANNING`) → `/ax/products?tab=production` · 월 목표 `src/lib/targets.ts`, `MonthlyTargetCard` · Action 사후 성과 `src/lib/action-outcome.ts` · 데이터 품질 점검 `src/lib/data-quality.ts` → `/ax/data?tab=quality` (PASS 10)
 - 작업 데이터 백업·이관 `src/lib/transfer.ts`, `src/components/ax/TransferCard.tsx` (Demo 실데이터 → 파일 → Live/복원)

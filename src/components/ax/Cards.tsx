@@ -44,43 +44,44 @@ export function KpiCard({
 }) {
   const animated = useCountUp(value);
   const up = trend != null && trend >= 0;
+  // 컴팩트 stat tile: 라벨·아이콘 한 줄 → 값(비례 숫자, 큰 글씨) → 증감·보조. 카드 전체가 링크면 우상단 화살표로 표시
   const body = (
     <>
-      <div className="flex items-start justify-between gap-3">
-        <span className="text-[0.95rem] font-semibold text-ink-soft">{label}</span>
+      <div className="flex items-center gap-2.5">
         {icon && (
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ background: `color-mix(in srgb, ${iconTone} 13%, #fff)`, color: iconTone }} aria-hidden>
+          <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg @md:flex [&>svg]:h-[18px] [&>svg]:w-[18px]" style={{ background: `color-mix(in srgb, ${iconTone} 13%, #fff)`, color: iconTone }} aria-hidden>
             {icon}
           </span>
         )}
+        <span className="min-w-0 text-[0.86rem] font-semibold leading-snug text-ink-soft @md:text-[0.9rem]">{label}</span>
+        {href && <ChevronRight size={16} className="ml-auto shrink-0 text-ink-soft opacity-50 transition-opacity group-hover:opacity-100" aria-hidden />}
       </div>
-      <div className="tabular mt-1.5 text-[2rem] font-bold leading-tight tracking-tight @4xl:text-[2.2rem]">{format(animated)}</div>
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.88rem]">
+      <div className="mt-1.5 text-[1.3rem] font-bold leading-tight tracking-tight @md:mt-2 @md:text-[1.7rem] @4xl:text-[1.9rem]">{format(animated)}</div>
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[0.8rem] leading-snug @md:text-[0.85rem]">
         {trend != null && (
           <span className="inline-flex items-center gap-0.5 font-semibold" style={{ color: up ? "var(--success)" : "var(--danger)" }}>
-            {up ? <ArrowUpRight size={16} aria-hidden /> : <ArrowDownRight size={16} aria-hidden />}
+            {up ? <ArrowUpRight size={15} aria-hidden /> : <ArrowDownRight size={15} aria-hidden />}
             {up ? "+" : ""}{Math.round(trend * 1000) / 10}%{trendLabel ? ` ${trendLabel}` : ""}
           </span>
         )}
         {sub && <span className="text-ink-soft">{sub}</span>}
       </div>
-      {href && <span className="mt-2 inline-flex items-center gap-0.5 text-[0.82rem] font-semibold text-ink-soft">상세 보기 <ChevronRight size={14} aria-hidden /></span>}
     </>
   );
   return href ? (
-    <Link href={href} data-tour={tourId} className="ax-card ax-card-hover block p-5 @3xl:p-6">{body}</Link>
+    <Link href={href} data-tour={tourId} className="ax-card ax-card-hover group block min-w-0 p-4 @md:p-5">{body}</Link>
   ) : (
-    <div data-tour={tourId} className="ax-card p-5 @3xl:p-6">{body}</div>
+    <div data-tour={tourId} className="ax-card min-w-0 p-4 @md:p-5">{body}</div>
   );
 }
 
 /* ---------- Section Card ---------- */
 export function DataCard({ title, action, children, className = "", tourId, id }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; tourId?: string; id?: string }) {
   return (
-    <section id={id} data-tour={tourId} className={`ax-card min-w-0 p-5 @3xl:p-6 ${className}`}>
+    <section id={id} data-tour={tourId} className={`ax-card min-w-0 p-4 @md:p-5 @3xl:p-6 ${className}`}>
       {(title || action) && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          {title && <h2 className="text-[1.15rem] font-bold @3xl:text-[1.25rem]">{title}</h2>}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 @md:mb-4 @md:gap-3">
+          {title && <h2 className="text-[1.08rem] font-bold leading-snug @md:text-[1.15rem] @3xl:text-[1.25rem]">{title}</h2>}
           {action}
         </div>
       )}
@@ -156,26 +157,27 @@ export function InsightCard({ title = "AI Growth Insight", method = "RULE", summ
   );
 }
 
-/* ---------- Action 요약 카드 (클릭 → 처리 Drawer) ---------- */
-export function ActionSummaryCard({ action, onOpen, rank }: { action: GrowthAction; onOpen: () => void; rank?: number }) {
+/* ---------- Action 컴팩트 행 (대시보드 '오늘 먼저 할 일'·Growth Center 목록) — 카드보다 2~3배 많이 한 화면에 ---------- */
+export function ActionRow({ action, onOpen, rank, today = false }: { action: GrowthAction; onOpen: () => void; rank?: number; today?: boolean }) {
   return (
-    <button onClick={onOpen} className="ax-card ax-card-hover relative flex h-full w-full flex-col p-5 text-left">
-      {rank && (
-        <span className="absolute -top-2.5 left-4 flex h-7 w-7 items-center justify-center rounded-full text-[0.85rem] font-bold text-white" style={{ background: "var(--primary)" }} aria-hidden>{rank}</span>
-      )}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <StatusBadge tone={PRIORITY_TONE[action.priority]}>{action.priority}</StatusBadge>
-        <StatusBadge tone="neutral">{action.category}</StatusBadge>
-        <StatusBadge tone={ACTION_STATUS_TONE[action.status]}>{ACTION_STATUS_LABEL[action.status]}</StatusBadge>
-      </div>
-      <h3 className="mt-3 text-[1.05rem] font-bold leading-snug">{action.title}</h3>
-      <p className="mt-1.5 text-[0.92rem] leading-relaxed text-ink-soft">{action.judgement}</p>
-      <div className="mt-auto flex items-center justify-between pt-4 text-[0.85rem]">
-        <span className="text-ink-soft">{action.assigneeName ? `담당 ${action.assigneeName}` : "담당 미지정"}</span>
-        <span className="inline-flex items-center gap-0.5 font-semibold" style={{ color: "var(--primary)" }}>
-          처리하기 <ChevronRight size={15} aria-hidden />
+    <button onClick={onOpen} className="row-hover group flex w-full items-start gap-3 rounded-xl border p-3 text-left @md:p-3.5" style={{ borderColor: today ? "color-mix(in srgb, var(--primary) 35%, var(--border))" : "var(--border)" }} data-action-row={action.ruleKey}>
+      {rank ? (
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[0.82rem] font-bold text-white" style={{ background: "var(--primary)" }} aria-hidden>{rank}</span>
+      ) : null}
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-1.5">
+          <StatusBadge tone={PRIORITY_TONE[action.priority]}>{action.priority}</StatusBadge>
+          <StatusBadge tone="neutral">{action.category}</StatusBadge>
+          <StatusBadge tone={ACTION_STATUS_TONE[action.status]}>{ACTION_STATUS_LABEL[action.status]}</StatusBadge>
+          {today && <StatusBadge tone="primary">오늘 먼저</StatusBadge>}
         </span>
-      </div>
+        <span className="mt-1.5 block text-[0.98rem] font-bold leading-snug">{action.title}</span>
+        <span className="mt-0.5 line-clamp-2 text-[0.88rem] leading-relaxed text-ink-soft">{action.judgement}</span>
+        <span className="mt-1 block text-[0.8rem] text-ink-soft">{action.assigneeName ? `담당 ${action.assigneeName}` : "담당 미지정"}</span>
+      </span>
+      <span className="hidden shrink-0 items-center gap-0.5 self-center text-[0.86rem] font-semibold @md:inline-flex" style={{ color: "var(--primary)" }}>
+        처리하기 <ChevronRight size={15} aria-hidden />
+      </span>
     </button>
   );
 }

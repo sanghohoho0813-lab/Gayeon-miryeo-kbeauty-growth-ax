@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Pencil } from "lucide-react";
@@ -33,6 +33,15 @@ function Inner() {
   const params = useSearchParams();
   const tab = (params.get("tab") as TabId) || "products";
   const [selected, setSelected] = useState<Product | null>(null);
+  // 빠른 이동(?p=상품ID) → 해당 상품 상세를 바로 연다
+  const mm = useModel();
+  const pid = params.get("p");
+  useEffect(() => {
+    const p = pid ? mm.snapshot.products.find((x) => x.id === pid) : undefined;
+    if (p) setSelected(p);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pid]);
+  const closeDrawer = () => { setSelected(null); if (pid) router.replace(`/ax/products?tab=${tab}`, { scroll: false }); };
   return (
     <div>
       <PageHeader title="상품·재고·생산" description="SKU별 판매·재고·OEM 생산 흐름을 확인하고 재고를 바로 갱신합니다. 신규 입력·CSV는 데이터 관리에서 합니다." actions={<><AiReadyButton spec={AI_SPECS.inventory} /><DataFreshness /></>} />
@@ -40,7 +49,7 @@ function Inner() {
       {tab === "products" && <ProductsTab onSelect={setSelected} />}
       {tab === "inventory" && <InventoryTab onSelect={setSelected} />}
       {tab === "production" && <ProductionTab />}
-      <ProductDrawer product={selected} onClose={() => setSelected(null)} />
+      <ProductDrawer product={selected} onClose={closeDrawer} />
     </div>
   );
 }

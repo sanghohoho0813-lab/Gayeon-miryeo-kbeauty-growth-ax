@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useChartMotion } from "@/components/ax/TrendChart";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, KpiCard } from "@/components/ax/Cards";
 import { EmptyState } from "@/components/ax/States";
@@ -22,6 +23,7 @@ import { targetProgress } from "@/lib/targets";
 /* 월별 실적 — 계약 별지 제1호 ① "월별·판매채널별·제품별 매출, 이익" */
 function Inner() {
   const m = useModel();
+  const motion = useChartMotion();
   const { role } = useSession();
   const router = useRouter();
   const params = useSearchParams();
@@ -62,14 +64,14 @@ function Inner() {
             <div style={{ height: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={rows.map((r) => { const t = (m.snapshot.monthlyTargets ?? []).find((x) => x.month === r.month)?.revenueTarget; return { month: monthLabel(r.month).slice(2), 매출: Math.round(r.revenue / 1e6), 매출총이익: Math.round(r.grossProfit / 1e6), 목표: t ? Math.round(t / 1e6) : null }; })} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
-                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                  <CartesianGrid stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: "0.75rem", fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: "0.75rem", fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} width={44} />
                   <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, fontSize: "0.85rem" }} formatter={(v, n) => [`${Number(v).toLocaleString()}백만 원`, n]} />
                   <Legend wrapperStyle={{ fontSize: "0.8rem" }} />
-                  <Bar dataKey="매출" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
-                  <Line dataKey="매출총이익" stroke="var(--chart-3)" strokeWidth={2.5} dot={{ r: 3 }} />
-                  {(m.snapshot.monthlyTargets ?? []).length > 0 && <Line dataKey="목표" stroke="var(--text-primary)" strokeDasharray="5 4" strokeWidth={1.5} dot={{ r: 2.5 }} connectNulls={false} />}
+                  <Bar dataKey="매출" fill="var(--chart-1)" radius={[4, 4, 0, 0]} maxBarSize={24} isAnimationActive={motion} />
+                  <Line dataKey="매출총이익" stroke="var(--chart-3)" strokeWidth={2} dot={{ r: 4, fill: "var(--chart-3)", stroke: "var(--surface)", strokeWidth: 2 }} isAnimationActive={motion} />
+                  {(m.snapshot.monthlyTargets ?? []).length > 0 && <Line dataKey="목표" stroke="var(--text-primary)" strokeDasharray="5 4" strokeWidth={1.5} dot={{ r: 3, stroke: "var(--surface)", strokeWidth: 2 }} connectNulls={false} isAnimationActive={motion} />}
                 </ComposedChart>
               </ResponsiveContainer>
             </div>

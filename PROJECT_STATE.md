@@ -1,8 +1,8 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-10-13 (PASS 11 — 샘플 자료로 3단계 업무 검증·연습 모드, 첫날 판매 파일 시작 결함 수정, 마지막 판매일 기준 분석, 3단계 보고서 초안)
+LAST UPDATED: 2026-10-13 (PASS 12 — UI/UX 대폭 개선: 대시보드 재구성·빠른 이동·Growth Center·모바일 밀도·차트 규칙)
 DELIVERY STAGE: 계약 제11조 2단계 개발 완료(1차 보고·5영업일 확인 대기) + **3단계 일부 개발 착수**(사용자 지시 2026-10-09: "3단계도 일부 개발, Supabase는 나중에 연동")
-CURRENT PASS: 11 — 3단계 완료 준비(Supabase 연결 전). 별지 제1호 '실제 자료 **또는 합리적인 샘플 자료**' → 샘플 자료 연습 모드로 실제 첫날 업무 전 과정을 검증하고 `STAGE3_DELIVERY_REPORT.md` 초안 작성. 검증 중 실제 운영에 영향이 큰 결함 2건 수정(빈 조직에서 판매 파일 시작 불가, 몰아 올린 판매로 성장률 왜곡). **push = Production 배포**(D-040)
+CURRENT PASS: 12 — UI/UX 대폭 개선(사용자 요청 2026-10-13 "ui ux도 대폭 개선"). 다음 우선순위(3단계 보고 방식)는 사용자 결정 대기. 대시보드 길이 PC −43%·모바일 −56%, 빠른 이동(Ctrl/⌘+K), Growth Center 필터·목록, 사이드바·모바일 밀도, 차트 표기 규칙. **push = Production 배포**(D-040)
 
 ## 계약 별지 제1호 대조 (2026-09-30 기준)
 | No | 핵심모듈 | 구현 | 화면 |
@@ -32,6 +32,16 @@ CURRENT PASS: 11 — 3단계 완료 준비(Supabase 연결 전). 별지 제1호 
 | 담당자 면담/현장확인 대비 | 하루 전 점검·시연 순서 7단계(현재 근거 표시)·예상 질문 7개(시스템 사실만) + 샘플 자료 연습 모드로 리허설 가능 | PILOT | 실데이터로 리허설 (Live 이후) |
 
 **3단계 보고서 초안**: `STAGE3_DELIVERY_REPORT.md` — 샘플 자료 검증 결과·발견 결함·실제 자료 적용에 필요한 것·보고 방식 결정(가/나/다). `[ ]` 칸은 발송 전 채움.
+
+## PASS 12 변경 요약 (2026-10-13) — UI/UX
+| 항목 | 상태 |
+|---|---|
+| 대시보드 재구성 (D-055): 핵심 숫자 → 오늘 먼저 할 일(컴팩트 행) + 대표 브리핑(위험·주의 5줄 우선, 펼치기) 나란히 → 분석 탭(제품 성장·재고 위험·채널 매출·고객 행동, 마지막 탭 기억). PC 4,060→2,314px, 모바일 8,874→3,937px, 모바일 첫 할 일 2,500→1,200px | VERIFIED |
+| 빠른 이동 (D-056): Ctrl/⌘+K·/ — 화면·탭·상품(SKU·초성)·열린 Action, 권한 반영, 상품/Action 상세 바로 열기(`?p=`·`?a=`), 접근성(combobox·키보드·포커스 복귀) | VERIFIED (axe 0) |
+| Growth Center: 상태 필터(개수 포함, 잘림 없음), 컴팩트 Action 행, 오늘의 Mission은 목록 맨 위 '오늘 먼저 #n'(중복 카드 제거), 카테고리 '정산' 추가, 처리 사이드 패널 | VERIFIED |
+| 셸: 사이드바 밀도(높이 860에서도 메뉴 13개 전부, 이전엔 아래 2개가 잘림), 페이지 제목·카드 모바일 압축, KPI 카드 컴팩트(모바일 2열), 헤더 시계 줄바꿈 수정, 탭 키보드(←→ Home End) | VERIFIED |
+| 차트 (D-057): 실선 헤어라인 격자, 선 2px·점 링, 막대 4px 둥글림, 움직임 줄이기 시 애니메이션 끔(인쇄·캡처 중 선 멈춤 방지) | VERIFIED |
+| 고객 화면: '전체 보기 →' 줄바꿈·가격 옆 Demo 표시 줄바꿈 수정 | VERIFIED |
 
 ## PASS 11 변경 요약 (2026-10-13)
 | 항목 | 상태 |
@@ -195,6 +205,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 높이 < 약 880px이면 frame이 비율 축소 (내부 viewport 390 유지) — KNOWN
 
 ## 7. QA
+- 2026-10-13 (PASS 12 UI/UX): typecheck / build / audit 0 PASS, **PASS12 UI/UX 46/46**(3회 연속), 샘플 리허설 51, Live E2E 90/90, Demo PASS10 42 · Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5, Route 34×8 이상 0, 접근성 30화면 + 연습 상태 11화면 0건 (상태 칩 개수 배지 대비 부족 1건 발견·수정), DB는 변경 없음(117 — PASS 11 결과) → `QA_REPORT.md`
 - 2026-10-13 (PASS 11): typecheck / build / audit 0 PASS, DB 117/117, Live E2E 90/90, **샘플 자료 리허설 51/51**, 연습 상태 접근성 0건(11화면×2폭), Demo PASS10 42 · Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5, Route 34×8 이상 0, 접근성 30화면 0건 (AI 11은 PASS 10 결과 — 이번 변경은 AI 경로 미변경, Demo 수치 동일) → `QA_REPORT.md`
 - 2026-10-13 (PASS 10): typecheck / build / audit 0 PASS, DB 117/117 (001~008), Live E2E 85/85, Demo PASS10 42 · Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5 · AI 11, Route 34×8 이상 0, 접근성 30화면 0건 → `QA_REPORT.md`
 - 2026-10-09 (PASS 9): typecheck / build PASS, Route QA 33×8 이상 0, Demo Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5, 접근성 28화면 0건(차트 렌더 후), Live E2E 77/77 → `QA_REPORT.md`
