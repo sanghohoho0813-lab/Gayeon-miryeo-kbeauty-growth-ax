@@ -3,7 +3,7 @@
 import type { DataSnapshot, DataSource } from "./source";
 import { newId } from "./source";
 import type { GrowthAction } from "../types";
-import { demoProducts } from "../demo/products";
+import { demoProducts, DEMO_LEAD_TIMES } from "../demo/products";
 import { demoChannels, demoB2B, demoExports } from "../demo/channels";
 import { demoInventory, demoProduction } from "../demo/inventory";
 import { demoSales } from "../demo/sales";
@@ -26,6 +26,8 @@ interface DemoDB extends Omit<DataSnapshot, "loadedAt"> {
   stage2?: boolean;
   /** Demo 판매 시드 형식 (2 = 일 단위) */
   seedSales?: number;
+  /** PASS 10: Demo 상품 생산기간·MOQ 채움 */
+  pass10?: boolean;
   beautyResults: DemoBeautyResult[];
   seededOn: string;
   updatedAt: string;
@@ -55,9 +57,11 @@ function seed(): DemoDB {
     customerAccounts: demoCustomerAccounts(),
     customerPurchases: demoCustomerPurchases(),
     settlements: demoSettlements(),
+    monthlyTargets: [],
     beautyResults: [],
     stage2: true,
     seedSales: 2,
+    pass10: true,
   };
 }
 
@@ -83,6 +87,13 @@ function read(): DemoDB {
       const parsed = JSON.parse(raw) as DemoDB;
       if (parsed.version === 2) {
         parsed.baselines ??= []; // PASS 2에서 추가된 필드
+        parsed.monthlyTargets ??= []; // PASS 10
+        if (!parsed.pass10) {
+          // PASS 10: 저장된 Demo 상품에 시연용 생산기간·MOQ (직접 입력한 상품은 그대로)
+          parsed.products = parsed.products.map((p) => (p.isDemo && DEMO_LEAD_TIMES[p.id] && p.leadTimeDays == null ? { ...p, ...DEMO_LEAD_TIMES[p.id] } : p));
+          parsed.pass10 = true;
+          write(parsed, false);
+        }
         if (parsed.stage2 && parsed.seedSales !== 2) {
           parsed.sales = [...demoSales(), ...parsed.sales.filter((x) => x.source !== "seed")];
           parsed.seedSales = 2;
@@ -177,6 +188,12 @@ export const demoSource: DataSource = {
     });
     return rows.length;
   },
+  async deleteSales(ids) {
+    const set = new Set(ids);
+    let n = 0;
+    await mutate((db) => { const before = db.sales.length; db.sales = db.sales.filter((x) => !set.has(x.id)); n = before - db.sales.length; });
+    return n;
+  },
   createActions: (cands) =>
     mutate((db) => {
       const now = new Date().toISOString();
@@ -198,6 +215,8 @@ export const demoSource: DataSource = {
   setProductFeatured: (productId, until) => mutate((db) => void (db.products = db.products.map((p) => (p.id === productId ? { ...p, featuredUntil: until } : p)))),
   upsertTechAsset: (t) => mutate((db) => void (db.techAssets = upsertBy(db.techAssets, { ...t, updatedAt: new Date().toISOString() }, (x) => x.id))),
   updateOrg: (patch) => mutate((db) => void (db.org = { ...db.org, ...patch })),
+  upsertMonthlyTarget: (t) => mutate((db) => void (db.monthlyTargets = upsertBy(db.monthlyTargets ?? [], { ...t, setBy: t.setBy ?? "대표 (Demo)", updatedAt: new Date().toISOString() }, (x) => x.month))),
+  deleteMonthlyTarget: (month) => mutate((db) => void (db.monthlyTargets = (db.monthlyTargets ?? []).filter((x) => x.month !== month))),
   upsertSettlement: (st) => mutate((db) => void (db.settlements = upsertBy(db.settlements, { ...withId(st), updatedAt: new Date().toISOString() }, (x) => x.id))),
   addStaffPurchase: (p) =>
     mutate((db) => {

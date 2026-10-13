@@ -16,6 +16,8 @@ import { can } from "@/lib/permissions";
 import { formatKRW, formatPct, formatPrice } from "@/lib/analytics";
 import { change, marginRate, monthLabel, monthlySummary, type Breakdown } from "@/lib/monthly";
 import { summarizeReceivables } from "@/lib/settlements";
+import { MonthlyTargetCard } from "@/components/ax/MonthlyTargetCard";
+import { targetProgress } from "@/lib/targets";
 
 /* 월별 실적 — 계약 별지 제1호 ① "월별·판매채널별·제품별 매출, 이익" */
 function Inner() {
@@ -54,10 +56,12 @@ function Inner() {
             <KpiCard label="받을 돈 (현재)" value={rs.outstanding} format={formatKRW} sub={rs.overdueCount ? `연체 ${rs.overdueCount}건 ${formatKRW(rs.overdueAmount)}` : "연체 없음"} href="/ax/channels?tab=settlements" />
           </div>
 
-          <DataCard className="mt-6" title="12개월 매출·매출총이익" action={<ExportButton name="월별_실적" file="monthly" rows={rows.map((r) => ({ 월: monthLabel(r.month), 매출: r.revenue, 판매수량: r.units, 매출총이익: r.grossProfit, 원가입력매출: r.costedRevenue, "이익률(%)": marginRate(r) == null ? "" : Math.round((marginRate(r) ?? 0) * 1000) / 10 }))} />}>
+          <MonthlyTargetCard key={sel.month} month={sel.month} actual={sel.revenue} />
+
+          <DataCard className="mt-6" title="12개월 매출·매출총이익" action={<ExportButton name="월별_실적" file="monthly" rows={rows.map((r) => { const tp = targetProgress(r.month, r.revenue, m.snapshot.monthlyTargets ?? [], m.today); return { 월: monthLabel(r.month), 매출: r.revenue, 판매수량: r.units, 매출총이익: r.grossProfit, 원가입력매출: r.costedRevenue, "이익률(%)": marginRate(r) == null ? "" : Math.round((marginRate(r) ?? 0) * 1000) / 10, 목표: tp.target ?? "", "달성률(%)": tp.rate == null ? "" : Math.round(tp.rate * 1000) / 10 }; })} />}>
             <div style={{ height: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={rows.map((r) => ({ month: monthLabel(r.month).slice(2), 매출: Math.round(r.revenue / 1e6), 매출총이익: Math.round(r.grossProfit / 1e6) }))} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+                <ComposedChart data={rows.map((r) => { const t = (m.snapshot.monthlyTargets ?? []).find((x) => x.month === r.month)?.revenueTarget; return { month: monthLabel(r.month).slice(2), 매출: Math.round(r.revenue / 1e6), 매출총이익: Math.round(r.grossProfit / 1e6), 목표: t ? Math.round(t / 1e6) : null }; })} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: "0.75rem", fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: "0.75rem", fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} width={44} />
@@ -65,6 +69,7 @@ function Inner() {
                   <Legend wrapperStyle={{ fontSize: "0.8rem" }} />
                   <Bar dataKey="매출" fill="var(--chart-1)" radius={[6, 6, 0, 0]} />
                   <Line dataKey="매출총이익" stroke="var(--chart-3)" strokeWidth={2.5} dot={{ r: 3 }} />
+                  {(m.snapshot.monthlyTargets ?? []).length > 0 && <Line dataKey="목표" stroke="var(--text-primary)" strokeDasharray="5 4" strokeWidth={1.5} dot={{ r: 2.5 }} connectNulls={false} />}
                 </ComposedChart>
               </ResponsiveContainer>
             </div>

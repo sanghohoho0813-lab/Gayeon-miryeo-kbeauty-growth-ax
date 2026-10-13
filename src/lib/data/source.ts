@@ -21,6 +21,7 @@ import type {
   SalesRecord,
   Settlement,
   TechAsset,
+  MonthlyTarget,
 } from "../types";
 import type { DataMode } from "../config";
 
@@ -49,6 +50,8 @@ export interface DataSnapshot {
   customerPurchases: CustomerPurchase[];
   /** 정산·미수금 — OWNER/ADMIN만 */
   settlements: Settlement[];
+  /** 월 매출 목표 — 조회 OWNER/ADMIN, 입력 OWNER (migration 008) */
+  monthlyTargets: MonthlyTarget[];
   loadedAt: string;
 }
 
@@ -78,6 +81,8 @@ export interface DataSource {
   upsertProduction(p: ProductionPlan): Promise<void>;
   upsertB2B(b: B2BAccount): Promise<void>;
   addSales(rows: Omit<SalesRecord, "id">[]): Promise<number>;
+  /** 판매 행 삭제 — 대표·관리자 (DB 정책 sales_delete). 데이터 품질 점검의 잘못 들어온 행 정리용 */
+  deleteSales(ids: string[]): Promise<number>;
 
   createActions(c: GrowthActionCandidate[]): Promise<void>;
   updateAction(id: string, patch: Partial<GrowthAction>, t: ActionTransition): Promise<void>;
@@ -89,6 +94,8 @@ export interface DataSource {
   updateOrg(patch: Partial<OrgSettings>): Promise<void>;
   lockBaseline(b: Omit<KpiBaseline, "id" | "lockedAt" | "supersededAt">): Promise<void>;
   upsertSettlement(s: Settlement): Promise<void>;
+  upsertMonthlyTarget(t: MonthlyTarget): Promise<void>;
+  deleteMonthlyTarget(month: string): Promise<void>;
   /** 운영자가 고객 구매를 기록 (source=STAFF) */
   addStaffPurchase(p: Omit<CustomerPurchase, "id" | "createdAt" | "source">): Promise<void>;
 

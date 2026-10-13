@@ -1,6 +1,6 @@
 import type { DataSnapshot, DataSource } from "./data/source";
 import { uuidv4 } from "./data/source";
-import type { Channel, Inventory, Product, ProductCategory, SalesRecord, Settlement, SettlementKind, SettlementStatus, SkinConcern, Texture } from "./types";
+import type { Channel, Inventory, MonthlyTarget, Product, ProductCategory, SalesRecord, Settlement, SettlementKind, SettlementStatus, SkinConcern, Texture } from "./types";
 import { realScope } from "./start-guide";
 
 /* 작업 데이터 백업·이관 (계약 3단계 "실제 자료 적용" — Supabase 연결 전 입력한 실데이터를 다시 입력하지 않게)
@@ -25,9 +25,11 @@ export interface TransferFile {
   inventory: Inventory[];
   sales: SalesRecord[];
   settlements: Settlement[];
+  /** PASS 10 추가 (없어도 되는 필드 — 이전 백업 파일 호환) */
+  monthlyTargets?: MonthlyTarget[];
 }
 
-export interface TransferSummary { channels: number; products: number; inventory: number; sales: number; settlements: number; skippedDemoSales: number }
+export interface TransferSummary { channels: number; products: number; inventory: number; sales: number; settlements: number; targets: number; skippedDemoSales: number }
 
 /** 내보낼 실데이터. Demo 상품에 대한 판매는 빼고(시연용), 실판매가 쓴 Demo 채널은 함께 넣는다 (이름은 가져온 뒤 바꿀 수 있음). */
 export function buildTransfer(s: DataSnapshot, mode: "demo" | "live", now = new Date().toISOString()): { file: TransferFile; summary: TransferSummary } {
@@ -49,8 +51,9 @@ export function buildTransfer(s: DataSnapshot, mode: "demo" | "live", now = new 
     inventory: real.inventory,
     sales,
     settlements: real.settlements,
+    monthlyTargets: (s.monthlyTargets ?? []).map((t) => ({ month: t.month, revenueTarget: t.revenueTarget, note: t.note ?? null })),
   };
-  return { file, summary: { channels: channels.length, products: real.products.length, inventory: real.inventory.length, sales: sales.length, settlements: real.settlements.length, skippedDemoSales: salesAll.length - sales.length } };
+  return { file, summary: { channels: channels.length, products: real.products.length, inventory: real.inventory.length, sales: sales.length, settlements: real.settlements.length, targets: file.monthlyTargets!.length, skippedDemoSales: salesAll.length - sales.length } };
 }
 
 /* ---------- 파일 검사 ---------- */
@@ -113,6 +116,8 @@ export function parseTransfer(text: string): ParsedTransfer | { fatal: string } 
       purchaseLinks: links,
       mainChannelIds: [],
       usageDays: int(v.usageDays, 1, 365),
+      leadTimeDays: int(v.leadTimeDays, 1, 365),
+      moq: int(v.moq, 0, 10_000_000),
       isDemo: false,
     });
   });
@@ -139,6 +144,13 @@ export function parseTransfer(text: string): ParsedTransfer | { fatal: string } 
     if (!id || !kind || !counterparty || amount == null || paid == null || !issuedOn || !status) return bad("정산", i);
     settlements.push({ id, kind, counterparty, refId: optStr(v.refId, 100), description: optStr(v.description, 300), amount, paidAmount: paid, issuedOn, dueOn: date(v.dueOn), paidOn: date(v.paidOn), status, note: optStr(v.note, 500) });
   });
+  const monthlyTargets: MonthlyTarget[] = [];
+  arr("monthlyTargets").forEach((v, i) => {
+    if (!isObj(v)) return bad("월 목표", i);
+    const month = typeof v.month === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(v.month) ? v.month : null, target = int(v.revenueTarget, 1, 1e12 - 1);
+    if (!month || target == null) return bad("월 목표", i);
+    monthlyTargets.push({ month, revenueTarget: target, note: optStr(v.note, 200) });
+  });
   const org = isObj(raw.org) ? raw.org : {};
   return {
     errors,
@@ -148,7 +160,7 @@ export function parseTransfer(text: string): ParsedTransfer | { fatal: string } 
       fromMode: raw.fromMode === "live" ? "live" : "demo",
       orgName: str(raw.orgName, 100) ?? "",
       org: { pilotStartedOn: date(org.pilotStartedOn), axOwnerName: optStr(org.axOwnerName, 60) },
-      channels, products, inventory, sales, settlements,
+      channels, products, inventory, sales, settlements, monthlyTargets,
     },
   };
 }
@@ -164,6 +176,7 @@ export interface TransferPlan {
   inventory: Inventory[];
   sales: { create: Omit<SalesRecord, "id">[]; duplicate: number };
   settlements: { create: Settlement[]; matched: number };
+  targets: { create: MonthlyTarget[]; matched: number };
   org: { pilotStartedOn?: string; axOwnerName?: string };
   /** 가져올 Demo 이름 채널 (가져온 뒤 이름 변경 권장) */
   demoNamedChannels: string[];
@@ -220,6 +233,8 @@ export function planTransfer(f: TransferFile, cur: DataSnapshot): TransferPlan {
     curSt.add(stKey(s));
     stCreate.push({ ...s, id: UUID.test(s.id) ? s.id : uuidv4() });
   }
+  const curMonths = new Set((cur.monthlyTargets ?? []).map((t) => t.month));
+  const tCreate = (f.monthlyTargets ?? []).filter((t) => !curMonths.has(t.month));
   const org: TransferPlan["org"] = {};
   if (!cur.org.pilotStartedOn && f.org.pilotStartedOn) org.pilotStartedOn = f.org.pilotStartedOn;
   if (!cur.org.axOwnerName?.trim() && f.org.axOwnerName) org.axOwnerName = f.org.axOwnerName;
@@ -229,9 +244,10 @@ export function planTransfer(f: TransferFile, cur: DataSnapshot): TransferPlan {
     inventory,
     sales: { create: salesCreate, duplicate: dup },
     settlements: { create: stCreate, matched: stMatched },
+    targets: { create: tCreate, matched: (f.monthlyTargets ?? []).length - tCreate.length },
     org,
     demoNamedChannels: chCreate.filter((c) => /demo/i.test(c.name)).map((c) => c.name),
-    empty: !chCreate.length && !pCreate.length && !inventory.length && !salesCreate.length && !stCreate.length && !Object.keys(org).length,
+    empty: !chCreate.length && !pCreate.length && !inventory.length && !salesCreate.length && !stCreate.length && !tCreate.length && !Object.keys(org).length,
   };
 }
 
@@ -248,5 +264,6 @@ export async function applyTransfer(plan: TransferPlan, s: DataSource, onProgres
     onProgress?.(`판매 ${Math.min(i + 500, plan.sales.create.length).toLocaleString()}/${plan.sales.create.length.toLocaleString()}`);
   }
   for (const st of plan.settlements.create) await s.upsertSettlement(st);
+  for (const t of plan.targets.create) await s.upsertMonthlyTarget(t);
   if (Object.keys(plan.org).length) await s.updateOrg(plan.org);
 }

@@ -18,7 +18,7 @@ npm install
 npm run dev          # Demo 모드 (기본)
 npm run typecheck
 npm run build
-npm run verify:db    # (선택) 로컬 Postgres로 migration + RLS·트리거 97개 시나리오 + setup_all.sql 동등성 검증
+npm run verify:db    # (선택) 로컬 Postgres로 migration + RLS·트리거 117개 시나리오 + setup_all.sql 동등성 검증
 npm run setup-sql    # migration 수정 후 supabase/setup_all.sql 재생성
 bash supabase/tests/live-e2e/run.sh   # (선택) 로컬 Supabase 호환 스택에서 Live 모드 브라우저 E2E (SETUP.md §E)
 ```
@@ -37,8 +37,9 @@ UI (src/app, src/components)
        └ live-source.ts  (Supabase, RLS)
  └ buildModel (src/lib/model.ts) → analytics.ts (RULE / STATISTICAL)
 ```
-- Schema / RLS: `supabase/migrations/001~007` (005·007 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
+- Schema / RLS: `supabase/migrations/001~008` (005·007·008 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
 - 월별 실적 `/ax/monthly`, 정산·미수금 `/ax/channels?tab=settlements`, 대표 브리핑 `src/lib/briefing.ts`, 내보내기 `/ax/data?tab=export`
+- 생산 착수 일정(OEM 생산기간·MOQ) `src/lib/analytics.ts`(`PLANNING`) → `/ax/products?tab=production` · 월 목표 `src/lib/targets.ts`, `MonthlyTargetCard` · Action 사후 성과 `src/lib/action-outcome.ts` · 데이터 품질 점검 `src/lib/data-quality.ts` → `/ax/data?tab=quality` (PASS 10)
 - 작업 데이터 백업·이관 `src/lib/transfer.ts`, `src/components/ax/TransferCard.tsx` (Demo 실데이터 → 파일 → Live/복원)
 - 사업화·현장확인 `/ax/business` — 사업화 실적 자료(`src/lib/business-report.ts`, 인쇄·근거 CSV) / 면담·현장확인 대비(`src/components/ax/InspectionGuide.tsx`)
 - 판매 파일 자료 진단·미등록 상품/채널 즉시 등록: `src/lib/import.ts`(`diagnoseSales`, `findUnknownMasters`), `src/components/ax/ImportMasters.tsx`

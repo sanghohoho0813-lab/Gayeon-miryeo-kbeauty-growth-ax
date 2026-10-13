@@ -15,6 +15,7 @@ import type {
   Product,
   SalesRecord,
   SkinConcern,
+  ProductionPlan,
 } from "./types";
 import { daysBetween, todayISO, addDaysISO } from "./date";
 import { repurchaseDue, repurchaseSchedule } from "./repurchase";
@@ -41,7 +42,20 @@ export interface ProductMetrics {
   recent4wRevenue: number;
   stockStatus: StockStatus;
   recommendedOrder: number;
+  /** 추세 반영 예측 일판매 (최근 4주 × (1 + 성장률 보정)) */
+  forecastDaily: number;
+  /** 현재 + 입고예정 */
+  availableStock: number;
+  leadTimeDays: number | null;
+  /** 생산 착수 마감일 — 생산기간 입력 상품만 */
+  orderDeadline: string | null;
+  daysToDeadline: number | null;
+  /** 추천 수량 계산 근거 */
+  planBasis: "생산기간 반영" | "6주 예측";
 }
+
+/** 생산 판단 기준 (화면·근거에 그대로 표시) — 안전일수: 생산 지연·판매 변동 대비, 커버일수: 입고 후 판매할 기간 */
+export const PLANNING = { safetyDays: 14, coverDays: 42, roundTo: 50 } as const;
 
 export const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
 
@@ -84,12 +98,24 @@ export function computeProductMetrics(product: Product, inventory: Inventory | u
   else if (daysOfStock <= 21) stockStatus = "부족주의";
   else if (daysOfStock > 120 && currentStock > (inventory.safetyStock ?? 0) * 3) stockStatus = "과잉";
 
-  const projected6w = dailyVelocity * 42 * (1 + Math.max(-0.3, Math.min(growthRate, 1)) * 0.5);
-  const recommendedOrder = inventory
-    ? Math.max(0, Math.round((projected6w - currentStock - (inventory.incomingStock ?? 0)) / 50) * 50)
-    : 0;
+  const forecastDaily = dailyVelocity * (1 + Math.max(-0.3, Math.min(growthRate, 1)) * 0.5);
+  const availableStock = currentStock + (inventory?.incomingStock ?? 0);
+  const leadTimeDays = product.leadTimeDays ?? null;
+  let recommendedOrder = inventory ? Math.max(0, Math.round((forecastDaily * 42 - availableStock) / 50) * 50) : 0;
+  let orderDeadline: string | null = null;
+  let daysToDeadline: number | null = null;
+  let planBasis: ProductMetrics["planBasis"] = "6주 예측";
+  if (inventory && leadTimeDays && forecastDaily > 0) {
+    // OEM 생산기간 반영 (계약 별지 제1호 ②): 가용 재고가 '생산기간 + 안전일수'보다 먼저 떨어지면 지금 착수해야 한다
+    const coverNow = availableStock / forecastDaily;
+    daysToDeadline = Math.floor(coverNow - leadTimeDays - PLANNING.safetyDays);
+    orderDeadline = addDaysISO(today, daysToDeadline);
+    const need = forecastDaily * (leadTimeDays + PLANNING.safetyDays + PLANNING.coverDays) - availableStock;
+    recommendedOrder = need > 0 ? Math.max(product.moq ?? 0, Math.ceil(need / PLANNING.roundTo) * PLANNING.roundTo) : 0;
+    planBasis = "생산기간 반영";
+  }
 
-  return { productId: product.id, weekly, currentStock, recent4wUnits, prev4wUnits, growthRate, dailyVelocity, daysOfStock, marginRate, recent4wRevenue, stockStatus, recommendedOrder };
+  return { productId: product.id, weekly, currentStock, recent4wUnits, prev4wUnits, growthRate, dailyVelocity, daysOfStock, marginRate, recent4wRevenue, stockStatus, recommendedOrder, forecastDaily, availableStock, leadTimeDays, orderDeadline, daysToDeadline, planBasis };
 }
 
 export type MatrixZone = "성장·부족" | "안정" | "느린 판매" | "과잉재고";
@@ -331,13 +357,15 @@ export function generateCandidates(input: {
   b2b: B2BAccount[];
   customers: CustomerProfile[];
   today: string;
+  /** OEM 생산 계획 — 이미 생산중·입고예정이면 '생산 착수' 규칙을 내지 않는다 */
+  production?: ProductionPlan[];
   /** 2단계: 회원 구매기록 기반 재구매 · 정산 연체 (대표·관리자 데이터 — STAFF는 빈 배열) */
   accounts?: CustomerAccount[];
   purchases?: CustomerPurchase[];
   settlements?: Settlement[];
 }): GrowthActionCandidate[] {
   const out: GrowthActionCandidate[] = [];
-  const { products, metrics, channelStats, interest, b2b, customers, today, accounts = [], purchases = [], settlements = [] } = input;
+  const { products, metrics, channelStats, interest, b2b, customers, today, production = [], accounts = [], purchases = [], settlements = [] } = input;
   const daysText = (m: ProductMetrics) => (Number.isFinite(m.daysOfStock) ? `${Math.round(m.daysOfStock)}일` : "-");
 
   for (const p of products) {
@@ -349,11 +377,34 @@ export function generateCandidates(input: {
       { label: "현재 재고", value: `${m.currentStock.toLocaleString()}개` },
       { label: "4주 판매 성장률", value: `${g >= 0 ? "+" : ""}${g}%` },
     ];
-    if (m.stockStatus === "품절위험" && m.growthRate > 0.1) {
-      out.push({ ruleKey: `stock:${p.id}`, category: "재고", priority: "우선", title: `${p.name} 재고 확보`, judgement: `판매 증가로 재고가 약 ${daysText(m)}분만 남았습니다.`, evidence: [`최근 4주 판매 +${g}%`, `재고 소진 예상 ${daysText(m)}`, `추천 발주량 ${m.recommendedOrder.toLocaleString()}개 (6주 예측)`], impact: ["품절로 인한 판매기회 손실 방지"], recommendation: `추가 생산 약 ${m.recommendedOrder.toLocaleString()}개 발주를 검토하세요.`, decisionMethod: "RULE", linkedProductId: p.id, href: "/ax/products?tab=inventory", proofType: "INVENTORY_RISK_RESPONSE", snapshot: snap });
-    } else if (m.growthRate > 0.25 && m.stockStatus !== "과잉") {
+    const inProduction = production.some((x) => x.productId === p.id && (x.status === "생산중" || x.status === "입고예정"));
+    const leadDue = m.daysToDeadline != null && !!m.orderDeadline && m.daysToDeadline <= 14 && !inProduction && m.recommendedOrder > 0;
+    if (leadDue && m.daysToDeadline != null && m.orderDeadline) {
+      // OEM 생산 착수 마감 — 같은 상품의 일반 재고·생산·과잉 규칙보다 구체적이므로 대신 낸다 (판매 둔화 점검은 별개 판단이라 유지)
+      const d = m.daysToDeadline, lead = m.leadTimeDays!, cover = Math.round(m.availableStock / m.forecastDaily);
+      out.push({
+        ruleKey: `lead:${p.id}`, category: "생산", priority: d <= 0 ? "우선" : d <= 7 ? "높음" : "중간",
+        title: `${p.name} OEM 생산 착수 ${d <= 0 ? "(마감 지남)" : `D-${d}`}`,
+        judgement: d <= 0
+          ? `생산기간 ${lead}일과 안전재고 ${PLANNING.safetyDays}일을 감안한 착수 마감일(${m.orderDeadline})이 지났습니다. 지금 착수해도 입고 전에 재고가 부족할 수 있습니다.`
+          : `생산기간 ${lead}일과 안전재고 ${PLANNING.safetyDays}일을 감안하면 ${m.orderDeadline}까지 생산을 시작해야 품절 없이 입고됩니다.`,
+        evidence: [
+          `예측 일판매 ${m.forecastDaily.toFixed(1)}개 (최근 4주 ${m.dailyVelocity.toFixed(1)}개 × 추세 ${g >= 0 ? "+" : ""}${g}% 반영)`,
+          `가용 재고 ${m.availableStock.toLocaleString()}개 (현재 + 입고예정) → 약 ${cover}일분`,
+          `생산기간 ${lead}일 + 안전 ${PLANNING.safetyDays}일`,
+          `추천 생산량 ${m.recommendedOrder.toLocaleString()}개 (입고 후 ${PLANNING.coverDays}일분${p.moq ? ` · 최소 ${p.moq.toLocaleString()}개` : ""})`,
+        ],
+        impact: ["품절로 인한 판매기회 손실 방지", "급한 추가 생산(긴급 비용) 방지"],
+        recommendation: `${m.orderDeadline}까지 OEM 생산 약 ${m.recommendedOrder.toLocaleString()}개 착수를 검토하세요. 착수하면 생산 계획에 '생산중'으로 기록하세요.`,
+        decisionMethod: "RULE", linkedProductId: p.id, href: "/ax/products?tab=production", proofType: "PRODUCTION_ADJUSTMENT",
+        snapshot: [{ label: "착수 마감", value: m.orderDeadline }, { label: "가용 재고", value: `${m.availableStock.toLocaleString()}개 (${cover}일분)` }, { label: "생산기간", value: `${lead}일` }],
+      });
+    }
+    if (!leadDue && m.stockStatus === "품절위험" && m.growthRate > 0.1) {
+      out.push({ ruleKey: `stock:${p.id}`, category: "재고", priority: "우선", title: `${p.name} 재고 확보`, judgement: `판매 증가로 재고가 약 ${daysText(m)}분만 남았습니다.`, evidence: [`최근 4주 판매 +${g}%`, `재고 소진 예상 ${daysText(m)}`, `추천 발주량 ${m.recommendedOrder.toLocaleString()}개 (${m.planBasis})`], impact: ["품절로 인한 판매기회 손실 방지"], recommendation: `추가 생산 약 ${m.recommendedOrder.toLocaleString()}개 발주를 검토하세요.`, decisionMethod: "RULE", linkedProductId: p.id, href: "/ax/products?tab=inventory", proofType: "INVENTORY_RISK_RESPONSE", snapshot: snap });
+    } else if (!leadDue && m.growthRate > 0.25 && m.stockStatus !== "과잉") {
       out.push({ ruleKey: `prod:${p.id}`, category: "생산", priority: "높음", title: `${p.name} 생산량 확대 검토`, judgement: `최근 4주 판매가 ${g}% 증가했습니다.`, evidence: [`최근 4주 판매 +${g}%`, `재고 소진 예상 ${daysText(m)}`, `일 평균 ${m.dailyVelocity.toFixed(1)}개`], impact: ["품절 위험 사전 차단"], recommendation: "다음 생산수량 상향(예: 15~20%)을 OEM 일정과 함께 검토하세요.", decisionMethod: "STATISTICAL", linkedProductId: p.id, href: "/ax/products?tab=production", proofType: "PRODUCTION_ADJUSTMENT", snapshot: snap });
-    } else if (m.stockStatus === "과잉") {
+    } else if (!leadDue && m.stockStatus === "과잉") {
       out.push({ ruleKey: `over:${p.id}`, category: "재고", priority: "중간", title: `${p.name} 과잉재고 소진`, judgement: `판매속도 기준 재고가 약 ${daysText(m)}분입니다.`, evidence: [`재고 소진 예상 ${daysText(m)}`, `최근 4주 판매 ${g >= 0 ? "+" : ""}${g}%`], impact: ["재고 비용·현금 흐름 개선"], recommendation: "프로모션 또는 B2B·수출 채널 소진 물량 배정을 검토하세요.", decisionMethod: "RULE", linkedProductId: p.id, href: "/ax/products?tab=inventory", proofType: "INVENTORY_RISK_RESPONSE", snapshot: snap });
     } else if (m.growthRate < -0.2) {
       out.push({ ruleKey: `slow:${p.id}`, category: "채널", priority: "중간", title: `${p.name} 판매 둔화 점검`, judgement: `최근 4주 판매가 ${Math.abs(g)}% 감소했습니다.`, evidence: [`최근 4주 판매 ${g}%`, `주요 채널 ${p.mainChannelIds.length}개`], impact: ["부진 원인 조기 파악", "과잉재고 사전 방지"], recommendation: "채널별 노출·가격·시즌 요인을 점검하고 생산 계획을 보수적으로 조정하세요.", decisionMethod: "STATISTICAL", linkedProductId: p.id, href: "/ax/channels", proofType: "CHANNEL_STRATEGY", snapshot: snap });

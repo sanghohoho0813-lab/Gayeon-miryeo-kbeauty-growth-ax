@@ -145,7 +145,7 @@ AX OWNER(실증 책임자)는 Auth Role과 별개: `AX_COACH_PLAN.md` — REQUIR
 | 기능 | Business Question | Input | Method | Output | Why This Method | Error Cost | Human Approval | Evidence |
 |---|---|---|---|---|---|---|---|---|
 | 재고 위험 | 언제 품절/과잉인가 | 재고, 4주 판매 | RULE | 재고일수·상태 | 수식으로 충분 | MID | 불필요(표시) | 재고 Action |
-| 추천 발주량 | 얼마나 더 생산할까 | 판매속도·성장률·입고예정 | RULE (6주 예측) | 수량 | 설명 가능성 우선 | MID | 필수 | Proof |
+| 추천 발주량 | 얼마나 더 생산할까 | 판매속도·성장률·입고예정·OEM 생산기간·MOQ (PASS 10) | RULE (6주 예측, 생산기간 입력 시 생산기간+안전 14일+6주) | 수량 | 설명 가능성 우선 | MID | 필수 | Proof |
 | 성장/부진 SKU | 무엇이 뜨는가 | 4주 vs 이전 4주 | STATISTICAL (성장률) | 랭킹 | 단순 비교로 충분 | LOW | 불필요 | — |
 | 채널 수익성 | 어디를 키울까 | 매출·할인율 | RULE (지수) | 수익성 지수 | 데이터 부족 단계 | MID | 필수 | Proof |
 | 고객 관심 상승 | 어떤 제품에 수요 신호가 있나 | customer_events 7일 vs 이전 7일 | RULE (가중점수) | Growth Action | 이벤트 수 적음, ML 과함 | LOW | 필수 | Proof |

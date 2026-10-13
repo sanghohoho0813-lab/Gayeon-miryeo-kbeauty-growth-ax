@@ -22,13 +22,13 @@ const toProduct = (r: Row): Product => ({
   id: r.id, sku: r.sku, name: r.name, nameEn: r.name_en ?? undefined, category: r.category, line: r.line ?? undefined,
   price: Number(r.price), cost: r.cost == null ? undefined : Number(r.cost), status: r.status, description: r.description ?? undefined,
   concerns: r.concerns ?? [], texture: r.texture ?? undefined, routineStep: r.routine_step ?? undefined, isNew: r.is_new, isBest: r.is_best,
-  isPublished: r.is_published, purchaseLinks: r.purchase_links ?? [], mainChannelIds: r.main_channel_ids ?? [], featuredUntil: r.featured_until, usageDays: r.usage_days ?? null, isDemo: r.is_demo,
+  isPublished: r.is_published, purchaseLinks: r.purchase_links ?? [], mainChannelIds: r.main_channel_ids ?? [], featuredUntil: r.featured_until, usageDays: r.usage_days ?? null, leadTimeDays: r.lead_time_days ?? null, moq: r.moq ?? null, isDemo: r.is_demo,
 });
 const fromProduct = (p: Product, org: string): Row => ({
   id: p.id, organization_id: org, sku: p.sku, name: p.name, name_en: p.nameEn ?? null, category: p.category, line: p.line ?? null,
   price: p.price, cost: p.cost ?? null, status: p.status, description: p.description ?? null, concerns: p.concerns, texture: p.texture ?? null,
   routine_step: p.routineStep ?? null, is_new: !!p.isNew, is_best: !!p.isBest, is_published: p.isPublished, purchase_links: p.purchaseLinks,
-  main_channel_ids: p.mainChannelIds, featured_until: p.featuredUntil ?? null, usage_days: p.usageDays ?? null, is_demo: !!p.isDemo,
+  main_channel_ids: p.mainChannelIds, featured_until: p.featuredUntil ?? null, usage_days: p.usageDays ?? null, lead_time_days: p.leadTimeDays ?? null, moq: p.moq ?? null, is_demo: !!p.isDemo,
 });
 const toInventory = (r: Row): Inventory => ({ productId: r.product_id, currentStock: r.current_stock, safetyStock: r.safety_stock, incomingStock: r.incoming_stock, incomingDate: r.incoming_date, updatedAt: r.updated_at });
 const toProduction = (r: Row): ProductionPlan => ({ id: r.id, productId: r.product_id, partner: r.partner, lastProducedAt: r.last_produced_at, quantity: r.quantity, expectedArrival: r.expected_arrival, status: r.status, nextRecommendedAt: r.next_recommended_at });
@@ -82,7 +82,7 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
   return {
     mode: "live",
     async loadAx(): Promise<DataSnapshot> {
-      const [o, products, inventory, production, channels, sales, b2b, exports, customers, events, actions, aevents, proofs, tech, baselines, accounts, purchases, settlements] = await Promise.all([
+      const [o, products, inventory, production, channels, sales, b2b, exports, customers, events, actions, aevents, proofs, tech, baselines, accounts, purchases, settlements, targets] = await Promise.all([
         sb.from("organizations").select("*").eq("id", org).single(),
         sb.from("products").select("*").eq("organization_id", org).order("created_at"),
         sb.from("inventory").select("*").eq("organization_id", org),
@@ -101,7 +101,9 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
         sb.from("customer_accounts").select("*").eq("organization_id", org).order("created_at"),
         sb.from("customer_purchases").select("*").eq("organization_id", org).order("purchased_on"),
         sb.from("settlements").select("*").eq("organization_id", org).order("issued_on"),
+        sb.from("monthly_targets").select("*").eq("organization_id", org).order("month"),
       ]);
+      if (targets.error) throw new Error(`${targets.error.message} — supabase/migrations/008 적용 여부를 확인하세요`);
       for (const r of [accounts, purchases, settlements]) if (r.error) throw new Error(`${r.error.message} — supabase/migrations/007 적용 여부를 확인하세요`);
       if (baselines.error) throw new Error(`${baselines.error.message} — supabase/migrations/005 적용 여부를 확인하세요`);
       if (o.error) throw new Error(o.error.message);
@@ -128,6 +130,7 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
         customerAccounts: must<Row[]>(accounts).map(toCustomerAccount),
         customerPurchases: must<Row[]>(purchases).map(toPurchase),
         settlements: must<Row[]>(settlements).map(toSettlement),
+        monthlyTargets: must<Row[]>(targets).map((r) => ({ month: r.month, revenueTarget: Number(r.revenue_target), note: r.note ?? null, setBy: r.set_by ?? null, updatedAt: r.updated_at })),
         loadedAt: new Date().toISOString(),
       };
     },
@@ -169,6 +172,11 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
       const payload = rows.map((r) => ({ organization_id: org, product_id: r.productId, channel_id: r.channelId, sale_date: r.saleDate, units: r.units, revenue: r.revenue, source: r.source }));
       must(await sb.from("sales_records").insert(payload).select("id"));
       return rows.length;
+    },
+    async deleteSales(ids) {
+      let n = 0;
+      for (let i = 0; i < ids.length; i += 200) n += must<Row[]>(await sb.from("sales_records").delete().eq("organization_id", org).in("id", ids.slice(i, i + 200)).select("id")).length;
+      return n;
     },
     async createActions(cands) {
       for (const c of cands) {
@@ -231,6 +239,12 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
       const row: Row = { organization_id: org, kind: st.kind, counterparty: st.counterparty, ref_id: st.refId ?? null, description: st.description ?? null, amount: st.amount, paid_amount: st.paidAmount, issued_on: st.issuedOn, due_on: st.dueOn ?? null, paid_on: st.paidOn ?? null, status: st.status, note: st.note ?? null };
       if (!st.id.startsWith("new-")) row.id = st.id;
       must(await sb.from("settlements").upsert(row).select("id"));
+    },
+    async upsertMonthlyTarget(t) {
+      must(await sb.from("monthly_targets").upsert({ organization_id: org, month: t.month, revenue_target: t.revenueTarget, note: t.note ?? null }, { onConflict: "organization_id,month" }).select("month"));
+    },
+    async deleteMonthlyTarget(month) {
+      must(await sb.from("monthly_targets").delete().eq("organization_id", org).eq("month", month).select("month"));
     },
     async addStaffPurchase(p) {
       const { error } = await sb.from("customer_purchases").insert({ organization_id: org, customer_user_id: p.customerUserId, product_id: p.productId, quantity: p.quantity, purchased_on: p.purchasedOn, channel_label: p.channelLabel ?? null, note: p.note ?? null, source: "STAFF" });

@@ -141,7 +141,7 @@ function cellToString(c: unknown): string {
 }
 
 /* ---------- 상품 일괄 등록 (SKU 기준: 없으면 신규, 있으면 파일에 값이 있는 항목만 갱신) ---------- */
-export type ProductField = "sku" | "name" | "category" | "price" | "cost" | "line" | "concerns" | "texture" | "routineStep" | "usageDays" | "purchaseUrl" | "isPublished";
+export type ProductField = "sku" | "name" | "category" | "price" | "cost" | "line" | "concerns" | "texture" | "routineStep" | "usageDays" | "leadTimeDays" | "moq" | "purchaseUrl" | "isPublished";
 
 export const PRODUCT_FIELDS: FieldDef<ProductField>[] = [
   { key: "sku", label: "SKU / 상품코드", required: true, hint: "상품을 구분하는 고유 코드", aliases: ["sku", "상품코드", "제품코드", "품번", "자체상품코드", "관리코드", "itemcode"] },
@@ -154,6 +154,8 @@ export const PRODUCT_FIELDS: FieldDef<ProductField>[] = [
   { key: "texture", label: "사용감 (선택)", required: false, hint: "가벼움·중간·리치", aliases: ["texture", "사용감", "제형", "텍스처"] },
   { key: "routineStep", label: "루틴 단계 (선택)", required: false, hint: "1~4", aliases: ["routinestep", "routine_step", "루틴", "루틴단계", "단계", "step"] },
   { key: "usageDays", label: "사용기간 일수 (선택)", required: false, hint: "1개 사용 기간, 재구매 예상 계산", aliases: ["usagedays", "usage_days", "사용기간", "사용일수", "사용주기", "소진기간"] },
+  { key: "leadTimeDays", label: "OEM 생산기간 일수 (선택)", required: false, hint: "발주→입고 일수, 생산 착수 마감일 계산", aliases: ["leadtime", "lead_time", "leadtimedays", "생산기간", "리드타임", "생산리드타임", "제조기간", "납기일수", "생산소요일"] },
+  { key: "moq", label: "최소 생산수량 (선택)", required: false, hint: "MOQ, 개", aliases: ["moq", "최소생산수량", "최소주문수량", "최소발주수량", "최소수량"] },
   { key: "purchaseUrl", label: "구매 링크 (선택)", required: false, hint: "https://…", aliases: ["url", "link", "구매링크", "구매url", "상품url", "상품링크", "링크"] },
   { key: "isPublished", label: "고객 화면 공개 (선택)", required: false, hint: "Y/N, 공개/비공개. 비우면 신규는 비공개", aliases: ["ispublished", "is_published", "공개", "공개여부", "노출", "노출여부", "published"] },
 ];
@@ -221,13 +223,13 @@ export function validateProductRows(input: { body: string[][]; map: Record<Produ
     };
 
     const name = cell(raw, "name");
-    if (name) set("name", name, "제품명"); else if (!prev) errors.push("제품명 비어 있음");
+    if (name) set("name", name, "제품명"); else if (!prev) errors.push("새 상품 — 제품명 필요");
     const catRaw = cell(raw, "category");
     if (catRaw) { const c = normalizeCategory(catRaw); if (c) set("category", c, "카테고리"); else errors.push(`카테고리 인식 불가: ${catRaw}`); }
-    else if (!prev) errors.push("카테고리 비어 있음");
+    else if (!prev) errors.push("새 상품 — 카테고리 필요");
     const priceRaw = cell(raw, "price");
     if (priceRaw) { const v = normalizeNumber(priceRaw); if (Number.isInteger(v) && v > 0) set("price", v, "판매가"); else errors.push(`판매가 오류: ${priceRaw}`); }
-    else if (!prev) errors.push("판매가 비어 있음");
+    else if (!prev) errors.push("새 상품 — 판매가 필요");
     const costRaw = cell(raw, "cost");
     if (costRaw) { const v = normalizeNumber(costRaw); if (Number.isFinite(v) && v >= 0) set("cost", v, "원가"); else errors.push(`원가 오류: ${costRaw}`); }
     const line = cell(raw, "line");
@@ -240,6 +242,10 @@ export function validateProductRows(input: { body: string[][]; map: Record<Produ
     if (stepRaw) { const v = Number(stepRaw.replace(/[^0-9]/g, "")); if (v >= 1 && v <= 4) set("routineStep", v, "루틴 단계"); else errors.push(`루틴 단계 1~4: ${stepRaw}`); }
     const useRaw = cell(raw, "usageDays");
     if (useRaw) { const v = Number(useRaw.replace(/[^0-9]/g, "")); if (v >= 1 && v <= 365) set("usageDays", v, "사용기간"); else errors.push(`사용기간 1~365일: ${useRaw}`); }
+    const leadRaw = cell(raw, "leadTimeDays");
+    if (leadRaw) { const v = Number(leadRaw.replace(/[^0-9]/g, "")); if (v >= 1 && v <= 365) set("leadTimeDays", v, "생산기간"); else errors.push(`생산기간 1~365일: ${leadRaw}`); }
+    const moqRaw = cell(raw, "moq");
+    if (moqRaw) { const v = normalizeNumber(moqRaw); if (Number.isInteger(v) && v >= 0 && v <= 10_000_000) set("moq", v, "최소 생산수량"); else errors.push(`최소 생산수량 오류: ${moqRaw}`); }
     const url = cell(raw, "purchaseUrl");
     if (url) {
       if (!/^https?:\/\/\S+$/i.test(url)) errors.push(`구매 링크 형식 오류: ${url}`);

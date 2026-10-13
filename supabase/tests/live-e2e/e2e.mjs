@@ -450,6 +450,48 @@ if (PHASE === "B") {
   ok("Live 같은 파일 다시 → 새 항목 없음 (버튼 비활성) · DB 변화 없음", (await owner.getByTestId("transfer-apply").isDisabled()) && (await owner.getByTestId("transfer-apply").innerText()).includes("가져올 새 항목 없음") && (await count("select count(*) n from sales_records where organization_id = $1", [orgId])) === salesAfter);
   await owner.getByRole("button", { name: "취소" }).last().click();
 
+  // 10-1d. PASS 10 — OEM 생산기간·월 목표·사후 성과·데이터 품질 (Live)
+  await owner.goto(`${APP}/ax/data?tab=products`, { waitUntil: "networkidle" });
+  await owner.getByRole("button", { name: /E2E 토너/ }).first().click();
+  await owner.fill("#p-lead", "20");
+  await owner.fill("#p-moq", "300");
+  await owner.getByRole("button", { name: /^저장/ }).last().click();
+  await owner.waitForTimeout(1200);
+  const leadRow = await one("select lead_time_days, moq from products where organization_id = $1 and sku = 'MR-TONER-01'", [orgId]);
+  ok("Live 상품 폼: 생산기간 20 · MOQ 300 → products (008)", leadRow?.lead_time_days === 20 && leadRow?.moq === 300, JSON.stringify(leadRow));
+  await owner.goto(`${APP}/ax/products?tab=production`, { waitUntil: "networkidle" });
+  ok("Live 생산 착수 일정에 표시", await owner.locator('[data-schedule="MR-TONER-01"]').waitFor({ timeout: 10000 }).then(() => true, () => false));
+  const kstMonth = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Seoul" }).format(new Date()).slice(0, 7);
+  await owner.goto(`${APP}/ax/monthly`, { waitUntil: "networkidle" });
+  await owner.fill("#target-input", "5,000,000");
+  await owner.getByRole("button", { name: "목표 저장" }).click();
+  await owner.waitForTimeout(1200);
+  const tgt = await one("select revenue_target, set_by from monthly_targets where organization_id = $1 and month = $2", [orgId, kstMonth]);
+  ok("Live 월 목표 저장 → monthly_targets · 입력자 = 실제 로그인 계정", Number(tgt?.revenue_target) === 5000000 && tgt?.set_by === "owner@miryeo.test", JSON.stringify(tgt));
+  ok("Live 목표 카드: 달성률 표시", (await owner.getByTestId("target-card").getAttribute("data-status")) !== "목표 없음" && (await owner.getByTestId("target-card").innerText()).includes("owner@miryeo.test"));
+  await admin.goto(`${APP}/ax/monthly`, { waitUntil: "networkidle" });
+  await admin.getByTestId("target-card").waitFor({ timeout: 10000 });
+  const adminTgt = await admin.evaluate(async ({ gw, org, month }) => {
+    const key = Object.keys(localStorage).find((k) => k.includes("auth-token"));
+    const tok = JSON.parse(localStorage.getItem(key)).access_token;
+    const h = { authorization: `Bearer ${tok}`, apikey: "x", "content-type": "application/json" };
+    const read = (await (await fetch(`${gw}/rest/v1/monthly_targets?select=*`, { headers: h })).json()).length;
+    const w = await fetch(`${gw}/rest/v1/monthly_targets`, { method: "POST", headers: h, body: JSON.stringify({ organization_id: org, month: "2020-01", revenue_target: 1 }) });
+    return [read, w.status];
+  }, { gw: GW, org: orgId, month: kstMonth });
+  ok("ADMIN: 목표 열람 가능 · 입력칸 없음 · API로 입력 시도 차단 (RLS)", adminTgt[0] === 1 && adminTgt[1] >= 400 && (await admin.locator("#target-input").count()) === 0 && (await count("select count(*) n from monthly_targets where organization_id = $1", [orgId])) === 1, JSON.stringify(adminTgt));
+  await owner.goto(`${APP}/ax/reports/weekly`, { waitUntil: "networkidle" });
+  ok("Live 주간 리포트: 완료 Action 사후 성과 (자동 측정)", await owner.locator('[data-testid="weekly-report"] [data-testid="action-outcome"]').first().waitFor({ timeout: 10000 }).then(() => true, () => false));
+  const qProd = await one("select id from products where organization_id = $1 and sku = 'MR-TONER-01'", [orgId]);
+  const qCh = await one("select channel_id id from sales_records where organization_id = $1 and product_id = $2 limit 1", [orgId, qProd.id]);
+  await db.query("insert into sales_records (organization_id, product_id, channel_id, sale_date, units, revenue, source) values ($1, $2, $3, (now() at time zone 'Asia/Seoul')::date + 7, 1, 1000, 'e2e-future')", [orgId, qProd.id, qCh.id]);
+  await owner.goto(`${APP}/ax/data?tab=quality`, { waitUntil: "networkidle" });
+  await owner.locator('[data-fix="future-sale"]').waitFor({ timeout: 10000 });
+  ok("Live 품질 점검: 미래 날짜 판매 오류 판정", (await owner.locator('[data-issue="future-sale"]').innerText()).includes("1건"));
+  await owner.locator('[data-fix="future-sale"]').click();
+  await owner.waitForTimeout(1500);
+  ok("Live 품질 정리: 미래 날짜 판매 삭제 (DB) · 다른 판매 유지", (await count("select count(*) n from sales_records where organization_id = $1 and source = 'e2e-future'", [orgId])) === 0 && (await count("select count(*) n from sales_records where organization_id = $1", [orgId])) === salesAfter && (await owner.locator('[data-issue="future-sale"]').count()) === 0);
+
   // 10-2. 공개 전 점검 (/ax/system) — 정상 판정 + RLS를 끄면 노출을 잡아내는지
   const runCheck = async () => {
     await owner.locator('[data-testid="readiness-summary"]').getByText(/공개 가능|해결 필요/).waitFor({ timeout: 30000 });
@@ -459,7 +501,7 @@ if (PHASE === "B") {
   };
   await owner.goto(`${APP}/ax/system`, { waitUntil: "networkidle" });
   let st = await runCheck();
-  ok("공개 전 점검: migration 001·005·006·007 적용 판정", ["m001", "m005", "m006", "m007"].every((k) => st[k] === "ok"), JSON.stringify(st));
+  ok("공개 전 점검: migration 001·005·006·007·008 적용 판정", ["m001", "m005", "m006", "m007", "m008"].every((k) => st[k] === "ok"), JSON.stringify(st));
   ok("공개 전 점검: 익명 노출 없음 · 비공개 상품 차단", st["anon-leak"] === "ok" && st["anon-unpublished"] === "ok" && (await owner.locator('[data-check="anon-leak"]').innerText()).includes("판매"));
   ok("공개 전 점검: 조직 ID 일치 · 공개 상품 · 관리 키 유효", st["public-org"] === "ok" && st["public-products"] === "ok" && st["service-role"] === "ok" && (await owner.getByTestId("org-id").innerText()) === orgId);
   ok("공개 전 점검: 문제 0건 → 공개 가능", (await owner.getByTestId("readiness-summary").getAttribute("data-ready")) === "1" && (await owner.getByTestId("readiness-summary").innerText()).includes("공개 가능"));

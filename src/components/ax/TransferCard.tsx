@@ -66,12 +66,12 @@ export function TransferCard() {
             ? "Supabase 연결 전(Demo 주소)에 입력해 둔 실데이터 백업 파일을 여기서 한 번에 가져옵니다. 운영 데이터 백업 파일도 받을 수 있습니다."
             : "Demo 주소에서 입력한 실데이터는 이 브라우저에만 저장됩니다. 백업 파일을 받아 두면 브라우저 데이터가 지워져도 복원할 수 있고, Supabase 연결 후 다시 입력하지 않고 그대로 옮길 수 있습니다."}
         </p>
-        <p className="mt-1 text-[0.8rem] text-ink-soft">포함: 채널·상품·재고·판매·정산, Pilot 시작일·AX OWNER (Demo 시드 제외). 제외: 고객 개인정보·고객 행동·Action/Proof 이력·Baseline(운영 환경에서 다시 잠금).</p>
+        <p className="mt-1 text-[0.8rem] text-ink-soft">포함: 채널·상품·재고·판매·정산·월 매출 목표, Pilot 시작일·AX OWNER (Demo 시드 제외). 제외: 고객 개인정보·고객 행동·Action/Proof 이력·Baseline(운영 환경에서 다시 잠금).</p>
 
         <div className="mt-3 grid gap-3 @3xl:grid-cols-2">
           <div className="rounded-xl border p-3.5" style={{ borderColor: "var(--border)" }}>
             <div className="flex items-center gap-2 font-semibold"><DatabaseBackup size={17} aria-hidden /> 백업 파일 받기</div>
-            <p className="mt-1 text-[0.84rem] tabular" data-testid="transfer-summary">실데이터: 상품 {summary.products} · 채널 {summary.channels} · 재고 {summary.inventory} · 판매 {summary.sales.toLocaleString()} · 정산 {summary.settlements}{summary.skippedDemoSales ? ` (Demo 상품 판매 ${summary.skippedDemoSales.toLocaleString()}건 제외)` : ""}</p>
+            <p className="mt-1 text-[0.84rem] tabular" data-testid="transfer-summary">실데이터: 상품 {summary.products} · 채널 {summary.channels} · 재고 {summary.inventory} · 판매 {summary.sales.toLocaleString()} · 정산 {summary.settlements} · 월 목표 {summary.targets}{summary.skippedDemoSales ? ` (Demo 상품 판매 ${summary.skippedDemoSales.toLocaleString()}건 제외)` : ""}</p>
             <button className="btn-secondary mt-2 !min-h-[40px] text-[0.86rem]" disabled={!canExport || !hasReal} onClick={download} data-testid="transfer-download">백업 파일(.json) 받기</button>
             {!canExport && <p className="mt-1 text-[0.78rem] text-ink-soft">대표·관리자 권한</p>}
             {canExport && !hasReal && <p className="mt-1 text-[0.78rem] text-ink-soft">아직 직접 입력한 실데이터가 없습니다.</p>}
@@ -97,6 +97,7 @@ export function TransferCard() {
               <li>재고 <b>{plan.inventory.length}</b></li>
               <li>판매 <b>새로 {plan.sales.create.length.toLocaleString()}</b> · 중복 {plan.sales.duplicate.toLocaleString()}</li>
               <li>정산 <b>새로 {plan.settlements.create.length}</b> · 이미 있음 {plan.settlements.matched}</li>
+              <li>월 목표 <b>새로 {plan.targets.create.length}</b> · 이미 있음 {plan.targets.matched}</li>
               <li>설정 {Object.keys(plan.org).length ? Object.keys(plan.org).map((k) => (k === "pilotStartedOn" ? "Pilot 시작일" : "AX OWNER")).join("·") : "변경 없음"}</li>
             </ul>
             <p className="mt-2 text-[0.8rem] text-ink-soft">이미 있는 상품(SKU 같음)·채널(이름 같음)·정산·판매는 건너뛰고 기존 값을 바꾸지 않습니다. 여러 번 가져와도 중복되지 않습니다.</p>

@@ -11,6 +11,7 @@ import { SalesImport } from "@/components/ax/SalesImport";
 import { ProductImport } from "@/components/ax/ProductImport";
 import { ExportCenter } from "@/components/ax/ExportCenter";
 import { TransferCard } from "@/components/ax/TransferCard";
+import { DataQualityCard } from "@/components/ax/DataQualityCard";
 import { buildTransfer } from "@/lib/transfer";
 import { EmptyState } from "@/components/ax/States";
 import { DataFreshness } from "@/components/ax/DataFreshness";
@@ -29,6 +30,7 @@ const TABS = [
   { id: "channels", label: "채널" },
   { id: "production", label: "OEM 생산" },
   { id: "b2b", label: "B2B 거래처" },
+  { id: "quality", label: "품질 점검" },
   { id: "export", label: "내보내기" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
@@ -51,6 +53,7 @@ function Inner() {
       {tab === "channels" && <ChannelsTab />}
       {tab === "production" && <ProductionTab />}
       {tab === "b2b" && <B2BTab />}
+      {tab === "quality" && <DataQualityCard />}
       {tab === "export" && <><ExportCenter /><TransferCard /></>}
     </div>
   );
@@ -185,6 +188,8 @@ function ProductForm({ value, busy, channels, onSave, onCancel, skuTaken }: { va
         <div><label className="field-label" htmlFor="p-cost">원가 (원, 선택·민감)</label><input id="p-cost" className="field tabular" inputMode="numeric" value={p.cost ?? ""} onChange={(e) => setP({ ...p, cost: e.target.value === "" ? undefined : Number(e.target.value) })} /></div>
         <div><label className="field-label" htmlFor="p-tex">사용감</label><select id="p-tex" className="field" value={p.texture ?? ""} onChange={(e) => setP({ ...p, texture: (e.target.value || undefined) as Texture | undefined })}><option value="">미입력</option>{["가벼움", "중간", "리치"].map((t) => <option key={t}>{t}</option>)}</select></div>
         <div><label className="field-label" htmlFor="p-usage">사용기간 (일, 1개 기준 · 재구매 예상 계산)</label><input id="p-usage" className="field tabular" inputMode="numeric" placeholder="미입력 시 종류별 추정" value={p.usageDays ?? ""} onChange={(e) => setP({ ...p, usageDays: e.target.value === "" ? null : Math.min(365, Math.max(1, Number(e.target.value) || 1)) })} /></div>
+        <div><label className="field-label" htmlFor="p-lead">OEM 생산기간 (일, 발주→입고)</label><input id="p-lead" className="field tabular" inputMode="numeric" placeholder="생산 착수 마감일 계산" value={p.leadTimeDays ?? ""} onChange={(e) => setP({ ...p, leadTimeDays: e.target.value === "" ? null : Math.min(365, Math.max(1, Number(e.target.value.replace(/[^0-9]/g, "")) || 1)) })} /></div>
+        <div><label className="field-label" htmlFor="p-moq">최소 생산수량 (MOQ, 개)</label><input id="p-moq" className="field tabular" inputMode="numeric" placeholder="선택" value={p.moq ?? ""} onChange={(e) => setP({ ...p, moq: e.target.value === "" ? null : Math.min(10_000_000, Math.max(0, Number(e.target.value.replace(/[^0-9]/g, "")) || 0)) })} /></div>
         <div><label className="field-label" htmlFor="p-step">루틴 단계</label><select id="p-step" className="field" value={p.routineStep ?? ""} onChange={(e) => setP({ ...p, routineStep: e.target.value ? Number(e.target.value) : undefined })}><option value="">미입력</option>{[1, 2, 3, 4].map((n) => <option key={n} value={n}>STEP {n}</option>)}</select></div>
       </div>
       <div>

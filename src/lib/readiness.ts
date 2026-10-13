@@ -58,6 +58,7 @@ const SCHEMA: { id: string; label: string; probes: [string, string?][]; rpc?: st
   { id: "m005", label: "Baseline·AX OWNER (005)", probes: [["kpi_baselines"], ["organizations", "ax_owner_name"]], file: "005" },
   { id: "m006", label: "고객 이벤트 한도 (006)", probes: [], rpc: "event_limits", file: "006" },
   { id: "m007", label: "고객 회원·구매기록·정산 (007)", probes: [["customer_accounts", "user_id"], ["customer_purchases"], ["settlements"], ["products", "usage_days"]], file: "007" },
+  { id: "m008", label: "OEM 생산기간·월 매출 목표 (008)", probes: [["products", "lead_time_days"], ["products", "moq"], ["monthly_targets", "month"]], file: "008" },
 ];
 
 /* 익명에게 0행이어야 하는 테이블 — 구성원에게 보이는 행 수와 비교 */

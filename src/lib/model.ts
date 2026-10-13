@@ -33,7 +33,7 @@ export function buildModel(snapshot: DataSnapshot): AxModel {
   const customer = computeCustomerInsight(snapshot.customerEvents);
   const candidates = generateCandidates({
     products: snapshot.products, metrics, channelStats, interest: customer.productInterest,
-    b2b: snapshot.b2b, customers: snapshot.customers, today,
+    b2b: snapshot.b2b, customers: snapshot.customers, today, production: snapshot.production,
     accounts: snapshot.customerAccounts, purchases: snapshot.customerPurchases, settlements: snapshot.settlements,
   });
   const actions = sortActions(snapshot.actions);

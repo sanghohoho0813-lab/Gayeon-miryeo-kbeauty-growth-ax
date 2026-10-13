@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionOutcomeView } from "@/components/ax/ActionOutcomeView";
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, ExternalLink, FileText, Lock, Plus, XCircle } from "lucide-react";
@@ -236,6 +237,7 @@ function ProofItem({ p, canConfirm, onStatus }: { p: ProofEvent; canConfirm: boo
           ))}
         </div>
       )}
+      <ProofOutcome p={p} />
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {p.evidenceLink && <a href={p.evidenceLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[0.86rem] font-semibold" style={{ color: "var(--primary)" }}>증빙 <ExternalLink size={13} aria-hidden /></a>}
         {p.status === "RECORDED" && canConfirm && (
@@ -272,4 +274,11 @@ function ManualProof({ onClose, onSave }: { onClose: () => void; onSave: (p: Omi
       </div>
     </Modal>
   );
+}
+
+/* 연결된 Action의 사후 성과 — 대표가 결과를 확정하기 전에 보는 참고 근거 */
+function ProofOutcome({ p }: { p: ProofEvent }) {
+  const m = useModel();
+  const a = p.growthActionId ? m.snapshot.actions.find((x) => x.id === p.growthActionId) : undefined;
+  return a ? <ActionOutcomeView action={a} compact /> : null;
 }

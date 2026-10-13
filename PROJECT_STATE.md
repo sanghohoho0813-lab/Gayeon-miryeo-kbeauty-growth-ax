@@ -1,14 +1,14 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-10-09 (PASS 9 — 작업 데이터 백업·이관, 사업화 자료 기간 선택)
+LAST UPDATED: 2026-10-13 (PASS 10 — OEM 생산기간 반영 생산 착수 일정, 월 매출 목표, Action 사후 성과, 데이터 품질 점검)
 DELIVERY STAGE: 계약 제11조 2단계 개발 완료(1차 보고·5영업일 확인 대기) + **3단계 일부 개발 착수**(사용자 지시 2026-10-09: "3단계도 일부 개발, Supabase는 나중에 연동")
-CURRENT PASS: 9 — 3단계 계속(Supabase 연결 전). Demo 주소에 넣은 실데이터를 백업 파일로 받아 두고 Live 전환 후 그대로 이관(중복 없음), 사업화 실적 자료 기간(최근 12개월·올해·작년). **push = Production 배포**(D-040)
+CURRENT PASS: 10 — 3단계 기능 보완(Supabase 연결 전). 핵심모듈 ② 남은 틈(OEM 생산기간이 발주량 계산에 미반영) 해소, 월 목표·달성률, 완료 Action 전후 자동 측정, 데이터 품질 점검·정리. migration 008 추가. **push = Production 배포**(D-040)
 
 ## 계약 별지 제1호 대조 (2026-09-30 기준)
 | No | 핵심모듈 | 구현 | 화면 |
 |---|---|---|---|
-| 1 | 통합 경영 현황판 — 월별·채널별·제품별 매출, 이익, 재고, 받을 돈, 수출, B2B | ✅ 대시보드(4주 KPI + 이번 달 매출·매출총이익·받을 돈) + 월별 실적(12개월·채널별·제품별) | `/ax`, `/ax/monthly` |
-| 2 | 제품별 재고·생산 분석 — 원가·판매가·이익·재고·판매속도·소진일·OEM | ✅ (OEM 생산기간은 생산계획 입고예정일로 관리, 발주량 계산에는 미반영) | `/ax/products` |
+| 1 | 통합 경영 현황판 — 월별·채널별·제품별 매출, 이익, 재고, 받을 돈, 수출, B2B | ✅ 대시보드(4주 KPI + 이번 달 매출·매출총이익·받을 돈 + 목표 대비) + 월별 실적(12개월·채널별·제품별·**월 목표·달성률**) | `/ax`, `/ax/monthly` |
+| 2 | 제품별 재고·생산 분석 — 원가·판매가·이익·재고·판매속도·소진일·OEM | ✅ **OEM 생산기간·최소 생산수량 반영**: 생산 착수 마감일·추천 생산량·착수 Action (PASS 10, 이전 틈 해소) | `/ax/products?tab=production` |
 | 3 | 판매채널·B2B·수출 성과관리 — 실적 비교, 거래처·납품·정산 상태 | ✅ 채널 분석·B2B·수출 + 정산·미수금(청구·부분입금·연체) | `/ax/channels` |
 | 4 | AI 성장 실행센터 — 행동 제안 + 대표자용 요약 | ✅ RULE 행동추천·Action 생애주기 + 대표 브리핑(RULE 요약). Claude 문장화 구현·숫자 검증 포함, 기본 꺼짐(READY — 고객사 승인·API 키) | `/ax/growth`, `/ax` |
 | 5 | AI 제품·사용순서 추천 → 구매 결정 | ✅ Finder → 루틴 → 제품 상세 → 구매처 이동 | `/beauty/finder` |
@@ -26,10 +26,20 @@ CURRENT PASS: 9 — 3단계 계속(Supabase 연결 전). Demo 주소에 넣은 �
 | 산출물 | 개발 부분 | 상태 | 남은 것 (막힌 이유) |
 |---|---|---|---|
 | 실제 자료 적용 | 판매 파일 하나로 시작: 미등록 상품·채널 즉시 등록(추정값 확인) + 자료 진단 + **Demo에서 입력한 실데이터 백업·Live 이관** | PILOT — Demo·Live E2E VERIFIED | 실제 판매·상품 엑셀 (USER), Live 전환 (USER: Supabase) |
-| 기능 보완 | 위 + 실데이터 시작 가이드·주간 운영 점검·공개 전 점검(PASS 5~6) | PILOT | 실사용 피드백 (Live 이후) |
+| 기능 보완 | 위 + 실데이터 시작 가이드·주간 운영 점검·공개 전 점검(PASS 5~6) + **생산 착수 일정·월 목표·Action 사후 성과·데이터 품질 점검(PASS 10)** | PILOT — Demo·Live E2E VERIFIED | 실사용 피드백 (Live 이후), 실제 생산기간·MOQ·월 목표 (USER) |
 | 정책자금·보증용 사업화자료 | 사업화 실적 자료 — 기록만 집계(매출 추이·채널·B2B·수출·제품·고객 반응·AX 운영·출처), 인쇄/PDF·근거 CSV, Demo는 '제출 불가' | PILOT | 실데이터 (USER). 신청서 본문·재무·회사 개요는 개발 범위 밖 |
 | 벤처 신청/보완 | 사업화 실적 자료 + 기술자산 상태 + 현장확인 Q&A(특허·기술은 '대표 답변 준비') | 일부 | 특허기술자료·신청서 (개발 범위 밖) |
 | 담당자 면담/현장확인 대비 | 하루 전 점검·시연 순서 7단계(현재 근거 표시)·예상 질문 7개(시스템 사실만) | PILOT | 실데이터로 리허설 (Live 이후) |
+
+## PASS 10 변경 요약 (2026-10-13)
+| 항목 | 상태 |
+|---|---|
+| A. OEM 생산기간·최소 생산수량 (migration 008 `products.lead_time_days`·`moq`): 상품·재고·생산 > OEM 생산 '생산 착수 일정'(마감 가까운 순, 미입력 상품 안내), 재고 표 '생산 착수' 열, 추천 생산량 = 예측 일판매 × (생산기간+안전 14+42일) − 가용 재고(50개 단위·MOQ 이상), RULE '생산 착수'(마감 14일 이내·진행 중 생산 없을 때만, 일반 재고·생산 규칙과 중복 없음). 상품 폼·상품 파일(SKU+생산기간 두 열로도)·내보내기 | Demo VERIFIED · Live VERIFIED |
+| B. 월 매출 목표 (`monthly_targets`, 대표만 입력·관리자 열람, 입력자=로그인 계정): 월별 실적 목표 카드(달성률·월 경과 비교·월말 '추정'), 차트 목표선, CSV 목표·달성률 열, 대시보드 '목표 대비 %', 백업·이관 포함 | Demo VERIFIED · Live VERIFIED (ADMIN API 입력 403) |
+| C. Action 사후 성과: 완료 Action의 실행 전 14일 vs 완료 후 14일 일평균(상품=판매량·매출, 채널=매출, 완료 후는 어제까지·판매 기록이 있는 날까지만), '측정 중 n/14일', 인과 아님 고정 안내 — Action 상세·실증 결과 확정·주간 리포트 | Demo VERIFIED (계산값 대조) · Live VERIFIED (주간 리포트) |
+| D. 데이터 품질 점검 (데이터 관리 > 품질 점검): 11개 점검(오류/확인), 고칠 화면 링크, 미래 날짜·중복 판매만 확인 후 삭제(대표·관리자) | Demo VERIFIED · Live VERIFIED (DB 삭제) |
+| 상품 파일: SKU 열만 필수 (기존 상품 일부 열만 수정 가능), 새 SKU는 제품명·카테고리·판매가 없으면 그 행만 오류 | VERIFIED |
+| DB: `008_pass10_leadtime_targets.sql` + `40_pass10_test.sql`, `setup_all.sql` 재생성(008 포함), 공개 전 점검에 m008 | VERIFIED (verify:db) |
 
 ## PASS 9 변경 요약 (2026-10-09)
 | 항목 | 상태 |
@@ -173,13 +183,14 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 높이 < 약 880px이면 frame이 비율 축소 (내부 viewport 390 유지) — KNOWN
 
 ## 7. QA
+- 2026-10-13 (PASS 10): typecheck / build / audit 0 PASS, DB 117/117 (001~008), Live E2E 85/85, Demo PASS10 42 · Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5 · AI 11, Route 34×8 이상 0, 접근성 30화면 0건 → `QA_REPORT.md`
 - 2026-10-09 (PASS 9): typecheck / build PASS, Route QA 33×8 이상 0, Demo Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5, 접근성 28화면 0건(차트 렌더 후), Live E2E 77/77 → `QA_REPORT.md`
 
 ## 8. USER ACTION QUEUE
 | # | 구분 | 작업 | 상태 |
 |---|---|---|---|
 | 1 | SUPABASE | Project 생성 | WAITING |
-| 2 | SUPABASE | 새 프로젝트: **`supabase/setup_all.sql` 1회 실행** (또는 001→002→003→005→006→007 개별, 004 선택) | WAITING |
+| 2 | SUPABASE | 새 프로젝트: **`supabase/setup_all.sql` 1회 실행** (또는 001→002→003→005→006→007→008 개별, 004 선택). 이미 007까지 적용한 DB면 008만 추가 | WAITING |
 | 3 | SUPABASE | OWNER 계정 생성 → `/login` → 조직 만들기 | WAITING |
 | 4 | ENV | `NEXT_PUBLIC_DATA_MODE=live`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | WAITING |
 | 5 | ENV | `NEXT_PUBLIC_MIRYEO_ORG_ID` (조직 생성 후) | WAITING |
@@ -192,6 +203,8 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | 8-2 | LEGAL | **고객 개인정보 처리방침 URL·버전 확정** → `NEXT_PUBLIC_PRIVACY_POLICY_URL`, `NEXT_PUBLIC_PRIVACY_VERSION` (없으면 Live 회원가입 비활성), 별지 제6호 적용 여부 | WAITING |
 | 8-3 | DATA | 제품별 사용기간(일) — 재구매 예상일 정확도 (미입력 시 종류별 추정) | WAITING |
 | 8-4 | DATA | 거래처별 청구·입금 현황 (미수금 초기값) | WAITING |
+| 8-5 | DATA | 제품별 OEM 생산기간(일)·최소 생산수량 — 생산 착수 마감일 계산 (미입력 시 기존 소진일 기준) | WAITING |
+| 8-6 | DATA | 월 매출 목표 (대표 입력, 시스템이 만들지 않음) | WAITING |
 | 9 | PEOPLE | AX OWNER 지정, ADMIN/STAFF 계정 목록 | WAITING |
 | 9-1 | DECISION | 대표 브리핑 AI 문장화 사용 여부 (외부 AI 사용료 고객사 부담, 계약 제16조) → 사용 시 `ANTHROPIC_API_KEY`(서버 전용)·`AI_BRIEFING_ENABLED=true`·`NEXT_PUBLIC_AI_BRIEFING=on` | WAITING |
 | 9-2 | REPORT | `STAGE2_DELIVERY_REPORT.md`의 `[ ]` 칸 확인 후 발송 (공개 URL 확보 후) | WAITING |
@@ -208,6 +221,9 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 기술자산 상태 기본값 "미확인"
 - AI 문장화는 실제 Anthropic API로 호출해 본 적 없음 (가짜 서버로 요청 형식·검증·거절 처리만 확인). 켜는 날 1회 실호출 확인 필요
 - AI 사용 한도(시간당 20회)는 서버 인스턴스 메모리 기준 — 서버리스 인스턴스가 여러 개면 합산되지 않음
+- 생산 계획 상수(안전 14일·입고 후 42일·50개 단위)는 업계 일반값 — 실제 OEM 계약 조건(분할 입고·포장재 별도 리드타임)을 받으면 조정 (`PLANNING`)
+- Action 사후 성과는 전후 비교(인과 아님). 판매가 적은 상품은 14일 일평균의 변동이 큼
+- 품질 점검의 '단가 이상'(판매가 30% 미만·150% 초과) 기준은 휴리스틱 — 묶음·증정 판매가 많으면 '확인'이 자주 뜰 수 있음
 
 ## 10. NEXT PRIORITY
 0. **시험버전 공개 + 1차 완료 보고** (계약 제12조: 보고 후 5영업일 이의 없으면 2단계 진행 확인) — USER ACTION 1~6 후 공개 URL을 `STAGE2_DELIVERY_REPORT.md`에 채워 발송
@@ -218,3 +234,5 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 3. 고객 화면 공개 준비: 실제 제품 정보·구매 링크 확인, 봇 방지(R-14) 필요성 판단
 4. Week 1~4 운영 지원: 주간 운영 점검 6항목 기준값을 실제 입력 주기에 맞게 조정(`ROUTINE_RULES`), 운영 점검 알림(R-17) 필요성 판단
 5. (승인 시) AI 문장화 켜기 + 실호출 1회 확인 — D-034
+6. 실제 OEM 생산기간·MOQ·월 목표를 받으면 생산 착수 일정·목표 카드로 리허설, `PLANNING` 상수 조정 여부 확인 (PASS 10)
+7. 실데이터 첫 업로드 직후 데이터 관리 > 품질 점검으로 원가 단위·중복·미래 날짜 정리 (Week 0)

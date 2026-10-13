@@ -17,7 +17,7 @@ import { ProductVisual } from "@/components/shared/ProductVisual";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
-import { formatKRW, formatPct, formatPrice, productInsight } from "@/lib/analytics";
+import { formatKRW, formatPct, formatPrice, PLANNING, productInsight, type ProductMetrics } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
 import type { Inventory, Product } from "@/lib/types";
 
@@ -126,7 +126,7 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
           <table className="text-[0.93rem]">
             <thead>
               <tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>
-                <th className="py-2.5 pr-4 font-semibold">제품</th><th className="py-2.5 pr-4 font-semibold">현재 재고</th><th className="py-2.5 pr-4 font-semibold">일 판매속도</th><th className="py-2.5 pr-4 font-semibold">예상 소진일</th><th className="py-2.5 pr-4 font-semibold">입고 예정</th><th className="py-2.5 pr-4 font-semibold">추천 발주/생산량</th><th className="py-2.5 pr-4 font-semibold">상태</th><th className="py-2.5 font-semibold">수정</th>
+                <th className="py-2.5 pr-4 font-semibold">제품</th><th className="py-2.5 pr-4 font-semibold">현재 재고</th><th className="py-2.5 pr-4 font-semibold">일 판매속도</th><th className="py-2.5 pr-4 font-semibold">예상 소진일</th><th className="py-2.5 pr-4 font-semibold">입고 예정</th><th className="py-2.5 pr-4 font-semibold">생산 착수</th><th className="py-2.5 pr-4 font-semibold">추천 발주/생산량</th><th className="py-2.5 pr-4 font-semibold">상태</th><th className="py-2.5 font-semibold">수정</th>
               </tr>
             </thead>
             <tbody>
@@ -137,7 +137,8 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
                   <td className="tabular py-3 pr-4">{mm.dailyVelocity.toFixed(1)}개/일</td>
                   <td className="tabular py-3 pr-4 font-semibold">{Number.isFinite(mm.daysOfStock) && inv ? `약 ${Math.round(mm.daysOfStock)}일` : "-"}</td>
                   <td className="tabular py-3 pr-4 text-ink-soft">{inv?.incomingStock ? `${inv.incomingStock.toLocaleString()}개 (${formatDateKR(inv.incomingDate)})` : "-"}</td>
-                  <td className="tabular py-3 pr-4 font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}</td>
+                  <td className="py-3 pr-4" data-deadline={p.sku}><DeadlineBadge mm={mm} /></td>
+                  <td className="tabular py-3 pr-4 font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}<div className="text-[0.72rem] font-normal text-ink-soft">{mm.planBasis}</div></td>
                   <td className="py-3 pr-4"><StatusBadge tone={stockStatusTone(mm.stockStatus)}>{mm.stockStatus}</StatusBadge></td>
                   <td className="py-3">
                     {canEdit && (
@@ -151,7 +152,10 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
             </tbody>
           </table>
         </div>
-        <p className="mt-3 text-[0.8rem] text-ink-soft">추천 발주량 = 6주 예상 판매(판매속도 × 42일 × 성장 보정) − 현재 재고 − 입고 예정 (RULE, 사람 승인 필요)</p>
+        <p className="mt-3 text-[0.8rem] text-ink-soft">
+          생산기간 입력 상품: 추천 생산량 = 예측 일판매 × (생산기간 + 안전 {PLANNING.safetyDays}일 + 입고 후 {PLANNING.coverDays}일) − (현재 + 입고 예정), 최소 생산수량 이상·{PLANNING.roundTo}개 단위 · 착수 마감 = 가용 재고가 생산기간 + 안전일수보다 먼저 바닥나기 전 날.
+          미입력 상품: 6주 예상 판매 − 현재 − 입고 예정. 예측 일판매 = 최근 4주 판매속도 × 추세 보정. (RULE, 사람 승인 필요)
+        </p>
       </DataCard>
       {edit && (
         <InventoryEditModal key={edit.product.id} product={edit.product} inv={edit.inv} onClose={() => setEdit(null)} onSave={async (next) => {
@@ -183,11 +187,70 @@ function InventoryEditModal({ product, inv, onClose, onSave }: { product: Produc
   );
 }
 
+/** 생산 착수 마감 배지 — 생산기간이 있는 상품만 */
+function DeadlineBadge({ mm }: { mm: ProductMetrics }) {
+  if (mm.leadTimeDays == null) return <span className="text-[0.8rem] text-ink-soft">생산기간 미입력</span>;
+  if (mm.daysToDeadline == null || !mm.orderDeadline) return <span className="text-[0.8rem] text-ink-soft">판매·재고 부족으로 계산 불가</span>;
+  const d = mm.daysToDeadline;
+  return (
+    <span className="whitespace-nowrap">
+      <StatusBadge tone={d <= 0 ? "danger" : d <= 14 ? "warning" : "neutral"}>{d <= 0 ? "마감 지남" : `D-${d}`}</StatusBadge>
+      <span className="ml-1 block text-[0.72rem] text-ink-soft tabular">{formatDateKR(mm.orderDeadline)}</span>
+    </span>
+  );
+}
+
+/* 생산 착수 일정 — OEM 생산기간을 반영한 마감일 순 (계약 별지 제1호 ②) */
+function ProductionSchedule() {
+  const m = useModel();
+  const rows = m.snapshot.products
+    .map((p) => ({ p, mm: m.metrics.get(p.id)!, active: m.snapshot.production.filter((x) => x.productId === p.id && (x.status === "생산중" || x.status === "입고예정" || x.status === "계획")) }))
+    .filter((x) => x.mm && x.mm.leadTimeDays != null && x.mm.daysToDeadline != null)
+    .sort((a, b) => a.mm.daysToDeadline! - b.mm.daysToDeadline!);
+  const missing = m.snapshot.products.filter((p) => p.leadTimeDays == null);
+  return (
+    <DataCard title="생산 착수 일정 (OEM 생산기간 반영)" className="mb-6" action={<Link href="/ax/data?tab=products" className="btn-secondary !min-h-[40px] text-[0.86rem]">생산기간 입력</Link>}>
+      <p className="mb-3 text-[0.86rem] text-ink-soft">가용 재고(현재 + 입고 예정)가 생산기간 + 안전 {PLANNING.safetyDays}일보다 먼저 바닥나기 전에 생산을 시작해야 품절 없이 입고됩니다. 마감이 가까운 순서입니다.</p>
+      {rows.length === 0 ? <EmptyState title="생산기간이 입력된 상품이 없습니다" desc="상품별 OEM 생산기간(발주→입고 일수)을 입력하면 착수 마감일과 추천 생산량을 계산합니다." /> : (
+        <div tabIndex={0} className="table-scroll">
+          <table className="text-[0.92rem]" data-testid="production-schedule">
+            <thead>
+              <tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>
+                <th className="py-2.5 pr-4 font-semibold">제품</th><th className="py-2.5 pr-4 font-semibold">착수 마감</th><th className="py-2.5 pr-4 font-semibold">생산기간 · 최소수량</th><th className="py-2.5 pr-4 font-semibold">가용 재고</th><th className="py-2.5 pr-4 font-semibold">예측 일판매</th><th className="py-2.5 pr-4 font-semibold">추천 생산량</th><th className="py-2.5 font-semibold">진행 중 생산</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(({ p, mm, active }) => (
+                <tr key={p.id} className="border-b" style={{ borderColor: "var(--border)" }} data-schedule={p.sku}>
+                  <td className="py-3 pr-4"><div className="font-semibold">{p.name}</div><div className="text-[0.76rem] text-ink-soft">{p.sku}</div></td>
+                  <td className="py-3 pr-4"><DeadlineBadge mm={mm} /></td>
+                  <td className="tabular py-3 pr-4">{mm.leadTimeDays}일{p.moq ? ` · ${p.moq.toLocaleString()}개` : ""}</td>
+                  <td className="tabular py-3 pr-4">{mm.availableStock.toLocaleString()}개<div className="text-[0.72rem] text-ink-soft">약 {Math.round(mm.availableStock / mm.forecastDaily)}일분</div></td>
+                  <td className="tabular py-3 pr-4">{mm.forecastDaily.toFixed(1)}개</td>
+                  <td className="tabular py-3 pr-4 font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}</td>
+                  <td className="py-3 text-[0.84rem]">
+                    {active.length ? active.map((x) => `${x.status} ${x.quantity.toLocaleString()}개`).join(", ") : <span className="text-ink-soft">없음</span>}
+                    {active.some((x) => x.status !== "계획") && (mm.daysToDeadline ?? 1) <= 0 && <span className="block text-[0.74rem]" style={{ color: "var(--warning)" }}>진행 중 수량이 재고의 '입고 예정'에 들어갔는지 확인</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-3 text-[0.8rem] text-ink-soft">진행 중인 생산 수량은 재고 화면의 '입고 예정'에 입력해야 계산에 반영됩니다. 생산중·입고예정 계획이 있는 상품은 '생산 착수' Action을 만들지 않습니다.</p>
+      {missing.length > 0 && <p className="mt-2 text-[0.84rem]" data-testid="leadtime-missing">생산기간 미입력 {missing.length}개: {missing.slice(0, 6).map((p) => p.name).join(", ")}{missing.length > 6 ? " 외" : ""} — 입력 전에는 6주 예측으로만 추천합니다.</p>}
+    </DataCard>
+  );
+}
+
 function ProductionTab() {
   const m = useModel();
   const plans = m.snapshot.production;
   const tone = (s: string) => (s === "생산중" ? "info" : s === "입고예정" ? "warning" : s === "완료" ? "success" : "neutral") as "info";
   return (
+    <>
+    <ProductionSchedule />
     <DataCard title="OEM 생산 현황" action={<Link href="/ax/data?tab=production" className="btn-secondary !min-h-[40px] text-[0.86rem]">생산 계획 입력</Link>}>
       {plans.length === 0 ? <EmptyState title="생산 계획이 없습니다" /> : (
         <div tabIndex={0} className="table-scroll">
@@ -218,6 +281,7 @@ function ProductionTab() {
         </div>
       )}
     </DataCard>
+    </>
   );
 }
 
@@ -245,7 +309,9 @@ function ProductDrawer({ product, onClose }: { product: Product | null; onClose:
         {[
           ["최근 4주 판매", `${mm.recent4wUnits.toLocaleString()}개`, formatPct(mm.growthRate) + " vs 이전 4주"],
           fin ? ["최근 4주 매출", formatKRW(mm.recent4wRevenue), `일 평균 ${mm.dailyVelocity.toFixed(1)}개`] : ["일 평균 판매", `${mm.dailyVelocity.toFixed(1)}개`, ""],
-          ["현재 재고", `${mm.currentStock.toLocaleString()}개`, `추천 발주 ${mm.recommendedOrder.toLocaleString()}개`],
+          ["현재 재고", `${mm.currentStock.toLocaleString()}개`, `추천 ${mm.recommendedOrder.toLocaleString()}개 (${mm.planBasis})`],
+          ["OEM 생산기간", product.leadTimeDays ? `${product.leadTimeDays}일` : "미입력", product.moq ? `최소 생산 ${product.moq.toLocaleString()}개` : ""],
+          ["생산 착수 마감", mm.orderDeadline ? (mm.daysToDeadline! <= 0 ? "마감 지남" : `D-${mm.daysToDeadline}`) : "-", mm.orderDeadline ? formatDateKR(mm.orderDeadline) : product.leadTimeDays ? "판매·재고 부족" : "생산기간 입력 필요"],
           ["고객 관심 (7일)", interest ? `${interest.recentScore}점` : "-", interest?.growth != null ? formatPct(interest.growth) : ""],
         ].map(([l, v, s]) => (
           <div key={l} className="rounded-xl border p-3.5" style={{ borderColor: "var(--border)" }}>

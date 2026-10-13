@@ -33,6 +33,10 @@ export interface Product {
   featuredUntil?: string | null; // AX Action 결과로 고객화면 노출
   /** 1개 사용기간(일) — 재구매 예상시점 계산. 없으면 카테고리 기본 추정값 */
   usageDays?: number | null;
+  /** OEM 생산기간(일) — 발주 결정 → 입고까지. 생산 착수 마감일·추천 생산량 계산 (계약 별지 제1호 ②) */
+  leadTimeDays?: number | null;
+  /** 최소 생산수량 (MOQ) */
+  moq?: number | null;
   isDemo?: boolean;
 }
 
@@ -246,6 +250,15 @@ export interface TechAsset {
   referenceNo?: string;
   note?: string;
   updatedAt: string;
+}
+
+/** 월 매출 목표 — 대표가 입력 (시스템이 만들지 않는다) */
+export interface MonthlyTarget {
+  month: string; // YYYY-MM
+  revenueTarget: number;
+  note?: string | null;
+  setBy?: string | null;
+  updatedAt?: string;
 }
 
 export interface OrgSettings {

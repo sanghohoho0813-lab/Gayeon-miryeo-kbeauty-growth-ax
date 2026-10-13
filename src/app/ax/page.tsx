@@ -15,6 +15,7 @@ import { buildStartGuide, guideProgress } from "@/lib/start-guide";
 import { CircleAlert, Rocket } from "lucide-react";
 import { buildWeeklyRoutine, routineProgress } from "@/lib/weekly-routine";
 import { change, marginRate, monthlySummary } from "@/lib/monthly";
+import { targetProgress } from "@/lib/targets";
 import { summarizeReceivables } from "@/lib/settlements";
 import { CalendarRange, Wallet } from "lucide-react";
 import { useModel } from "@/components/providers/DataProvider";
@@ -196,12 +197,13 @@ export default function DashboardPage() {
 function FinanceRow() {
   const m = useModel();
   const [prev, cur] = monthlySummary(m.snapshot.sales, m.snapshot.products, m.snapshot.channels, m.today, 2);
+  const tp = targetProgress(cur.month, cur.revenue, m.snapshot.monthlyTargets ?? [], m.today);
   const mr = marginRate(cur);
   const rs = summarizeReceivables(m.snapshot.settlements, m.today);
   const day = Number(m.today.slice(8, 10));
   return (
     <div className="mt-4 grid grid-cols-1 gap-4 @md:grid-cols-3" data-testid="finance-row">
-      <KpiCard label={`이번 달 매출 (${day}일까지)`} value={cur.revenue} format={formatKRW} icon={<CalendarRange size={22} />} iconTone="#2563EB" sub={`지난달 전체 ${formatKRW(prev.revenue)}`} href="/ax/monthly" />
+      <KpiCard label={`이번 달 매출 (${day}일까지)`} value={cur.revenue} format={formatKRW} icon={<CalendarRange size={22} />} iconTone="#2563EB" sub={tp.rate != null ? `목표 대비 ${Math.round(tp.rate * 100)}% · 월 경과 ${Math.round(tp.elapsed * 100)}%` : `지난달 전체 ${formatKRW(prev.revenue)} · 목표 미입력`} href="/ax/monthly" />
       <KpiCard label="이번 달 매출총이익" value={cur.grossProfit} format={formatKRW} icon={<Banknote size={22} />} iconTone="#16A34A" sub={mr == null ? "원가 미입력" : `이익률 ${Math.round(mr * 100)}% · 원가 입력 제품 기준`} trend={change(cur.grossProfit, prev.grossProfit) != null && day >= 28 ? change(cur.grossProfit, prev.grossProfit) : null} href="/ax/monthly" />
       <KpiCard label="받을 돈 (미수금)" value={rs.outstanding} format={formatKRW} icon={<Wallet size={22} />} iconTone={rs.overdueCount ? "#DC2626" : "#0F766E"} sub={rs.overdueCount ? `연체 ${rs.overdueCount}건 · ${formatKRW(rs.overdueAmount)}` : `${rs.openCount}건 · 연체 없음`} href="/ax/channels?tab=settlements" />
     </div>

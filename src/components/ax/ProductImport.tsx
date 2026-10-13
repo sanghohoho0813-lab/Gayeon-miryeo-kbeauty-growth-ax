@@ -35,7 +35,8 @@ export function ProductImport() {
     }
   };
 
-  const mappingErrors = map ? PRODUCT_FIELDS.filter((f) => f.required && map[f.key] < 0).map((f) => `${f.label} 열 선택 필요`) : [];
+  // SKU 열만 필수 — 제품명·카테고리·판매가는 '새 SKU'에만 필요 (행 검증에서 확인). 기존 상품의 생산기간만 바꾸는 파일도 받을 수 있게
+  const mappingErrors = map && map.sku < 0 ? ["SKU 열 선택 필요"] : [];
   const rows = useMemo(
     () => (table && map && mappingErrors.length === 0 ? validateProductRows({ body: table.body, map, existing: m.snapshot.products }) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,7 +50,7 @@ export function ProductImport() {
 
   return (
     <DataCard title="상품 일괄 등록 (CSV · 엑셀)" className="mt-6" action={<a href="/samples/products_template.csv" download className="btn-secondary !min-h-[40px] text-[0.86rem]"><Download size={15} aria-hidden /> 상품 템플릿</a>}>
-      <p className="mb-3 text-[0.88rem] text-ink-soft">SKU가 이미 있으면 파일에 값이 있는 항목만 바꾸고, 빈 칸은 기존 값을 유지합니다. 효능·인증 문구는 입력하지 않습니다 (피부 고민은 추천 분류일 뿐입니다).</p>
+      <p className="mb-3 text-[0.88rem] text-ink-soft">SKU가 이미 있으면 파일에 값이 있는 항목만 바꾸고, 빈 칸은 기존 값을 유지합니다 (예: SKU·생산기간 두 열만 있는 파일로 생산기간만 입력). 효능·인증 문구는 입력하지 않습니다 (피부 고민은 추천 분류일 뿐입니다).</p>
       <label className="flex min-h-[100px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-5 text-center transition-colors hover:bg-surface-muted" style={{ borderColor: "var(--border)" }}>
         <FileUp size={24} className="text-ink-soft" aria-hidden />
         <span className="break-all font-semibold">{fileName || "상품 목록 파일 선택 (.csv, .xlsx)"}</span>
@@ -61,7 +62,7 @@ export function ProductImport() {
           {PRODUCT_FIELDS.map((f) => (
             <div key={f.key}>
               <label className="field-label !mb-1 flex items-center gap-1.5" htmlFor={`pmap-${f.key}`}>
-                {f.label}{f.required && <span style={{ color: "var(--danger)" }}>*</span>}
+                {f.label}{f.key === "sku" ? <span style={{ color: "var(--danger)" }}>*</span> : f.required && <span className="text-[0.74rem] font-normal text-ink-soft">새 상품 필수</span>}
                 {auto && auto[f.key] >= 0 && auto[f.key] === map[f.key] && <StatusBadge tone="success">자동 인식</StatusBadge>}
               </label>
               <select id={`pmap-${f.key}`} className="field !min-h-[40px] text-[0.86rem]" value={map[f.key]} onChange={(e) => setMap({ ...map, [f.key]: Number(e.target.value) })}>

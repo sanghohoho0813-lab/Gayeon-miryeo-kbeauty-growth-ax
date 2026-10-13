@@ -7,6 +7,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Printer } from "lucide-react";
 import { StatusBadge } from "@/components/ax/Cards";
 import { BriefingCard } from "@/components/ax/BriefingCard";
 import { WeeklyRoutineList } from "@/components/ax/WeeklyRoutine";
+import { ActionOutcomeView } from "@/components/ax/ActionOutcomeView";
 import { ACTION_STATUS_LABEL } from "@/components/ax/Cards";
 import { useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
@@ -135,6 +136,7 @@ function Inner() {
                   <p className="mt-1 text-[0.88rem] text-ink-soft">담당 {a.assigneeName ?? "-"} · 승인 {a.approvedBy ?? "-"}</p>
                   <p className="mt-1 text-[0.9rem]">결과: {a.resultNote ?? "-"}</p>
                   <KpiDiff before={a.kpiBefore} after={a.kpiAfter} />
+                  <ActionOutcomeView action={a} compact />
                 </li>
               ))}
             </ul>

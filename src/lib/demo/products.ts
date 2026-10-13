@@ -7,7 +7,7 @@ import type { Product } from "../types";
  */
 const base = { isPublished: true, isDemo: true, purchaseLinks: [] as Product["purchaseLinks"] };
 
-export const demoProducts: Product[] = [
+const rawDemoProducts: Product[] = [
   { ...base, id: "p-ess-01", sku: "DEMO-ESS-01", name: "Demo 에센스 A", nameEn: "MIRYEO Demo Essence A", category: "에센스/앰플", line: "Demo 라인 1", price: 52000, cost: 14500, status: "성장", description: "실제 제품 정보 수령 전 표시용 Demo 설명입니다.", concerns: ["수분", "피부결"], texture: "가벼움", routineStep: 2, isBest: true, mainChannelIds: ["ch-direct", "ch-online", "ch-hnb"], purchaseLinks: [{ label: "직영몰", url: "" }, { label: "온라인 마켓", url: "" }] },
   { ...base, id: "p-amp-50", sku: "DEMO-AMP-50", name: "Demo 앰플 B", nameEn: "MIRYEO Demo Ampoule B", category: "에센스/앰플", line: "Demo 라인 2", price: 68000, cost: 19000, status: "성장", description: "실제 제품 정보 수령 전 표시용 Demo 설명입니다.", concerns: ["탄력", "광채"], texture: "중간", routineStep: 2, isBest: true, mainChannelIds: ["ch-direct", "ch-online", "ch-live"], purchaseLinks: [{ label: "직영몰", url: "" }, { label: "라이브 커머스", url: "" }] },
   { ...base, id: "p-crm-01", sku: "DEMO-CRM-01", name: "Demo 크림 C", nameEn: "MIRYEO Demo Cream C", category: "크림", line: "Demo 라인 3", price: 38000, cost: 10500, status: "안정", description: "실제 제품 정보 수령 전 표시용 Demo 설명입니다.", concerns: ["진정", "수분"], texture: "중간", routineStep: 3, mainChannelIds: ["ch-online", "ch-hnb", "ch-b2b"], purchaseLinks: [{ label: "온라인 마켓", url: "" }] },
@@ -19,3 +19,16 @@ export const demoProducts: Product[] = [
   { ...base, id: "p-crm-02", sku: "DEMO-CRM-02", name: "Demo 크림 I", nameEn: "MIRYEO Demo Cream I", category: "크림", line: "Demo 라인 2", price: 58000, cost: 16500, status: "신규", description: "실제 제품 정보 수령 전 표시용 Demo 설명입니다.", concerns: ["탄력"], texture: "리치", routineStep: 3, isNew: true, mainChannelIds: ["ch-direct", "ch-b2b"] },
   { ...base, id: "p-mst-01", sku: "DEMO-MST-01", name: "Demo 미스트 J", nameEn: "MIRYEO Demo Mist J", category: "토너/미스트", line: "Demo 라인 4", price: 22000, cost: 5800, status: "부진", description: "실제 제품 정보 수령 전 표시용 Demo 설명입니다.", concerns: ["수분", "데일리 케어"], texture: "가벼움", routineStep: 1, mainChannelIds: ["ch-online"] },
 ];
+
+/** Demo 생산기간·최소 생산수량 (시연용 값) — 2개는 일부러 비워 '미입력' 상태를 보여준다 */
+export const DEMO_LEAD_TIMES: Record<string, { leadTimeDays: number; moq: number }> = {
+  "p-ess-01": { leadTimeDays: 35, moq: 1000 },
+  "p-amp-50": { leadTimeDays: 45, moq: 1000 },
+  "p-crm-01": { leadTimeDays: 40, moq: 800 },
+  "p-cln-01": { leadTimeDays: 30, moq: 1000 },
+  "p-ton-01": { leadTimeDays: 28, moq: 1500 },
+  "p-sun-01": { leadTimeDays: 50, moq: 1000 },
+  "p-msk-01": { leadTimeDays: 21, moq: 3000 },
+  "p-amp-30": { leadTimeDays: 45, moq: 500 },
+};
+export const demoProducts: Product[] = rawDemoProducts.map((p) => ({ ...p, ...DEMO_LEAD_TIMES[p.id] }));

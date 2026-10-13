@@ -7,6 +7,7 @@ import type { GrowthAction, KpiSnapshot } from "@/lib/types";
 import { Drawer } from "./Modal";
 import { ACTION_STATUS_LABEL, ACTION_STATUS_TONE, StatusBadge } from "./Cards";
 import { toast } from "./Toast";
+import { ActionOutcomeView } from "./ActionOutcomeView";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can, ROLE_LABEL } from "@/lib/permissions";
@@ -103,6 +104,7 @@ export function ActionDrawer({ action, onClose }: { action: GrowthAction | null;
         <Snapshot title="KPI Before (승인 시점)" items={a.kpiBefore} />
         <Snapshot title={a.status === "DONE" ? "KPI After (완료 시점)" : "현재 KPI"} items={a.status === "DONE" ? a.kpiAfter : current} />
       </section>
+      <ActionOutcomeView action={a} />
 
       {/* 상태별 조작 */}
       <section className="mt-5 space-y-3">
