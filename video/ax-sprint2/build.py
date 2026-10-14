@@ -388,80 +388,109 @@ else:
 parts.append(note(a + .5, b, NOTE_P))
 scene(a, b, "\n".join(parts), "L")
 
-# ───────── 14. ② 판매속도 + 생산기간 45일 + 안전재고 14일 → ③ 생산시점 재판단 (막대 변화) ─────────
+# ───────── 14. ② 판매속도 + 생산기간 45일 + 안전재고 14일 → ③ 생산시점 재판단 (V3.1: 같은 출발선 '오늘'에서 두 기간 비교) ─────────
+#  위 막대: 재고가 버티는 기간 — 재고만 보면 95일 → 최근 판매속도(증가 추세) 반영 시 약 63.6일로 줄어듦 (심사 페이지 시연 계산: 가용 재고 ÷ 예측 일판매)
+#  아래 막대: 생산기간 45일 + 안전재고 14일. 두 막대 끝이 거의 같음 → 여유 거의 없음 → 생산시점 재판단 (다음 장면에서 D-4)
+#  줄어든 일수는 숫자로 쓰지 않는다 (반올림 64 − 59 = 5 ≠ D-4 로 읽히지 않게)
 a, b = T(13)
-kv, kp, ks2, kr = K("판매속도와"), K("생산에 걸리는"), K("안전하게 확보"), K("결과가 달라집니다")
-TW = pv(888, 1080)
-full, short = round(TW * .97), round(TW * .62)
-prd, safe = round(TW * .34), round(TW * .16)
-start = short - prd - safe
-y0 = pv(430, 236)
-g = pv(1.0, 0.78)
-parts = [svg(f'<line x1="{BX + start}" y1="{y0 + round(50 * g)}" x2="{BX + start}" y2="{y0 + round(560 * g)}" stroke="#b42318" stroke-width="5" stroke-dasharray="14 10"/>'
-             f'<line x1="{BX}" y1="{y0 + round(50 * g)}" x2="{BX}" y2="{y0 + round(560 * g)}" stroke="#171b20" stroke-width="5"/>', kr, b),
-         el("h3 abs", "재고만 보면 **95일**", a + .2, b, f"left:{BX}px;top:{pv(280, 160)}px;display:inline-block").replace('</div>', f'<span class="strike" data-strike="{kr:.2f}"></span></div>', 1),
-         el("h3 abs", "재고로 버티는 기간", a + .3, b, f"left:{BX}px;top:{y0}px;font-size:46px"),
-         f'<div class="abs" style="left:{BX}px;top:{y0 + round(70 * g)}px;height:46px;border-radius:12px;background:linear-gradient(90deg,#c9a45f,#e3c48a)" data-w="{a + .4:.2f},{a + 1.3:.2f},0,{full};{kv + .2:.2f},{kv + 1.4:.2f},{full},{short}" {A(a + .3, b, "fade")}></div>',
-         chip("최근 **판매속도** ↑", kv, b, f"left:{BX}px;top:{y0 + round(140 * g)}px", size=46),
-         el("h3 abs", "생산기간 **45일**", kp, b, f"left:{BX}px;top:{y0 + round(250 * g)}px;font-size:46px"),
-         f'<div class="abs" style="left:{BX + start}px;top:{y0 + round(320 * g)}px;height:46px;border-radius:12px;background:var(--sec)" data-w="{kp + .2:.2f},{kp + 1.0:.2f},0,{prd}" {A(kp, b, "fade")}></div>',
-         el("h3 abs", "안전재고 **14일**", ks2, b, f"left:{BX}px;top:{y0 + round(410 * g)}px;font-size:46px"),
-         f'<div class="abs" style="left:{BX + start + prd}px;top:{y0 + round(480 * g)}px;height:46px;border-radius:12px;background:#9cc7c2" data-w="{ks2 + .3:.2f},{ks2 + 1.0:.2f},0,{safe}" {A(ks2 + .1, b, "fade")}></div>',
-         el("tag abs", "오늘", kr, b, f"left:{BX}px;top:{y0 + round(570 * g)}px;font-size:30px;color:#171b20"),
-         chip("**생산시점 재판단** · 마감 임박", kr + .2, b, f"left:{BX + start - 10}px;top:{y0 + round(620 * g)}px;border-color:rgba(180,35,24,.4)", c="#b42318", size=46)]
-if not v:
+kv, kp, ks2, kc, kr = K("판매속도와"), K("생산에 걸리는"), K("안전하게 확보"), K("함께 계산하면"), K("결과가 달라집니다")
+U = pv(888, 1000) / 95
+w95, wfast, w45, w14 = round(95 * U), round(63.6 * U), round(45 * U), round(14 * U)
+if v: yh, y1, y2, bh_, yv = 290, 412, 590, 66, 808
+else: yh, y1, y2, bh_, yv = 172, 284, 454, 60, 652
+b1, b2 = y1 + 58, y2 + 58
+RD = "#b42318"
+def rowlabel(txt, tin, y):
+    return el("abs", txt, tin, b, f"left:{BX}px;top:{y}px;font-size:{pv(38, 38)}px;font-weight:800;letter-spacing:-.01em")
+def seg(x, y, w0, w1, t0, t1, bg, radius, txt, col, tin):
+    return (f'<div class="abs" style="left:{x}px;top:{y}px;height:{bh_}px;border-radius:{radius};background:{bg};overflow:hidden;display:flex;align-items:center" '
+            f'data-w="{t0:.2f},{t1:.2f},{w0},{w1}" {A(tin, b, "fade")}><span style="padding-left:{pv(18, 20)}px;white-space:nowrap;font-size:{pv(26, 26)}px;font-weight:800;color:{col}">{txt}</span></div>')
+gx, gw = BX + w45 + w14, wfast - w45 - w14
+parts = [el("h3 abs", "재고만 보면 **95일**", a + .2, b, f"left:{BX}px;top:{yh}px;display:inline-block").replace('</div>', f'<span class="strike" data-strike="{kr:.2f}"></span></div>', 1),
+         # 출발선 '오늘'
+         svg(f'<line x1="{BX}" y1="{b1 - 12}" x2="{BX}" y2="{b1 + bh_ + 12}" stroke="#171b20" stroke-width="4" stroke-linecap="round"/>'
+             f'<line x1="{BX}" y1="{b2 - 12}" x2="{BX}" y2="{b2 + bh_ + 12}" stroke="#171b20" stroke-width="4" stroke-linecap="round"/>', a + .2, b),
+         el("abs", "오늘", a + .2, b, f"left:{BX - 4}px;top:{b2 + bh_ + 24}px;font-size:28px;font-weight:800", "fade"),
+         # ① 재고가 버티는 기간 — 95일 → 판매속도 반영 시 줄어듦 (점선 = 줄어든 만큼)
+         rowlabel("재고가 버티는 기간", a + .2, y1),
+         box(f"left:{BX}px;top:{b1}px;width:{w95}px;height:{bh_}px;border-radius:14px;border:3px dashed rgba(169,106,39,.5)", kv + .2, b, a="fade"),
+         f'<div class="abs" style="left:{BX}px;top:{b1}px;height:{bh_}px;border-radius:14px;background:linear-gradient(90deg,#c9a45f,#e3c48a)" data-w="{kv + .2:.2f},{kv + 1.2:.2f},{w95},{wfast}" {A(a + .2, b, "fade")}></div>',
+         el("abs", f'<span style="line-height:1.25">최근 <span class="acc">판매속도 ↑</span>{pv("<br>", " · ")}더 빨리 소진</span>', kv + .7, b,
+            f"left:{BX + wfast + 16}px;top:{b1}px;height:{bh_}px;display:flex;align-items:center;white-space:nowrap;font-size:24px;font-weight:700;color:var(--ink2)", "fade", raw=True),
+         # ② 생산 + 안전재고에 필요한 기간
+         rowlabel("생산 + 안전재고에 필요한 기간", kp, y2),
+         seg(BX, b2, 0, w45, kp + .2, kp + 1.0, "var(--sec)", "14px 0 0 14px", "생산기간 45일", "#fff", kp),
+         seg(BX + w45, b2, 0, w14, ks2 + .2, ks2 + .9, "#9cc7c2", "0 14px 14px 0", "안전 14일", "#123c3a", ks2),
+         # 두 막대 끝의 차이 = 남은 여유
+         box(f"left:{gx}px;top:{b1 - 12}px;width:{gw}px;height:{b2 + bh_ + 12 - (b1 - 12)}px;border-radius:10px;border:3px dashed {RD};background:rgba(180,35,24,.08)", kc, b, a="fade"),
+         el("abs", "여유", kc + .1, b, f"left:{gx + gw // 2 - 50}px;width:100px;text-align:center;top:{b1 - 56}px;font-size:28px;font-weight:800;color:{RD}", "fade"),
+         chip("여유 거의 없음 → **생산시점 재판단**", kr, b, f"left:{BX}px;top:{yv}px;border-color:rgba(180,35,24,.4)", c=RD, size=pv(42, 44))]
+if v:
+    parts.append(el("h2 abs", "함께 계산하면\n결과가 **달라집니다**", kc - .1, b, f"left:{BX}px;top:960px;font-size:62px"))
+    parts.append(prod(AMP, 806, 246, 150, a + .3, b, glow=False))
+else:
     parts.append(prod(AMP, 1480, 140, 230, a + .2, b, glow=False))
-    parts.append(el("h2 abs", "함께 계산하면\n결과가 **달라집니다**", kr - .1, b, "left:1300px;top:480px;width:520px"))
+    parts.append(el("h2 abs", "함께 계산하면\n결과가 **달라집니다**", kc - .1, b, "left:1300px;top:480px;width:520px"))
 parts.append(note(a + .5, b, NOTE_P, left=pv(None, 1300), width=pv(None, 500)))
 scene(a, b, "\n".join(parts), "L")
 
-# ───────── 15. 한눈에 — 현재 재고 95일 → 판매속도+생산 45일+안전 14일 → 생산시점 재판단 → D-4 · 1,750개 (Premium Navy) ─────────
+# ───────── 15. 한눈에 — ① 현재 재고 95일 → ② 판매속도+생산 45일+안전 14일 → ③ 생산시점 재판단 → ④ D-4 · 1,750개 (V3.1: 정렬 통일) ─────────
+#  모든 카드 같은 격자: 단계 제목(같은 높이) · 핵심 값(같은 윗선) · 설명(같은 아랫선). 9:16은 행마다 제목 칸 | 값 칸(세로 가운데).
 a, b = T(14)
 k4d, kq = K("4일 안에"), I("필요한 생산수량") - .2      # 추천 생산량은 '필요한 생산수량도' 자막 시작과 함께 (끝까지 1.5초 이상 보이게)
 GOLDTXT = "background:linear-gradient(180deg,#f6e2b4,#d2a45f 60%,#b97935);-webkit-background-clip:text;background-clip:text;color:transparent"
-def scard(r, tin, n, label, body, extra=""):
-    st = (f"left:{r[0]}px;top:{r[1]}px;width:{r[2]}px;height:{r[3]}px;border-radius:24px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));"
-          "border:1px solid rgba(255,255,255,.16);box-shadow:0 30px 60px -30px rgba(0,0,0,.8)")
-    return box(st, tin, b, f'<div style="position:absolute;left:28px;top:{pv(22, 26)}px;display:flex;align-items:center;gap:12px"><span style="width:40px;height:40px;border-radius:50%;background:rgba(232,201,149,.16);border:1px solid rgba(232,201,149,.6);color:#e8c995;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">{n}</span>'
-               f'<span style="font-size:{pv(26, 26)}px;font-weight:700;color:var(--ink2)">{label}</span></div>{body}', a="card", extra=extra)
-if v:
-    r1, r2, r3, r4 = (BX, 300, 888, 120), (BX, 450, 888, 160), (BX, 640, 888, 110), (BX, 790, 888, 410)
-    c1 = f'<div style="position:absolute;right:32px;top:26px;font-size:60px;font-weight:800;letter-spacing:-.03em">약 95일</div>'
-    c2 = f'<div style="position:absolute;left:28px;right:28px;top:76px;font-size:34px;font-weight:700;line-height:1.3">최근 판매속도 + <span class="acc">생산기간 45일</span> + <span class="acc">안전재고 14일</span></div>'
-    c3 = f'<div style="position:absolute;right:32px;top:30px;font-size:44px;font-weight:800;color:var(--hi)">↻ 다시 계산</div>'
-    ar = arrow(540, 424, 540, 446, a + .3, a + .5, 5) + arrow(540, 614, 540, 636, a + .55, a + .75, 5) + arrow(540, 754, 540, 786, k4d - .4, k4d - .2, 6)
-else:
-    r1, r2, r3, r4 = (BX, 190, 320, 470), (470, 190, 400, 470), (900, 190, 300, 470), (1230, 170, 570, 510)
-    c1 = f'<div style="position:absolute;left:28px;bottom:40px;font-size:84px;font-weight:800;letter-spacing:-.03em;line-height:1">약<br>95일</div>'
-    c2 = f'<div style="position:absolute;left:28px;right:24px;top:100px;font-size:40px;font-weight:700;line-height:1.35">최근 판매속도<br>+ <span class="acc">생산기간 45일</span><br>+ <span class="acc">안전재고 14일</span></div>'
-    c3 = f'<div style="position:absolute;left:28px;right:20px;bottom:44px;font-size:52px;font-weight:800;line-height:1.2;color:var(--hi)">↻<br>다시<br>계산</div>'
-    ar = arrow(444, 425, 466, 425, a + .3, a + .5, 5) + arrow(874, 425, 896, 425, a + .55, a + .75, 5) + arrow(1204, 425, 1226, 425, k4d - .4, k4d - .2, 6)
-hi = ("background:linear-gradient(160deg,rgba(210,164,95,.22),rgba(210,164,95,.05));border:2px solid rgba(232,201,149,.8);"
+CARD = ("border-radius:24px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));"
+        "border:1px solid rgba(255,255,255,.16);box-shadow:0 30px 60px -30px rgba(0,0,0,.8)")
+HI = ("border-radius:30px;background:linear-gradient(160deg,rgba(210,164,95,.22),rgba(210,164,95,.05));border:2px solid rgba(232,201,149,.8);"
       "box-shadow:0 0 0 10px rgba(210,164,95,.08),0 50px 90px -30px rgba(0,0,0,.9),0 0 90px -10px rgba(210,164,95,.38)")
+def head(n, label, x, y, hi=False):
+    bd = (f'<span style="width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;'
+          + ("background:#e8c995;color:#16110d" if hi else "background:rgba(232,201,149,.16);border:1px solid rgba(232,201,149,.6);color:#e8c995") + f'">{n}</span>') if n else ""
+    col = "var(--gold-soft)" if hi else "var(--ink2)"
+    return (f'<div style="position:absolute;left:{x}px;top:{y}px;height:40px;display:flex;align-items:center;gap:12px">{bd}'
+            f'<span style="font-size:{pv(28, 26)}px;font-weight:700;color:{col};white-space:nowrap">{label}</span></div>')
+V95 = '<span style="font-size:{s1}px;font-weight:700;color:var(--ink2)">약</span><span style="font-size:{s2}px;font-weight:800;letter-spacing:-.03em">95일</span>'
+VRE = '<span style="font-size:{s}px;font-weight:800;color:var(--hi);white-space:nowrap">↻ 다시 계산</span>'
 if v:
-    c4 = (f'<div style="position:absolute;left:36px;top:30px;font-size:28px;font-weight:700;color:var(--gold-soft)">④ 생산 검토</div>'
-          f'<div style="position:absolute;left:32px;top:74px;font-size:170px;font-weight:800;letter-spacing:-.04em;line-height:1;{GOLDTXT}">D-4</div>'
-          f'<div style="position:absolute;left:36px;top:258px;font-size:28px;font-weight:600;color:var(--ink2);width:380px;line-height:1.35">약 4일 안에 다음<br>생산 여부 검토</div>'
-          f'<div style="position:absolute;left:470px;top:40px;bottom:40px;width:1px;background:rgba(232,201,149,.35)"></div>')
-    c4b = (f'<div style="position:absolute;left:{BX + 506}px;top:{790 + 30}px;font-size:28px;font-weight:700;color:var(--gold-soft)" {A(kq - .2, b, "fade")}>추천 생산량</div>'
-           f'<div style="position:absolute;left:{BX + 500}px;top:{790 + 96}px;font-size:96px;font-weight:800;letter-spacing:-.03em;line-height:1;color:#f4f1ec" {A(kq - .2, b, "scale")}><span data-count="{kq + .1:.2f},{kq + .9:.2f},0,1750,0,">1,750</span><span style="font-size:52px">개</span></div>'
-           f'<div style="position:absolute;left:{BX + 506}px;top:{790 + 258}px;font-size:28px;font-weight:600;color:var(--ink2);line-height:1.35" {A(kq + .2, b, "fade")}>필요한 생산수량도<br>함께 계산</div>')
+    RX, RW, RH = BX, 888, 150
+    rows = [(290, "1", "현재 재고 기준", f'<div style="display:flex;align-items:baseline;gap:12px;line-height:1">{V95.format(s1=40, s2=76)}</div>', a + .15),
+            (476, "2", "함께 계산", '<div style="font-size:32px;font-weight:700;line-height:1.4">최근 판매속도<br>+ <span class="acc">생산기간 45일</span> + <span class="acc">안전재고 14일</span></div>', a + .4),
+            (662, "3", "생산시점 재판단", VRE.format(s=46), a + .65)]
+    parts = []
+    for top, n, lab, val, tin in rows:
+        inner = (head(n, lab, 28, (RH - 40) // 2) + f'<div style="position:absolute;left:316px;top:30px;bottom:30px;width:1px;background:rgba(255,255,255,.14)"></div>'
+                 f'<div style="position:absolute;left:348px;right:28px;top:0;bottom:0;display:flex;align-items:center">{val}</div>')
+        parts.append(box(f"left:{RX}px;top:{top}px;width:{RW}px;height:{RH}px;{CARD}", tin, b, inner, a="card"))
+    ar = arrow(540, 446, 540, 470, a + .3, a + .5, 5) + arrow(540, 632, 540, 656, a + .55, a + .75, 5) + arrow(540, 818, 540, 844, k4d - .4, k4d - .2, 6)
+    r4 = (BX, 850, 888, 380); CW, C2X, VT4, CB4, CF = 392, 468, 100, 32, 26
+    dv = f'<div style="position:absolute;left:444px;top:36px;bottom:36px;width:1px;background:rgba(232,201,149,.35)" {A(kq - .2, b, "fade")}></div>'
+    vD, vQ = 150, 96
 else:
-    c4 = (f'<div style="position:absolute;left:40px;top:30px;font-size:28px;font-weight:700;color:var(--gold-soft)">④ 생산 검토</div>'
-          f'<div style="position:absolute;left:36px;top:70px;font-size:150px;font-weight:800;letter-spacing:-.04em;line-height:1;{GOLDTXT}">D-4</div>'
-          f'<div style="position:absolute;left:40px;top:232px;font-size:28px;font-weight:600;color:var(--ink2)">약 4일 안에 다음 생산 여부 검토</div>'
-          f'<div style="position:absolute;left:40px;right:40px;top:290px;height:1px;background:rgba(232,201,149,.35)"></div>')
-    c4b = (f'<div style="position:absolute;left:{1230 + 40}px;top:{170 + 316}px;font-size:28px;font-weight:700;color:var(--gold-soft)" {A(kq - .2, b, "fade")}>추천 생산량</div>'
-           f'<div style="position:absolute;left:{1230 + 36}px;top:{170 + 360}px;font-size:100px;font-weight:800;letter-spacing:-.03em;line-height:1;color:#f4f1ec" {A(kq - .2, b, "scale")}><span data-count="{kq + .1:.2f},{kq + .9:.2f},0,1750,0,">1,750</span><span style="font-size:54px">개</span></div>'
-           f'<div style="position:absolute;right:{1920 - 1800 + 40}px;top:{170 + 318}px;font-size:24px;font-weight:600;color:var(--ink2);text-align:right" {A(kq + .2, b, "fade")}>필요한 생산수량도 함께 계산</div>')
-parts = [f'<div class="abs" style="left:{pv(-200, 600)}px;top:{pv(600, -200)}px;width:{pv(1400, 1400)}px;height:{pv(1000, 1300)}px;border-radius:50%;background:radial-gradient(closest-side, rgba(210,164,95,.18), transparent)" {A(a, b, "fade")}></div>',
-         scard(r1, a + .15, "1", "현재 재고 기준", c1),
-         scard(r2, a + .4, "2", "함께 계산", c2),
-         scard(r3, a + .65, "3", "생산시점 재판단", c3),
-         svg(ar, a + .2, b),
-         box(f"left:{r4[0]}px;top:{r4[1]}px;width:{r4[2]}px;height:{r4[3]}px;border-radius:30px;{hi}", k4d - .2, b, c4, a="card"),
-         c4b,
-         note(a + .5, b, NOTE_P)]
+    CT, CHt, VT, CB, CF = 250, 410, 112, 34, 22
+    cols = [(120, 300, "1", "현재 재고 기준", f'<div style="display:flex;align-items:baseline;gap:10px;line-height:1">{V95.format(s1=44, s2=84)}</div>', "재고만 보면<br>충분해 보임", a + .15),
+            (460, 360, "2", "함께 계산", '<div style="font-size:34px;font-weight:700;line-height:1.4">최근 판매속도<br>+ <span class="acc">생산기간 45일</span><br>+ <span class="acc">안전재고 14일</span></div>', "함께 계산하면<br>결과가 달라짐", a + .4),
+            (860, 320, "3", "생산시점 재판단", f'<div style="line-height:1">{VRE.format(s=38)}</div>', "생산 시작 시점을<br>다시 판단", a + .65)]
+    parts = []
+    for x, w, n, lab, val, cap, tin in cols:
+        inner = (head(n, lab, 28, 28) + f'<div style="position:absolute;left:28px;right:24px;top:{VT}px">{val}</div>'
+                 f'<div style="position:absolute;left:28px;right:24px;bottom:{CB}px;font-size:{CF}px;font-weight:600;line-height:1.4;color:var(--ink2)">{cap}</div>')
+        parts.append(box(f"left:{x}px;top:{CT}px;width:{w}px;height:{CHt}px;{CARD}", tin, b, inner, a="card"))
+    ym = CT + CHt // 2
+    ar = arrow(424, ym, 456, ym, a + .3, a + .5, 5) + arrow(824, ym, 856, ym, a + .55, a + .75, 5) + arrow(1184, ym, 1216, ym, k4d - .4, k4d - .2, 6)
+    r4 = (1220, CT, 580, CHt); CW, C2X, VT4, CB4 = 246, 316, VT, CB
+    dv = f'<div style="position:absolute;left:292px;top:28px;bottom:28px;width:1px;background:rgba(232,201,149,.35)" {A(kq - .2, b, "fade")}></div>'
+    vD, vQ = 120, 72
+c4 = (head("4", "생산 검토", 28, 28 if not v else 30, hi=True) + dv +
+      f'<div style="position:absolute;left:26px;top:{VT4}px;font-size:{vD}px;font-weight:800;letter-spacing:-.04em;line-height:1;{GOLDTXT}">D-4</div>'
+      f'<div style="position:absolute;left:28px;width:{CW}px;bottom:{CB4}px;font-size:{CF}px;font-weight:600;line-height:1.4;color:var(--ink2)">약 4일 안에 다음<br>생산 여부 검토</div>'
+      f'<div {A(kq - .2, b, "fade")} style="position:absolute;left:{C2X}px;top:{28 if not v else 30}px;height:40px;display:flex;align-items:center;font-size:{pv(28, 26)}px;font-weight:700;color:var(--gold-soft)">추천 생산량</div>'
+      f'<div {A(kq - .2, b, "scale")} style="position:absolute;left:{C2X}px;top:{VT4}px;font-size:{vQ}px;font-weight:800;letter-spacing:-.03em;line-height:1;color:#f4f1ec;white-space:nowrap">'
+      f'<span data-count="{kq + .1:.2f},{kq + .9:.2f},0,1750,0,">1,750</span><span style="font-size:{round(vQ * .54)}px">개</span></div>'
+      f'<div {A(kq + .2, b, "fade")} style="position:absolute;left:{C2X}px;width:{CW}px;bottom:{CB4}px;font-size:{CF}px;font-weight:600;line-height:1.4;color:var(--ink2)">필요한 생산수량도<br>함께 계산</div>')
+parts = ([f'<div class="abs" style="left:{pv(-200, 600)}px;top:{pv(600, -200)}px;width:1400px;height:{pv(1000, 1300)}px;border-radius:50%;background:radial-gradient(closest-side, rgba(210,164,95,.18), transparent)" {A(a, b, "fade")}></div>']
+         + parts + [svg(ar, a + .2, b),
+                    box(f"left:{r4[0]}px;top:{r4[1]}px;width:{r4[2]}px;height:{r4[3]}px;{HI}", k4d - .2, b, c4, a="card"),
+                    note(a + .5, b, NOTE_P)])
 scene(a, b, "\n".join(parts))
 
 # ───────── 16. AX 활용 예시 ② — 조건이 바뀌면 판단도 다시 계산 (실제 화면 상태 변화) ─────────
