@@ -7,6 +7,7 @@ import type { GrowthAction, KpiSnapshot } from "@/lib/types";
 import { Drawer } from "./Modal";
 import { ACTION_STATUS_LABEL, ACTION_STATUS_TONE, StatusBadge } from "./Cards";
 import { toast } from "./Toast";
+import { CoverBarFor, ScenarioButton } from "./ProductionPlanner";
 import { ActionOutcomeView } from "./ActionOutcomeView";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
@@ -102,6 +103,13 @@ export function ActionDrawer({ action, onClose }: { action: GrowthAction | null;
           <div className="mt-3 text-[0.88rem]"><span className="font-semibold">예상 영향:</span> {a.impact.join(" · ")}</div>
           <div className="mt-1 text-[0.88rem]"><span className="font-semibold">권장 행동:</span> {a.recommendation}</div>
         </div>
+        {a.category === "생산" && product?.leadTimeDays != null && (
+          // 생산 Action: 두 기간 비교 그림 + 조건 바꿔 보기 (PASS 21, D-076) — 지금 데이터 기준
+          <div className="mt-2 rounded-xl border p-3.5" style={{ borderColor: "var(--border)" }} data-testid="action-coverbar">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><span className="text-[0.86rem] font-bold">지금 기준 두 기간 비교</span><ScenarioButton product={product} /></div>
+            <CoverBarFor product={product} />
+          </div>
+        )}
         {recalc && (
           <div className="mt-2 rounded-xl border p-3.5 text-[0.88rem]" style={{ borderColor: "var(--warning)" }} data-testid="action-recalc">
             <div className="font-bold" style={{ color: "var(--warning)" }}>지금 데이터·기준으로 다시 계산하면</div>

@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
+import { InfoTip } from "./InfoTip";
 
-/* 화면 제목 — 모바일은 제목·설명을 줄여 첫 화면에 내용이 보이게 */
-export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
+/* 화면 제목 (D-075) — 설명 문장은 제목 옆 ⓘ 안내로 옮겨 첫 화면에 내용이 바로 보이게 */
+export function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-5 flex flex-col gap-2.5 @md:mb-6 @3xl:flex-row @3xl:items-end @3xl:justify-between @3xl:gap-3">
-      <div className="min-w-0">
+    <div className="mb-4 flex flex-col gap-2.5 @md:mb-5 @3xl:flex-row @3xl:items-center @3xl:justify-between @3xl:gap-3">
+      <div className="flex min-w-0 items-center gap-1.5 @3xl:shrink-0">
         <h1 className="text-[1.4rem] font-bold leading-tight tracking-tight @md:text-[1.65rem] @3xl:text-[1.85rem]">{title}</h1>
-        {description && <p className="mt-1 max-w-[46rem] text-[0.9rem] leading-relaxed text-ink-soft @md:mt-1.5 @md:text-[0.97rem]">{description}</p>}
+        {description && <InfoTip text={description} label={`${title} 화면 설명`} />}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex min-w-0 flex-wrap items-center gap-2 @3xl:justify-end">{actions}</div>}
     </div>
   );
 }

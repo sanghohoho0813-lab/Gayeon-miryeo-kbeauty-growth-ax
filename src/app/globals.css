@@ -232,6 +232,34 @@ textarea.field { padding: 0.6rem 0.85rem; min-height: 88px; }
 .field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent); }
 .field-label { display: block; margin-bottom: 0.3rem; font-size: 0.88rem; font-weight: 600; color: var(--text-secondary); }
 
+/* ⓘ 짧은 안내 (D-075) — 마우스 올림·키보드 초점·누름으로 열림 */
+.infotip { position: relative; display: inline-flex; vertical-align: middle; }
+.infotip-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; margin: -4px 0;
+  border-radius: 999px; color: var(--text-secondary); opacity: 0.7; cursor: help; transition: opacity 0.14s, background 0.14s;
+}
+.infotip-btn:hover, .infotip[data-open] .infotip-btn { opacity: 1; background: var(--surface-muted); }
+.infotip-pop {
+  position: absolute; z-index: 70; top: calc(100% + 8px); left: -6px; width: max-content; max-width: min(340px, calc(100vw - 40px));
+  padding: 0.6rem 0.75rem; border-radius: 10px; background: #1F2329; color: #F4F5F7;
+  font-size: 0.84rem; font-weight: 500; line-height: 1.55; letter-spacing: 0; text-align: left; white-space: normal; word-break: keep-all;
+  box-shadow: 0 10px 28px -10px rgba(0,0,0,.45); display: none; pointer-events: none;
+}
+/* 닫힌 안내는 자리를 차지하지 않는다 (숨김 상자가 모바일 가로 스크롤을 만들지 않게) */
+.infotip[data-open] .infotip-pop { display: block; animation: ax-fade 0.14s ease-out both; }
+
+/* 펼쳐보기 (D-075) */
+.fold-btn {
+  display: inline-flex; align-items: center; gap: 0.35rem; min-height: 36px; padding: 0 0.25rem;
+  font-size: 0.86rem; font-weight: 600; color: var(--text-secondary); border-radius: 8px;
+}
+.fold-btn:hover { color: var(--text-primary); }
+.fold-chev { transition: transform 0.16s ease-out; transform: rotate(-90deg); }
+.fold[data-open] .fold-chev { transform: none; }
+.fold-body { margin-top: 0.4rem; }
+/* 접힘: 화면에서만 숨기고 인쇄에는 그대로 싣는다 (hidden 속성은 기본 스타일이 인쇄에서도 숨겨서 쓰지 않음) */
+@media screen { .is-folded { display: none !important; } }
+
 .table-scroll { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; } /* relative: 내부 absolute(sr-only 등)가 문서 폭을 늘리지 않도록 */
 .table-scroll table { min-width: 720px; width: 100%; }
 .row-hover { transition: background 0.14s ease-out; }
@@ -276,6 +304,8 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   html, body { background: #fff !important; }
   [data-print="hide"] { display: none !important; }
   [data-print="full"] { margin: 0 !important; }
+  /* 접어 둔 내용·안내 버튼: 인쇄에는 내용을 모두 펼쳐 싣고 ⓘ·펼치기 버튼은 뺀다 (D-075) */
+  .fold-btn, .infotip { display: none !important; }
   .ax-card { box-shadow: none !important; break-inside: avoid; }
   .print-break-avoid { break-inside: avoid; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

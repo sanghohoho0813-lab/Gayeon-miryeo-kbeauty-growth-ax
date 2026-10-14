@@ -1,23 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { ArrowDown, ArrowRight, Building2, CircleHelp, Database, LayoutDashboard, Repeat, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import { ArrowDown, ArrowRight, Building2, ChevronDown, CircleHelp, Database, LayoutDashboard, Repeat, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { StatusBadge } from "@/components/ax/Cards";
 
 /* 기획의도 — 회사 맞춤 16 Section Story (v4.1 Why AX Standard)
    확인되지 않은 회사 사실(매출·고객수·수출국·특허 등)은 쓰지 않고 "확인 필요"로 표시한다. */
 
+/* 16개 섹션을 펼쳐보기 목록으로 (PASS 21, D-075) — 제목만 한눈에, 읽고 싶은 것만 펼친다. 인쇄하면 모두 펼쳐진다 */
+const OpenCtx = createContext<{ open: Set<string>; toggle: (no: string) => void }>({ open: new Set(), toggle: () => {} });
+
 function Section({ no, title, children, tone }: { no: string; title: string; children: ReactNode; tone?: "company" }) {
+  const { open, toggle } = useContext(OpenCtx);
+  const isOpen = open.has(no);
   return (
-    <section className="ax-card p-6 @3xl:p-7" style={tone === "company" ? { borderColor: "var(--primary)", borderWidth: 2, background: "var(--primary-soft)" } : undefined}>
-      <div className="mb-3 flex items-center gap-3">
-        <span className="tabular flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[0.9rem] font-bold text-white" style={{ background: tone === "company" ? "var(--highlight)" : "var(--primary)", color: tone === "company" ? "#171B20" : "#fff" }}>{no}</span>
-        <h2 className="text-[1.25rem] font-bold leading-snug @3xl:text-[1.38rem]">{title}</h2>
-      </div>
-      <div className="text-[1rem] leading-relaxed">{children}</div>
+    <section className="ax-card px-4 py-3 @3xl:px-5" style={tone === "company" ? { borderColor: "var(--primary)", borderWidth: 2, background: "var(--primary-soft)" } : undefined} data-why={no}>
+      <h2>
+        <button type="button" className="flex w-full items-center gap-3 text-left" aria-expanded={isOpen} aria-controls={`why-${no}`} onClick={() => toggle(no)}>
+          <span className="tabular flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[0.82rem] font-bold" style={{ background: tone === "company" ? "var(--highlight)" : "var(--primary)", color: tone === "company" ? "#171B20" : "#fff" }}>{no}</span>
+          <span className="min-w-0 flex-1 text-[1.02rem] font-bold leading-snug @3xl:text-[1.1rem]">{title}</span>
+          <ChevronDown size={18} className="shrink-0 text-ink-soft transition-transform" style={{ transform: isOpen ? "none" : "rotate(-90deg)" }} aria-hidden />
+        </button>
+      </h2>
+      <div id={`why-${no}`} className={`pb-2 pt-3 text-[1rem] leading-relaxed ${isOpen ? "" : "is-folded"}`}>{children}</div>
     </section>
+  );
+}
+
+function Group({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <div className="mb-2 mt-1 text-[0.8rem] font-bold tracking-wide text-ink-soft">{label}</div>
+      <div className="space-y-2">{children}</div>
+    </div>
   );
 }
 
@@ -36,11 +53,19 @@ function Flow({ items, muted = false }: { items: string[]; muted?: boolean }) {
 
 const TODO = <StatusBadge tone="warning">확인 필요</StatusBadge>;
 
+const ALL = Array.from({ length: 16 }, (_, i) => String(i + 1).padStart(2, "0"));
+
 export default function WhyPage() {
+  const [open, setOpen] = useState<Set<string>>(() => new Set(["07"]));
+  const toggle = (no: string) => setOpen((o) => { const n = new Set(o); if (n.has(no)) n.delete(no); else n.add(no); return n; });
+  const allOpen = open.size === ALL.length;
   return (
+    <OpenCtx.Provider value={{ open, toggle }}>
     <div className="mx-auto max-w-[900px]">
-      <PageHeader title="기획의도 — 왜 MIRYEO Growth AX인가" description="가연인터내셔널이 데이터와 AX를 실제 K-Beauty 사업에 적용하려는 이유를 5분 분량으로 정리했습니다. 회사 수치는 1차 체크리스트로 확인 후 채웁니다." />
-      <div className="stagger space-y-5">
+      <PageHeader title="기획의도 — 왜 MIRYEO Growth AX인가" description="가연인터내셔널이 데이터와 AX를 실제 K-Beauty 사업에 적용하려는 이유를 16개 주제로 정리했습니다. 제목을 누르면 내용이 펼쳐집니다. 회사 수치는 1차 체크리스트로 확인 후 채웁니다."
+        actions={<button type="button" className="btn-secondary !min-h-[40px] text-[0.86rem]" onClick={() => setOpen(allOpen ? new Set() : new Set(ALL))} data-testid="why-toggle-all">{allOpen ? "모두 접기" : "모두 펼치기"}</button>} />
+      <div className="space-y-5">
+        <Group label="왜 필요한가">
         <Section no="01" title="회사의 현재 — Demand Proof">
           <p>가연인터내셔널은 MIRYEO 관련 K-Beauty 사업을 운영하며, 여러 판매채널·OEM 생산·B2B·수출이 연결된 구조를 전제로 이 시스템을 설계했습니다.</p>
           <ul className="mt-3 grid gap-2 @xl:grid-cols-2">
@@ -75,6 +100,8 @@ export default function WhyPage() {
           </div>
         </Section>
 
+        </Group>
+        <Group label="무엇이 바뀌는가">
         <Section no="07" title="가연인터내셔널이라면" tone="company">
           <div className="flex gap-3"><Building2 size={22} className="mt-0.5 shrink-0" style={{ color: "var(--primary)" }} aria-hidden />
             <p>판매 채널이 여럿이고 OEM 생산·B2B·수출까지 연결되는 구조에서는, <b>판매속도 → 재고일수 → 생산 판단</b>을 하나로 묶는 것이 핵심입니다. 여기에 MIRYEO AI Beauty의 고객 행동을 더하면, 외부 플랫폼에서는 알 수 없던 &lsquo;왜 이 제품을 찾는지(피부 고민)&rsquo;까지 판단 근거가 됩니다.</p>
@@ -114,6 +141,8 @@ export default function WhyPage() {
           <Flow items={["추천 (근거·사용 데이터 표시)", "검토 → 승인·담당자 지정 (KPI Before 저장)", "실행 메모", "결과 기록 (KPI After 저장)", "Proof Event → 대표 결과 확정"]} />
         </Section>
 
+        </Group>
+        <Group label="결과와 실증">
         <Section no="12" title="매출이 올라가는 구조">
           <ul className="space-y-2">
             {[["품절 방지", "성장 SKU를 재고 소진 전에 감지해 판매기회 손실을 줄입니다"], ["채널 최적화", "할인율·성장률로 물량 배분 판단"], ["재구매", "구매 주기가 지난 고객을 놓치지 않음"], ["전환", "Finder → Passport → 구매채널 이동 흐름 개선"]].map(([t, d]) => (
@@ -134,6 +163,8 @@ export default function WhyPage() {
           <Link href="/ax/reports" className="btn-secondary mt-4">실증·Evidence 보기 <ArrowRight size={16} aria-hidden /></Link>
         </Section>
 
+        </Group>
+        <Group label="앞으로">
         <Section no="15" title="정책·기술사업화와의 관계">
           <div className="flex items-start gap-2 rounded-xl p-4" style={{ background: "var(--warning-soft)" }}>
             <CircleHelp size={19} className="mt-0.5 shrink-0" style={{ color: "var(--warning)" }} aria-hidden />
@@ -155,8 +186,10 @@ export default function WhyPage() {
           </ul>
           <Link href="/ax" className="btn-primary mt-5">대시보드로 돌아가기</Link>
         </Section>
+        </Group>
         <p className="pb-4 text-center text-[0.82rem] text-ink-soft">가연인터내셔널 · MIRYEO Business AX · Powered by 미래AI랩</p>
       </div>
     </div>
+    </OpenCtx.Provider>
   );
 }

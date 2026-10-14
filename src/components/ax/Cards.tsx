@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowDownRight, ArrowUpRight, ChevronRight, Sparkles } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
+import { InfoTip } from "./InfoTip";
 import type { ActionStatus, GrowthAction } from "@/lib/types";
 
 /* ---------- Count-up (첫 진입 1회, reduced-motion 존중) ---------- */
@@ -29,7 +30,7 @@ export function useCountUp(target: number, duration = 650): number {
 
 /* ---------- KPI Card ---------- */
 export function KpiCard({
-  label, value, format, icon, iconTone = "var(--primary)", trend, trendLabel, sub, href, tourId,
+  label, value, format, icon, iconTone = "var(--primary)", trend, trendLabel, sub, href, tourId, bare = false,
 }: {
   label: string;
   value: number;
@@ -41,6 +42,8 @@ export function KpiCard({
   sub?: ReactNode;
   href?: string;
   tourId?: string;
+  /** 묶음 패널 안의 숫자 칸 (테두리·그림자 없음, 조금 작게) — 대시보드 핵심 숫자 (PASS 21, D-075) */
+  bare?: boolean;
 }) {
   const animated = useCountUp(value);
   const up = trend != null && trend >= 0;
@@ -48,7 +51,7 @@ export function KpiCard({
   const body = (
     <>
       <div className="flex items-center gap-2.5">
-        {icon && (
+        {icon && !bare && (
           <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg @md:flex [&>svg]:h-[18px] [&>svg]:w-[18px]" style={{ background: `color-mix(in srgb, ${iconTone} 13%, #fff)`, color: iconTone }} aria-hidden>
             {icon}
           </span>
@@ -56,7 +59,7 @@ export function KpiCard({
         <span className="min-w-0 text-[0.86rem] font-semibold leading-snug text-ink-soft @md:text-[0.9rem]">{label}</span>
         {href && <ChevronRight size={16} className="ml-auto shrink-0 text-ink-soft opacity-50 transition-opacity group-hover:opacity-100" aria-hidden />}
       </div>
-      <div className="mt-1.5 text-[1.3rem] font-bold leading-tight tracking-tight @md:mt-2 @md:text-[1.7rem] @4xl:text-[1.9rem]">{format(animated)}</div>
+      <div className={bare ? "mt-1 text-[1.2rem] font-bold leading-tight tracking-tight @md:text-[1.45rem]" : "mt-1.5 text-[1.3rem] font-bold leading-tight tracking-tight @md:mt-2 @md:text-[1.7rem] @4xl:text-[1.9rem]"}>{format(animated)}</div>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[0.8rem] leading-snug @md:text-[0.85rem]">
         {trend != null && (
           <span className="inline-flex items-center gap-0.5 font-semibold" style={{ color: up ? "var(--success)" : "var(--danger)" }}>
@@ -68,29 +71,42 @@ export function KpiCard({
       </div>
     </>
   );
+  const cls = bare ? "group block min-w-0 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-muted" : "ax-card ax-card-hover group block min-w-0 p-4 @md:p-5";
   return href ? (
-    <Link href={href} data-tour={tourId} className="ax-card ax-card-hover group block min-w-0 p-4 @md:p-5">{body}</Link>
+    <Link href={href} data-tour={tourId} className={cls}>{body}</Link>
   ) : (
-    <div data-tour={tourId} className="ax-card min-w-0 p-4 @md:p-5">{body}</div>
+    <div data-tour={tourId} className={bare ? "min-w-0 px-3 py-2.5" : "ax-card min-w-0 p-4 @md:p-5"}>{body}</div>
   );
 }
 
 /* ---------- Section Card ---------- */
-export function DataCard({ title, subtitle, action, children, className = "", tourId, id }: { title?: ReactNode; subtitle?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; tourId?: string; id?: string }) {
+/* 카드 (D-075): info = 제목 옆 ⓘ 안내(설명 문장 대신), collapsible = 제목을 눌러 접고 펼침(덜 자주 보는 파트는 defaultOpen=false) */
+export function DataCard({ title, subtitle, info, action, children, className = "", tourId, id, collapsible = false, defaultOpen = true, testId }: { title?: ReactNode; subtitle?: ReactNode; info?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; tourId?: string; id?: string; collapsible?: boolean; defaultOpen?: boolean; testId?: string }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const bodyId = useId();
+  const h2 = "text-[1.08rem] font-bold leading-snug @md:text-[1.15rem] @3xl:text-[1.25rem]";
+  const heading = collapsible ? (
+    <h2 className={h2}>
+      <button type="button" className="inline-flex items-center gap-1.5 text-left" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((o) => !o)}>
+        <ChevronDown size={18} className="shrink-0 text-ink-soft transition-transform" style={{ transform: open ? "none" : "rotate(-90deg)" }} aria-hidden />
+        {title}
+      </button>
+    </h2>
+  ) : <h2 className={h2}>{title}</h2>;
   return (
-    <section id={id} data-tour={tourId} className={`ax-card min-w-0 p-4 @md:p-5 @3xl:p-6 ${className}`}>
+    <section id={id} data-tour={tourId} data-testid={testId} data-collapsed={collapsible && !open ? "" : undefined} className={`ax-card min-w-0 p-4 @md:p-5 @3xl:p-6 ${className}`}>
       {(title || action) && (
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 @md:mb-4 @md:gap-3">
-          {title && (subtitle ? (
+        <div className={`flex flex-wrap items-center justify-between gap-2 @md:gap-3 ${collapsible && !open ? "" : "mb-3 @md:mb-4"}`}>
+          {title && (
             <div className="min-w-0">
-              <h2 className="text-[1.08rem] font-bold leading-snug @md:text-[1.15rem] @3xl:text-[1.25rem]">{title}</h2>
-              <p className="mt-0.5 text-[0.84rem] text-ink-soft">{subtitle}</p>
+              <div className="flex items-center gap-1">{heading}{info && <InfoTip text={info} label={`${typeof title === "string" ? title : "이 파트"} 설명`} />}</div>
+              {subtitle && <p className="mt-0.5 text-[0.84rem] text-ink-soft">{subtitle}</p>}
             </div>
-          ) : <h2 className="text-[1.08rem] font-bold leading-snug @md:text-[1.15rem] @3xl:text-[1.25rem]">{title}</h2>)}
+          )}
           {action}
         </div>
       )}
-      {children}
+      <div id={bodyId} className={collapsible && !open ? "is-folded" : undefined}>{children}</div>
     </section>
   );
 }
@@ -175,10 +191,10 @@ export function ActionRow({ action, onOpen, rank, today = false }: { action: Gro
           <StatusBadge tone="neutral">{action.category}</StatusBadge>
           <StatusBadge tone={ACTION_STATUS_TONE[action.status]}>{ACTION_STATUS_LABEL[action.status]}</StatusBadge>
           {today && <StatusBadge tone="primary">오늘 먼저</StatusBadge>}
+          <span className="text-[0.78rem] text-ink-soft">{action.assigneeName ? `담당 ${action.assigneeName}` : "담당 미지정"}</span>
         </span>
-        <span className="mt-1.5 block text-[0.98rem] font-bold leading-snug">{action.title}</span>
-        <span className="mt-0.5 line-clamp-2 text-[0.88rem] leading-relaxed text-ink-soft">{action.judgement}</span>
-        <span className="mt-1 block text-[0.8rem] text-ink-soft">{action.assigneeName ? `담당 ${action.assigneeName}` : "담당 미지정"}</span>
+        <span className="mt-1 block text-[0.98rem] font-bold leading-snug">{action.title}</span>
+        <span className="mt-0.5 line-clamp-1 text-[0.86rem] leading-relaxed text-ink-soft" title={action.judgement}>{action.judgement}</span>
       </span>
       <span className="hidden shrink-0 items-center gap-0.5 self-center text-[0.86rem] font-semibold @md:inline-flex" style={{ color: "var(--primary)" }}>
         처리하기 <ChevronRight size={15} aria-hidden />

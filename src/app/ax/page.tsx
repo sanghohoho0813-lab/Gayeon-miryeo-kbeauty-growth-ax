@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowUpRight, Banknote, ChevronRight, Globe2, Heart, Lightbulb, ListChecks, Tags, Users } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
+import { InfoTip } from "@/components/ax/InfoTip";
 import { ActionRow, DataCard, InsightCard, KpiCard, MiniBar, SeeAllLink, StatusBadge } from "@/components/ax/Cards";
 import { Tabs } from "@/components/ax/Tabs";
 import { ChannelDonut } from "@/components/ax/ChannelDonut";
@@ -51,27 +52,34 @@ export default function DashboardPage() {
     <div>
       <PageHeader title="오늘의 Growth Dashboard" description="핵심 숫자와 오늘 먼저 할 일. 분석 기준: 최근 4주 vs 이전 4주." actions={<><Link href="/ax/present" className="btn-secondary !min-h-[40px] text-[0.86rem]" data-testid="open-present"><Presentation size={16} aria-hidden /> 보고 모드</Link><DataFreshness /></>} />
       {daysBetween(m.salesAsOf, m.today) >= 2 && (
-        <p className="-mt-2 mb-4 text-[0.86rem] text-ink-soft" data-testid="sales-asof">
-          판매가 {formatDateKR(m.salesAsOf)}까지 입력되어 있어 &lsquo;최근 4주&rsquo;는 그날까지로 계산합니다 (입력 전 {daysBetween(m.salesAsOf, m.today)}일을 판매 0으로 보지 않음). 재고·착수 마감은 오늘 기준입니다.
+        <p className="-mt-2 mb-3 flex items-center gap-1 text-[0.86rem] text-ink-soft" data-testid="sales-asof">
+          판매 입력 {formatDateKR(m.salesAsOf)}까지 — &lsquo;최근 4주&rsquo;는 그날까지로 계산
+          <InfoTip text={<>입력 전 {daysBetween(m.salesAsOf, m.today)}일을 판매 0으로 보지 않도록 마지막 판매일까지로 계산합니다. 재고·착수 마감은 오늘 기준입니다.</>} label="판매 기준일 설명" />
         </p>
       )}
 
-      <section aria-label="핵심 숫자">
-        <div className="stagger grid grid-cols-2 gap-3 @md:gap-4 @4xl:grid-cols-4" data-tour="kpis">
+      {/* 핵심 숫자 7개를 한 패널로 묶음 — 최근 4주 | 이번 달 (PASS 21, D-075) */}
+      <section aria-label="핵심 숫자" className="ax-card p-2 @md:p-2.5" data-tour="kpis">
+        <div className="grid gap-y-1 @5xl:grid-cols-[minmax(0,4fr)_minmax(0,3fr)] @5xl:divide-x" style={{ borderColor: "var(--border)" }}>
+        <div className="min-w-0">
+        <div className="px-3 pt-1 text-[0.76rem] font-bold tracking-wide text-ink-soft">최근 4주</div>
+        <div className="grid grid-cols-2 @3xl:grid-cols-4">
           {fin ? (
-            <KpiCard label="최근 4주 매출" value={kpis.revenue28} format={formatKRW} icon={<Banknote />} iconTone="#3B82F6" trend={kpis.revenueGrowth} trendLabel="이전 4주 대비" href="/ax/channels" />
+            <KpiCard bare label="매출" value={kpis.revenue28} format={formatKRW} icon={<Banknote />} iconTone="#3B82F6" trend={kpis.revenueGrowth} trendLabel="이전 4주 대비" href="/ax/channels" />
           ) : (
-            <KpiCard label="처리할 Action" value={openActions.length} format={(v) => `${Math.round(v)}건`} icon={<ListChecks />} iconTone="#5965D8" sub="오늘의 Mission 포함" href="/ax/growth" />
+            <KpiCard bare label="처리할 Action" value={openActions.length} format={(v) => `${Math.round(v)}건`} icon={<ListChecks />} iconTone="#5965D8" sub="오늘의 Mission 포함" href="/ax/growth" />
           )}
-          <KpiCard label="판매 중 SKU" value={kpis.totalSku} format={(v) => `${Math.round(v)}개`} icon={<Tags />} iconTone="#7C5CE7" sub={`성장 ${kpis.growingSku} · 부진 ${kpis.decliningSku}`} href="/ax/products" />
-          <KpiCard label="재고 위험 SKU" value={kpis.stockRiskSku} format={(v) => `${Math.round(v)}개`} icon={<AlertTriangle />} iconTone="#D99016" sub={`과잉 ${kpis.overStockSku}개 별도`} href="/ax/products?tab=inventory" />
+          <KpiCard bare label="판매 중 SKU" value={kpis.totalSku} format={(v) => `${Math.round(v)}개`} icon={<Tags />} iconTone="#7C5CE7" sub={`성장 ${kpis.growingSku} · 부진 ${kpis.decliningSku}`} href="/ax/products" />
+          <KpiCard bare label="재고 위험 SKU" value={kpis.stockRiskSku} format={(v) => `${Math.round(v)}개`} icon={<AlertTriangle />} iconTone="#D99016" sub={`과잉 ${kpis.overStockSku}개 별도`} href="/ax/products?tab=inventory" />
           {fin ? (
-            <KpiCard label="B2B·수출 (4주)" value={kpis.b2bExportRevenue28} format={formatKRW} icon={<Globe2 />} iconTone="#148C8C" trend={kpis.b2bExportGrowth} trendLabel="이전 4주 대비" href="/ax/channels?tab=b2b" />
+            <KpiCard bare label="B2B·수출" value={kpis.b2bExportRevenue28} format={formatKRW} icon={<Globe2 />} iconTone="#148C8C" trend={kpis.b2bExportGrowth} trendLabel="이전 4주 대비" href="/ax/channels?tab=b2b" />
           ) : (
-            <KpiCard label="Finder 완료 (7일)" value={customer.recent.finder_complete} format={(v) => `${Math.round(v)}건`} icon={<Users />} iconTone="#C76C86" sub="고객 화면 행동" href="/ax/customers" />
+            <KpiCard bare label="Finder 완료 (7일)" value={customer.recent.finder_complete} format={(v) => `${Math.round(v)}건`} icon={<Users />} iconTone="#C76C86" sub="고객 화면 행동" href="/ax/customers" />
           )}
         </div>
+        </div>
         {fin && <FinanceRow />}
+        </div>
       </section>
 
       {can(role, "edit_master") && <StartGuideBanner />}
@@ -263,10 +271,13 @@ function FinanceRow() {
   const rs = summarizeReceivables(m.snapshot.settlements, m.today);
   const day = Number(m.today.slice(8, 10));
   return (
-    <div className="mt-3 grid grid-cols-2 gap-3 @md:mt-4 @md:gap-4 @3xl:grid-cols-3 [&>*:last-child]:col-span-2 @3xl:[&>*:last-child]:col-span-1" data-testid="finance-row">
-      <KpiCard label={`이번 달 매출 (${day}일까지)`} value={cur.revenue} format={formatKRW} icon={<CalendarRange />} iconTone="#2563EB" sub={tp.rate != null ? `목표 대비 ${Math.round(tp.rate * 100)}% · 월 경과 ${Math.round(tp.elapsed * 100)}%` : `지난달 전체 ${formatKRW(prev.revenue)} · 목표 미입력`} href="/ax/monthly" />
-      <KpiCard label="이번 달 매출총이익" value={cur.grossProfit} format={formatKRW} icon={<Banknote />} iconTone="#16A34A" sub={mr == null ? "원가 미입력" : `이익률 ${Math.round(mr * 100)}% · 원가 입력 제품 기준`} trend={change(cur.grossProfit, prev.grossProfit) != null && day >= 28 ? change(cur.grossProfit, prev.grossProfit) : null} href="/ax/monthly" />
-      <KpiCard label="받을 돈 (미수금)" value={rs.outstanding} format={formatKRW} icon={<Wallet />} iconTone={rs.overdueCount ? "#DC2626" : "#0F766E"} sub={rs.overdueCount ? `연체 ${rs.overdueCount}건 · ${formatKRW(rs.overdueAmount)}` : `${rs.openCount}건 · 연체 없음`} href="/ax/channels?tab=settlements" />
+    <div className="min-w-0 border-t pt-1 @5xl:border-t-0 @5xl:pl-1 @5xl:pt-0" style={{ borderColor: "var(--border)" }}>
+    <div className="px-3 pt-1 text-[0.76rem] font-bold tracking-wide text-ink-soft">이번 달 ({day}일까지)</div>
+    <div className="grid grid-cols-2 @3xl:grid-cols-3 [&>*:last-child]:col-span-2 @3xl:[&>*:last-child]:col-span-1" data-testid="finance-row">
+      <KpiCard bare label="이번 달 매출" value={cur.revenue} format={formatKRW} icon={<CalendarRange />} iconTone="#2563EB" sub={tp.rate != null ? `목표 대비 ${Math.round(tp.rate * 100)}% · 월 경과 ${Math.round(tp.elapsed * 100)}%` : `지난달 전체 ${formatKRW(prev.revenue)} · 목표 미입력`} href="/ax/monthly" />
+      <KpiCard bare label="매출총이익" value={cur.grossProfit} format={formatKRW} icon={<Banknote />} iconTone="#16A34A" sub={mr == null ? "원가 미입력" : `이익률 ${Math.round(mr * 100)}% · 원가 입력 제품 기준`} trend={change(cur.grossProfit, prev.grossProfit) != null && day >= 28 ? change(cur.grossProfit, prev.grossProfit) : null} href="/ax/monthly" />
+      <KpiCard bare label="받을 돈 (미수금)" value={rs.outstanding} format={formatKRW} icon={<Wallet />} iconTone={rs.overdueCount ? "#DC2626" : "#0F766E"} sub={rs.overdueCount ? `연체 ${rs.overdueCount}건 · ${formatKRW(rs.overdueAmount)}` : `${rs.openCount}건 · 연체 없음`} href="/ax/channels?tab=settlements" />
+    </div>
     </div>
   );
 }
@@ -277,11 +288,11 @@ function StartGuideBanner() {
   const p = guideProgress(buildStartGuide(m.snapshot, m.today));
   if (p.done >= p.total) return <RoutineBanner />;
   return (
-    <Link href="/ax/start" data-testid="start-banner" className="ax-card ax-card-hover mt-4 flex items-center gap-3 p-3.5 @md:p-4">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: "var(--primary-soft)", color: "var(--primary)" }} aria-hidden><Rocket size={20} /></span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-bold">실데이터 시작 가이드 {p.done}/{p.total}</span>
-        <span className="text-[0.88rem] text-ink-soft">다음 단계: {p.next?.title}</span>
+    <Link href="/ax/start" data-testid="start-banner" className="ax-card ax-card-hover mt-3 flex items-center gap-3 px-3.5 py-2.5">
+      <Rocket size={18} className="shrink-0" style={{ color: "var(--primary)" }} aria-hidden />
+      <span className="min-w-0 flex-1 text-[0.92rem]">
+        <b>실데이터 시작 가이드 {p.done}/{p.total}</b>
+        <span className="text-ink-soft"> · 다음: {p.next?.title}</span>
       </span>
       <span className="hidden h-2 w-40 shrink-0 overflow-hidden rounded-full bg-surface-muted @md:block" aria-hidden><span className="block h-full rounded-full" style={{ width: `${Math.round(p.ratio * 100)}%`, background: "var(--primary)" }} /></span>
     </Link>
@@ -294,11 +305,11 @@ function RoutineBanner() {
   const r = routineProgress(buildWeeklyRoutine(m.snapshot, m.today, { allowPractice: !isLive }));
   if (r.done >= r.total) return null;
   return (
-    <Link href="/ax/start#routine" data-testid="routine-banner" className="ax-card ax-card-hover mt-4 flex items-center gap-3 p-3.5 @md:p-4">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: "var(--warning-soft)", color: "var(--warning)" }} aria-hidden><CircleAlert size={20} /></span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-bold">이번 주 운영 점검 {r.done}/{r.total}</span>
-        <span className="text-[0.88rem] text-ink-soft">확인 필요: {r.next?.title} — {r.next?.detail}</span>
+    <Link href="/ax/start#routine" data-testid="routine-banner" className="ax-card ax-card-hover mt-3 flex items-center gap-3 px-3.5 py-2.5">
+      <CircleAlert size={18} className="shrink-0" style={{ color: "var(--warning)" }} aria-hidden />
+      <span className="min-w-0 flex-1 text-[0.92rem]">
+        <b>이번 주 운영 점검 {r.done}/{r.total}</b>
+        <span className="text-ink-soft"> · 확인 필요: {r.next?.title} — {r.next?.detail}</span>
       </span>
     </Link>
   );

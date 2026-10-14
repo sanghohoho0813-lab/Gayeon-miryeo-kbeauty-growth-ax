@@ -43,10 +43,10 @@ export function MonthlyTargetCard({ month, actual }: { month: string; actual: nu
   };
 
   return (
-    <DataCard className="mt-6" title={<span className="inline-flex items-center gap-2"><Target size={18} aria-hidden /> {monthLabel(month)} 매출 목표</span>}>
+    <DataCard title={<span className="inline-flex items-center gap-2"><Target size={18} aria-hidden /> {monthLabel(month)} 매출 목표</span>} info="대표가 월 목표 매출을 입력하면 달성률과 월말 예상(지금 속도 기준)을 보여 줍니다. 목표는 시스템이 만들지 않습니다.">
       <div data-testid="target-card" data-status={p.status}>
         {p.target == null ? (
-          <p className="text-[0.92rem] text-ink-soft">목표가 입력되지 않았습니다. {owner ? "대표가 월 목표를 입력하면 달성률을 보여줍니다." : "대표가 입력하면 달성률이 표시됩니다."} 목표는 시스템이 만들지 않습니다.</p>
+          <p className="text-[0.9rem] text-ink-soft">목표 미입력 — 목표는 시스템이 만들지 않습니다{owner ? "" : " (대표 입력)"}</p>
         ) : (
           <div>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">

@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, ChevronDown, ExternalLink, FileText, Lock, Plus, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
+import { InfoTip } from "@/components/ax/InfoTip";
 import { DataCard, StatusBadge, type Tone } from "@/components/ax/Cards";
 import { AiReadyButton, AI_SPECS } from "@/components/ax/AiReady";
 import { EmptyState } from "@/components/ax/States";
@@ -72,7 +73,7 @@ export default function ReportsPage() {
       />
 
       {/* 12주 실증 진행 — 단계 타임라인 + 증거 3종(Proof·기준값·책임자)을 한 카드로 (이전: 상태 카드 3장 + 계획 카드 따로) */}
-      <DataCard title="12주 실증 진행" subtitle={week == null ? "Week 0 시작일을 지정하면 주차가 계산됩니다" : `시작 ${formatDateKR(pilotStart)} · Week 12 끝 ${formatDateKR(endOn)}`} action={
+      <DataCard title="12주 실증 진행" subtitle={week == null ? undefined : `시작 ${formatDateKR(pilotStart)} · Week 12 끝 ${formatDateKR(endOn)}`} info="Week 0(기준값 잠금)부터 Week 12(기업가치 증빙)까지 실증 단계입니다. Week 0 시작일을 지정하면 주차가 계산됩니다." action={
         <span className="tabular text-[1.35rem] font-bold" data-testid="pilot-week">{week == null ? "시작 전" : week > 12 ? "12주 완료" : `Week ${week} / 12`}</span>
       }>
         <ol className="grid gap-3 @3xl:grid-cols-4 @3xl:gap-3" aria-label="12주 실증 단계" data-testid="pilot-timeline">
@@ -88,7 +89,7 @@ export default function ReportsPage() {
                 <span className="block @3xl:mt-2">
                   <span className="text-[0.78rem] font-semibold text-ink-soft">{p.title}</span>
                   <span className="block font-bold leading-snug" style={state === "current" ? { color: "var(--primary)" } : undefined}>{p.name}{state === "current" && <span className="sr-only"> (현재 단계)</span>}</span>
-                  <span className="block text-[0.82rem] leading-snug text-ink-soft">{p.desc}</span>
+                  <span className="block text-[0.8rem] leading-snug text-ink-soft">{p.desc}</span>
                 </span>
               </li>
             );
@@ -120,14 +121,14 @@ export default function ReportsPage() {
         {week == null && can(role, "manage_org") && <Link href="/ax/settings#pilot" className="btn-secondary mt-4 !min-h-[40px] text-[0.86rem]">Week 0 시작일 지정 <ArrowRight size={15} aria-hidden /></Link>}
       </DataCard>
 
-      <DataCard className="mt-6" id="baseline" title="Money KPI 3 — 기준값(Baseline) 대비" subtitle="기준값을 잠근 뒤의 실측 변화만 표시합니다">
+      <DataCard className="mt-5" id="baseline" title="Money KPI 3 — 기준값(Baseline) 대비" info={<>기준값을 잠근 뒤의 실측 변화만 표시합니다. 현재 측정값은 {isLive ? "Supabase 실데이터" : "DEMO 기준값 + 이 브라우저에서 발생한 행동"} 기준이고, 표본이 적으면 변화율은 참고용입니다. 목표는 실측 후 정하며 임의로 만들지 않습니다.{!can(role, "manage_org") && " Baseline 잠금은 대표(OWNER) 권한입니다."}</>}>
         <div className="grid gap-3 @4xl:grid-cols-3">
           {money.map((k) => {
             const status: EvStatus = !k.baseline ? "기준값 필요" : k.current == null ? "측정중" : "증거 축적중";
             return (
               <div key={k.key} data-testid={`kpi-${k.key}`} className="flex flex-col rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
                 <div className="flex items-center justify-between gap-2"><span className="text-[0.8rem] font-bold text-ink-soft">{KIND_LABEL[k.key]}</span><StatusBadge tone={EV_TONE[status]}>{status}</StatusBadge></div>
-                <div className="mt-1.5 font-bold leading-snug">{k.name}</div>
+                <div className="mt-1.5 flex items-center gap-1 font-bold leading-snug">{k.name}<InfoTip text={`측정: ${k.method} · ${k.direction === "lower" ? "낮을수록" : "높을수록"} 좋음 · 목표는 실측 후 설정`} label={`${k.name} 측정 방식`} /></div>
                 <dl className="mt-3 space-y-1.5 text-[0.86rem]">
                   <div className="flex justify-between gap-2">
                     <dt className="text-ink-soft">기준값</dt>
@@ -142,10 +143,7 @@ export default function ReportsPage() {
                       {k.change ? `${formatChange(k.change, k.unit)} ${k.change.improved ? "개선" : "악화"}` : <span className="font-normal text-ink-soft">{k.baseline ? "측정값 대기" : "Baseline 잠금 후 표시"}</span>}
                     </dd>
                   </div>
-                  <div className="flex justify-between gap-2"><dt className="text-ink-soft">방향</dt><dd>{k.direction === "lower" ? "낮을수록 좋음" : "높을수록 좋음"}</dd></div>
-                  <div className="flex justify-between gap-2"><dt className="text-ink-soft">목표</dt><dd className="text-right">실측 후 설정<span className="block text-[0.74rem] text-ink-soft">임의 목표를 만들지 않음</span></dd></div>
                 </dl>
-                <p className="mt-2 text-[0.78rem] text-ink-soft">측정: {k.method}</p>
                 <BaselineHistory items={k.history} />
                 {can(role, "manage_org") && (
                   <button className="btn-secondary mt-auto !min-h-[40px] text-[0.85rem]" style={{ marginTop: "0.9rem" }} onClick={() => setLockKpi(k)}>
@@ -156,10 +154,9 @@ export default function ReportsPage() {
             );
           })}
         </div>
-        <p className="mt-3 text-[0.8rem] text-ink-soft">현재 측정값은 {isLive ? "Supabase 실데이터" : "DEMO 기준값 + 이 브라우저에서 발생한 행동"} 기준입니다. Baseline 잠금 전에는 개선률을 표시하지 않으며, 표본이 적으면 변화율은 참고용입니다.{!can(role, "manage_org") && " Baseline 잠금은 대표(OWNER) 권한입니다."}</p>
       </DataCard>
 
-      <DataCard className="mt-6" id="proofs" title="Proof Event — 판단·실행·결과" action={can(role, "execute_action") && <button className="btn-secondary !min-h-[40px] text-[0.86rem]" onClick={() => setManual(true)}><Plus size={15} aria-hidden /> 수동 Proof 기록</button>}>
+      <DataCard className="mt-5" id="proofs" title="Proof Event — 판단·실행·결과" info="Action을 승인·실행하고 결과를 기록하면 Proof Event가 생깁니다. 대표(OWNER)가 결과를 확정해야 실증 자료로 셉니다." action={can(role, "execute_action") && <button className="btn-secondary !min-h-[40px] text-[0.86rem]" onClick={() => setManual(true)}><Plus size={15} aria-hidden /> 수동 Proof 기록</button>}>
         {proofs.length === 0 ? (
           <EmptyState title="아직 Proof Event가 없습니다" desc="AI Growth Center에서 Action을 승인·실행하고 결과를 기록하면 자동으로 생성됩니다." action={<Link href="/ax/growth" className="btn-primary">Action 처리하러 가기</Link>} />
         ) : (
@@ -169,9 +166,11 @@ export default function ReportsPage() {
         )}
       </DataCard>
 
-      <div className="mt-6 grid gap-6 @4xl:grid-cols-2">
+      <DataCard className="mt-5" title="증거 현황 — 운영 · 기업가치" collapsible defaultOpen={false} testId="evidence-status" info="12주 동안 쌓아야 할 운영 증거(Operating Evidence)와 기업가치 증거(Enterprise Value)의 현재 상태입니다.">
+      <div className="grid gap-5 @4xl:grid-cols-2">
         {([["운영 증거 (Operating Evidence)", operating], ["기업가치 증거 (Enterprise Value)", enterprise]] as const).map(([title, items]) => (
-          <DataCard key={title} title={title}>
+          <div key={title}>
+            <h3 className="mb-2 font-bold">{title}</h3>
             <ul className="space-y-2">
               {items.map(([name, desc, st]) => (
                 <li key={name} className="flex items-start justify-between gap-3 rounded-xl bg-surface-muted px-4 py-3">
@@ -180,11 +179,12 @@ export default function ReportsPage() {
                 </li>
               ))}
             </ul>
-          </DataCard>
+          </div>
         ))}
       </div>
+      </DataCard>
 
-      <details className="ax-card group mt-6 p-4 @md:p-5 @3xl:p-6" data-testid="before-after">
+      <details className="ax-card group mt-5 p-4 @md:p-5 @3xl:p-6" data-testid="before-after">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-[1.08rem] font-bold @md:text-[1.15rem]">
           운영 방식 Before / After (정성)
           <ChevronDown size={18} className="shrink-0 text-ink-soft transition-transform group-open:rotate-180" aria-hidden />

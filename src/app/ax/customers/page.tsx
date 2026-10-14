@@ -16,6 +16,18 @@ import { EVENT_LABEL, formatPct, INTEREST_GROWTH_MIN, INTEREST_THRESHOLD } from 
 import { relativeKR } from "@/lib/date";
 import type { GrowthAction } from "@/lib/types";
 import { useNarrow } from "@/lib/use-narrow";
+import { Tabs } from "@/components/ax/Tabs";
+import { useHashTab } from "@/lib/use-hash-tab";
+
+/* 고객 인사이트 — 핵심 숫자 아래를 탭 4개로 묶음 (PASS 21, D-075) */
+const TABS = [
+  { id: "behavior", label: "고객 행동" },
+  { id: "interest", label: "제품 관심·Action" },
+  { id: "live", label: "실시간 이벤트" },
+  { id: "members", label: "회원·재구매" },
+] as const;
+type CustTab = (typeof TABS)[number]["id"];
+const TAB_IDS = TABS.map((t) => t.id);
 
 export default function CustomersPage() {
   const m = useModel();
@@ -25,6 +37,7 @@ export default function CustomersPage() {
   const interestActions = m.actions.filter((a) => a.category === "고객 관심" || a.category === "재구매");
   const maxScore = Math.max(1, ...c.productInterest.map((p) => p.recentScore));
   const concernTotal = c.concerns.reduce((s, x) => s + x.count, 0);
+  const [tab, setTab] = useHashTab<CustTab>(TAB_IDS, {}, "behavior");
 
   return (
     <div>
@@ -41,7 +54,10 @@ export default function CustomersPage() {
         <KpiCard label="Finder → Passport 전환" value={(c.conversionRecent ?? 0) * 100} format={(v) => (c.conversionRecent == null ? "-" : `${v.toFixed(1)}%`)} sub={`이전 7일 ${formatPct(c.conversionPrev, false)} · Baseline 미확정`} href="/ax/reports" />
       </div>
 
-      <div className="mt-6 grid gap-6 @4xl:grid-cols-5">
+      <Tabs tabs={TABS} value={tab} onChange={setTab} className="mb-4 mt-5" panelId="cust-panel" label="고객 인사이트 보기" />
+      <div id="cust-panel" role="tabpanel" aria-labelledby={`cust-panel-tab-${tab}`}>
+      {tab === "behavior" && (
+      <div className="grid gap-5 @4xl:grid-cols-5">
         <DataCard title="일별 고객 행동 (14일)" className="@4xl:col-span-3">
           <DailyEvents data={c.daily} />
           <div className="mt-2 flex flex-wrap gap-3 text-[0.8rem] text-ink-soft">
@@ -50,25 +66,24 @@ export default function CustomersPage() {
             ))}
           </div>
         </DataCard>
-        <DataCard title="선택된 피부 고민 (7일)" className="@4xl:col-span-2">
+        <DataCard title="선택된 피부 고민 (7일)" className="@4xl:col-span-2" info="Finder에서 고객이 고른 피부 고민입니다. 상품기획·콘텐츠 우선순위의 근거가 되는 자사 보유 고객 데이터입니다.">
           {c.concerns.length === 0 ? <EmptyState title="아직 Finder 완료 데이터가 없습니다" /> : (
             <ul className="space-y-3">
               {c.concerns.map((x) => (
                 <li key={x.concern}>
                   <div className="mb-1 flex justify-between text-[0.9rem]"><span>{x.concern}</span><span className="tabular font-semibold">{x.count}회 · {Math.round((x.count / concernTotal) * 100)}%</span></div>
-                  <MiniBar ratio={x.count / c.concerns[0].count} color="#C76C86" />
+                  <MiniBar ratio={x.count / c.concerns[0].count} color="var(--chart-3)" />
                 </li>
               ))}
             </ul>
           )}
-          <p className="mt-3 text-[0.8rem] text-ink-soft">상품기획·콘텐츠 우선순위의 근거 데이터 (자사 보유 고객 데이터)</p>
         </DataCard>
       </div>
+      )}
 
-      <DataCard className="mt-6" title="제품별 관심점수 (7일 vs 이전 7일)">
-        <p className="mb-3 text-[0.86rem] text-ink-soft">
-          점수 = 조회×0.2 + 찜×2 + 추천노출×1 + Passport 저장×3 + 구매채널 이동×2 (RULE). {INTEREST_THRESHOLD}점 이상이면서 +{Math.round(INTEREST_GROWTH_MIN * 100)}% 이상이면 &lsquo;고객 관심 상승&rsquo; Action 생성.
-        </p>
+      {tab === "interest" && (
+      <div className="grid gap-5 @5xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] @5xl:items-start">
+      <DataCard title="제품별 관심점수 (7일 vs 이전 7일)" info={<>점수 = 조회×0.2 + 찜×2 + 추천노출×1 + Passport 저장×3 + 구매채널 이동×2 (RULE). {INTEREST_THRESHOLD}점 이상이면서 +{Math.round(INTEREST_GROWTH_MIN * 100)}% 이상이면 &lsquo;고객 관심 상승&rsquo; Action을 만듭니다.</>}>
         {c.productInterest.length === 0 ? <EmptyState title="관심 데이터가 없습니다" desc="고객 화면에서 제품 조회·찜·Finder가 발생하면 계산됩니다." /> : narrow ? (
           <ul className="space-y-2" data-testid="interest-cards">
             {c.productInterest.map((pi) => {
@@ -119,9 +134,16 @@ export default function CustomersPage() {
           </div>
         )}
       </DataCard>
+        <DataCard title="고객 관련 Action">
+          {interestActions.length === 0 ? <EmptyState title="고객 관련 Action이 없습니다" /> : (
+            <div className="grid gap-2.5">{interestActions.slice(0, 4).map((a) => <ActionRow key={a.id} action={a} onOpen={() => setOpen(a)} />)}</div>
+          )}
+        </DataCard>
+      </div>
+      )}
 
-      <div className="mt-6 grid gap-6 @4xl:grid-cols-2">
-        <DataCard title={<span className="flex items-center gap-2"><Radio size={18} style={{ color: "var(--success)" }} aria-hidden /> 실시간 고객 이벤트</span>} action={<Link href="/beauty" className="btn-secondary !min-h-[40px] text-[0.86rem]">고객 화면 열기 <ExternalLink size={14} aria-hidden /></Link>}>
+      {tab === "live" && (
+        <DataCard title={<span className="flex items-center gap-2"><Radio size={18} style={{ color: "var(--success)" }} aria-hidden /> 실시간 고객 이벤트</span>} info="고객 화면(MIRYEO AI Beauty)에서 Finder 완료·찜·구매처 확인이 일어나면 바로 여기에 쌓입니다. 익명 세션 기준이며 개인정보는 모으지 않습니다." action={<Link href="/beauty" className="btn-secondary !min-h-[40px] text-[0.86rem]">고객 화면 열기 <ExternalLink size={14} aria-hidden /></Link>}>
           {c.liveEvents.length === 0 ? (
             <EmptyState title="아직 실제 발생 이벤트가 없습니다" desc="고객 화면에서 Finder를 완료하거나 제품을 찜하면 즉시 이곳에 표시됩니다. (Device View PC+Mobile로 동시에 확인 가능)" />
           ) : (
@@ -136,15 +158,10 @@ export default function CustomersPage() {
           )}
           <p className="mt-2 text-[0.78rem] text-ink-soft">익명 세션 기준 · 개인정보 미수집 · 총 {c.totalCount.toLocaleString()}건 (DEMO 기준값 포함)</p>
         </DataCard>
+      )}
 
-        <DataCard title="고객 관련 Action">
-          {interestActions.length === 0 ? <EmptyState title="고객 관련 Action이 없습니다" /> : (
-            <div className="grid gap-2.5">{interestActions.slice(0, 4).map((a) => <ActionRow key={a.id} action={a} onOpen={() => setOpen(a)} />)}</div>
-          )}
-        </DataCard>
+      {tab === "members" && <CustomerMembers />}
       </div>
-
-      <CustomerMembers />
 
       <ActionDrawer action={open} onClose={() => setOpen(null)} />
     </div>

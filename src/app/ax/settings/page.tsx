@@ -15,6 +15,9 @@ import { toast } from "@/components/ax/Toast";
 import { useSettings, type FontScale } from "@/components/providers/SettingsProvider";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
+import { Tabs } from "@/components/ax/Tabs";
+import { Fold } from "@/components/ax/InfoTip";
+import { useHashTab } from "@/lib/use-hash-tab";
 import { ALL_PERMISSIONS, can, PERMISSION_LABEL, ROLE_LABEL } from "@/lib/permissions";
 import { isLive, liveConfigured, DATA_MODE, AI_BRIEFING_UI } from "@/lib/config";
 import { formatDateKR, formatDateTimeKR, todayISO } from "@/lib/date";
@@ -26,16 +29,17 @@ const FONT_OPTIONS: { id: FontScale; label: string; desc: string }[] = [
   { id: "default", label: "기본", desc: "19px" },
   { id: "large", label: "크게", desc: "21px" },
 ];
-/* 긴 설정 화면 — 위에 섹션 바로가기 (PASS 14) */
-const SECTIONS = [
+/* 설정 — 비슷한 항목끼리 탭 5개로 묶음 (PASS 21, D-075). 예전 섹션 주소(#roles·#members·#data·#pilot)는 해당 탭으로 연결 */
+const TABS = [
   { id: "display", label: "화면" },
-  { id: "roles", label: "역할·권한" },
-  { id: "data", label: "데이터" },
-  { id: "pilot", label: "실증 운영" },
+  { id: "people", label: "구성원·권한" },
   { id: "planning", label: "운영 기준값" },
-  { id: "assets", label: "기술·사업화 자산" },
-  { id: "members", label: "구성원" },
+  { id: "ops", label: "데이터·실증" },
+  { id: "assets", label: "기술 자산" },
 ] as const;
+type SettingsTab = (typeof TABS)[number]["id"];
+const TAB_IDS = TABS.map((t) => t.id);
+const SECTION_TAB: Record<string, SettingsTab> = { roles: "people", members: "people", data: "ops", pilot: "ops" };
 const TECH_STATUS: TechAssetStatus[] = ["미확인", "준비중", "검토중", "출원예정", "출원완료", "인증완료", "해당없음"];
 
 export default function SettingsPage() {
@@ -48,24 +52,22 @@ export default function SettingsPage() {
   const [pilot, setPilot] = useState(m.snapshot.org.pilotStartedOn ?? "");
   const [axOwner, setAxOwner] = useState(m.snapshot.org.axOwnerName ?? "");
   const owner = can(role, "manage_org");
+  const [tab, setTab] = useHashTab<SettingsTab>(TAB_IDS, SECTION_TAB, "display");
 
   return (
     <div className="mx-auto max-w-[1100px]">
-      <PageHeader title="설정" description="화면·역할·데이터·실증 운영·기술자산을 관리합니다." />
-      <nav aria-label="설정 바로가기" className="-mt-1 mb-5 flex flex-wrap gap-1.5" data-testid="settings-nav">
-        {SECTIONS.map((x) => (
-          <a key={x.id} href={`#${x.id}`} className="pressable inline-flex min-h-[38px] items-center rounded-full border bg-surface px-3.5 text-[0.86rem] font-semibold text-ink-soft hover:text-ink" style={{ borderColor: "var(--border)" }}>{x.label}</a>
-        ))}
-      </nav>
+      <PageHeader title="설정" description="화면·구성원과 권한·운영 기준값·데이터와 실증 운영·기술 자산을 탭별로 관리합니다." />
+      <div data-testid="settings-nav"><Tabs tabs={TABS} value={tab} onChange={setTab} className="mb-5" panelId="settings-panel" label="설정 메뉴" /></div>
 
-      <div className="grid grid-cols-1 gap-6 @4xl:grid-cols-2">
-        <DataCard title="화면 — 테마 (7가지)" tourId="settings-display" id="display">
+      <div id="settings-panel" role="tabpanel" aria-labelledby={`settings-panel-tab-${tab}`} data-testid="settings-panel">
+      {tab === "display" && (
+      <div className="grid grid-cols-1 gap-5 @4xl:grid-cols-2">
+        <DataCard title="테마 (7가지)" tourId="settings-display" id="display" info="본문·표·입력칸은 테마와 관계없이 중립색으로 유지됩니다. 선택한 테마는 고객 화면 브랜드 색과 Mobile 미리보기에도 함께 반영됩니다.">
           <ThemePickerPanel bare />
-          <p className="mt-3 text-[0.82rem] text-ink-soft">본문·표·폼은 테마와 무관하게 중립색으로 유지됩니다. 선택한 테마는 고객 화면 브랜드 색과 Mobile 미리보기에도 함께 반영됩니다.</p>
         </DataCard>
 
-        <div className="space-y-6">
-          <DataCard title="화면 — 글자 크기 · 모션">
+        <div className="space-y-5">
+          <DataCard title="글자 크기 · 모션">
             <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="글자 크기">
               {FONT_OPTIONS.map((f) => (
                 <button key={f.id} role="radio" aria-checked={fontScale === f.id} onClick={() => setFontScale(f.id)} className="pressable rounded-xl border-2 p-3 text-center" style={fontScale === f.id ? { borderColor: "var(--primary)", background: "var(--primary-soft)" } : { borderColor: "var(--border)" }}>
@@ -74,7 +76,7 @@ export default function SettingsPage() {
               ))}
             </div>
             <label className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-surface-muted px-4 py-3">
-              <span><span className="block font-semibold">모션 줄이기</span><span className="text-[0.82rem] text-ink-soft">상태 변화 표시는 유지하고 장식 애니메이션만 줄입니다</span></span>
+              <span className="block font-semibold">모션 줄이기 <span className="text-[0.8rem] font-normal text-ink-soft">장식 애니메이션만</span></span>
               <input type="checkbox" className="h-5 w-5" checked={reduceMotion} onChange={(e) => setReduceMotion(e.target.checked)} />
             </label>
           </DataCard>
@@ -90,12 +92,16 @@ export default function SettingsPage() {
             </div>
           </DataCard>
         </div>
+      </div>
+      )}
 
-        <DataCard title="역할 · 권한" className="@4xl:col-span-2" id="roles">
+      {tab === "people" && (
+      <div className="space-y-5">
+        <DataCard title="역할 · 권한" id="roles" info="로그인 역할(대표·관리자·직원)마다 볼 수 있는 메뉴·민감정보·버튼이 다릅니다. AX OWNER(실증 책임자)는 로그인 역할과 별개입니다.">
           <div className="grid grid-cols-1 gap-5 @3xl:grid-cols-2">
             <div>
               <div className="font-semibold">현재: {ROLE_LABEL[role]} ({role}){isLive ? ` · ${userEmail}` : " · Demo"}</div>
-              <p className="mt-1 text-[0.86rem] text-ink-soft">{isLive ? "역할은 organization_members에서 OWNER가 관리합니다." : "Demo에서는 역할을 바꿔 메뉴·민감정보·버튼 차이를 확인할 수 있습니다."}</p>
+              <p className="mt-1 text-[0.86rem] text-ink-soft">{isLive ? "역할은 대표(OWNER)가 구성원에서 관리합니다." : "Demo에서는 역할을 바꿔 차이를 확인할 수 있습니다."}</p>
               <div className="mt-3"><RoleMenu inline /></div>
               <p className="mt-3 text-[0.82rem] text-ink-soft">AX OWNER(실증 책임자)는 로그인 역할과 별개입니다: <b>{m.snapshot.org.axOwnerName || "미지정 (REQUIRED / UNASSIGNED)"}</b></p>
             </div>
@@ -114,7 +120,14 @@ export default function SettingsPage() {
             </div>
           </div>
         </DataCard>
+        <MembersCard />
+      </div>
+      )}
 
+      {tab === "planning" && <PlanningCard />}
+
+      {tab === "ops" && (
+      <div className="grid grid-cols-1 gap-5 @4xl:grid-cols-2">
         <DataCard title="데이터" id="data">
           <dl className="space-y-2 text-[0.92rem]">
             {[
@@ -152,29 +165,27 @@ export default function SettingsPage() {
               try { await run((s) => s.updateOrg({ axOwnerName: axOwner.trim() || null })); toast("AX OWNER를 저장했습니다"); } catch (e) { toast(e instanceof Error ? e.message : "실패", "error"); }
             }}>저장</button>
           </div>
-          <p className="mt-2 text-[0.82rem] text-ink-soft">주 1회 Evidence 점검·Baseline 확인을 책임지는 사람입니다. <Link href="/ax/reports#baseline" className="font-semibold underline">Baseline 잠금 →</Link></p>
-          <div className="mt-4 rounded-xl bg-surface-muted p-3 text-[0.86rem]">
-            <div className="font-semibold">AI 연결 상태</div>
-            <ul className="mt-1 space-y-0.5 text-ink-soft">
+          <p className="mt-2 text-[0.82rem] text-ink-soft">주 1회 Evidence 점검·Baseline 확인 책임자 · <Link href="/ax/reports#baseline" className="font-semibold underline">Baseline 잠금 →</Link></p>
+          <Fold summary="AI 연결 상태" className="mt-3" testId="ai-status">
+            <ul className="space-y-0.5 rounded-xl bg-surface-muted p-3 text-[0.86rem] text-ink-soft">
               <li>· 재고·생산·채널·고객 관심: <b>RULE / STATISTICAL</b> 동작 중</li>
               <li>· 대표 브리핑 AI 문장화(Claude): <b>{AI_BRIEFING_UI ? "버튼 켜짐" : "READY · 꺼짐"}</b> — 서버 AI_BRIEFING_ENABLED + API 키 설정 시 동작, 숫자 검증 실패 시 RULE 유지</li>
               <li>· 문서 질의 RAG: <b>NEXT (CONDITIONAL)</b></li>
             </ul>
-          </div>
+          </Fold>
         </DataCard>
+      </div>
+      )}
 
-        <PlanningCard />
-
-        <DataCard title="기술·사업화 자산" className="@4xl:col-span-2" id="assets">
-          <p className="mb-3 text-[0.88rem] text-ink-soft">실제 확인된 상태와 번호만 입력합니다. 확인 전에는 &lsquo;미확인&rsquo;으로 두며, 번호를 임의로 만들지 않습니다.</p>
+      {tab === "assets" && (
+        <DataCard title="기술·사업화 자산" id="assets" info="실제 확인된 상태와 번호만 입력합니다. 확인 전에는 '미확인'으로 두며, 번호를 임의로 만들지 않습니다.">
           <ul className="grid gap-3 @3xl:grid-cols-2">
             {m.snapshot.techAssets.map((t) => <TechAssetRow key={t.id} t={t} editable={owner} onSave={async (next) => {
               try { await run((s) => s.upsertTechAsset(next)); toast("기술자산 상태를 저장했습니다"); } catch (e) { toast(e instanceof Error ? e.message : "실패", "error"); }
             }} />)}
           </ul>
         </DataCard>
-
-        <MembersCard />
+      )}
       </div>
 
       <Modal open={confirmReset} onClose={() => setConfirmReset(false)} title="Demo 데이터를 초기화할까요?">

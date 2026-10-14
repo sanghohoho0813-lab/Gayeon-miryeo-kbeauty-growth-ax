@@ -15,6 +15,8 @@ import { EmptyState } from "@/components/ax/States";
 import { Tabs } from "@/components/ax/Tabs";
 import { toast } from "@/components/ax/Toast";
 import { ProductVisual } from "@/components/shared/ProductVisual";
+import { Fold } from "@/components/ax/InfoTip";
+import { CoverBarFor, ScenarioButton } from "@/components/ax/ProductionPlanner";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
@@ -215,10 +217,10 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
           </table>
         </div>
         )}
-        <p className="mt-3 text-[0.8rem] text-ink-soft">
+        <Fold summary="계산 방식" className="mt-2" testId="inventory-formula"><p className="text-[0.8rem] text-ink-soft">
           생산기간 입력 상품: 추천 생산량 = 예측 일판매 × (생산기간 + 안전 {m.planning.safetyDays}일 + 입고 후 {m.planning.coverDays}일) − (현재 + 입고 예정), 최소 생산수량 이상·{m.planning.roundTo}개 단위 · 착수 마감 = 가용 재고가 생산기간 + 안전일수보다 먼저 바닥나기 전 날.
           미입력 상품: 6주 예상 판매 − 현재 − 입고 예정. 예측 일판매 = 최근 4주 판매속도 × 추세 보정. (RULE, 사람 승인 필요)
-        </p>
+        </p></Fold>
       </DataCard>
       {edit && (
         <InventoryEditModal key={edit.product.id} product={edit.product} inv={edit.inv} onClose={() => setEdit(null)} onSave={async (next) => {
@@ -279,8 +281,9 @@ function ProductionSchedule() {
     </>
   );
   return (
-    <DataCard title="생산 착수 일정 (OEM 생산기간 반영)" className="mb-6" action={<Link href="/ax/data?tab=products" className="btn-secondary !min-h-[40px] text-[0.86rem]">생산기간 입력</Link>}>
-      <p className="mb-3 text-[0.86rem] text-ink-soft">가용 재고(현재 + 입고 예정)가 생산기간 + 안전 {m.planning.safetyDays}일보다 먼저 바닥나기 전에 생산을 시작해야 품절 없이 입고됩니다. 마감이 가까운 순서입니다. <Link href="/ax/settings#planning" className="font-semibold underline" data-testid="planning-link">기준값(안전 {m.planning.safetyDays}일·입고 후 {m.planning.coverDays}일·{m.planning.roundTo}개 단위) 바꾸기</Link></p>
+    <DataCard title="생산 착수 일정" className="mb-6"
+      info={<>OEM 생산기간을 반영한 생산 시작 마감일입니다. 가용 재고(현재 + 입고 예정)가 버티는 기간이 생산기간 + 안전 {m.planning.safetyDays}일보다 짧아지기 전에 생산을 시작해야 품절 없이 입고됩니다. 마감이 가까운 순서이고, 막대는 두 기간을 같은 출발선(오늘)에서 비교한 것입니다. &lsquo;조건 바꿔 보기&rsquo;로 판매속도·추가 입고·생산기간을 바꿔 다시 계산해 볼 수 있습니다(저장 안 함).</>}
+      action={<div className="flex flex-wrap items-center gap-2"><Link href="/ax/settings#planning" className="btn-ghost !min-h-[40px] !px-2.5 text-[0.84rem]" data-testid="planning-link">기준값: 안전 {m.planning.safetyDays}일·입고 후 {m.planning.coverDays}일·{m.planning.roundTo}개 단위</Link><Link href="/ax/data?tab=products" className="btn-secondary !min-h-[40px] text-[0.86rem]">생산기간 입력</Link></div>}>
       {rows.length === 0 ? <EmptyState title="생산기간이 입력된 상품이 없습니다" desc="상품별 OEM 생산기간(발주→입고 일수)을 입력하면 착수 마감일과 추천 생산량을 계산합니다." /> : narrow ? (
         <ul className="space-y-2.5" data-testid="production-schedule">
           {rows.map(({ p, mm, active }) => (
@@ -289,13 +292,15 @@ function ProductionSchedule() {
                 <span className="min-w-0"><span className="block font-semibold leading-snug">{p.name}</span><span className="block text-[0.76rem] text-ink-soft">{p.sku}</span></span>
                 <DeadlineBadge mm={mm} />
               </div>
-              <dl className="tabular mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-[0.88rem]">
+              <div className="mt-2"><CoverBarFor product={p} compact /></div>
+              <dl className="tabular mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-[0.88rem]">
                 <div><dt className="text-[0.76rem] text-ink-soft">추천 생산량</dt><dd className="font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}</dd></div>
                 <div><dt className="text-[0.76rem] text-ink-soft">가용 재고</dt><dd>{mm.availableStock.toLocaleString()}개 · 약 {Math.round(mm.availableStock / mm.forecastDaily)}일분</dd></div>
                 <div><dt className="text-[0.76rem] text-ink-soft">생산기간 · 최소수량</dt><dd>{mm.leadTimeDays}일{p.moq ? ` · ${p.moq.toLocaleString()}개` : ""}</dd></div>
                 <div><dt className="text-[0.76rem] text-ink-soft">예측 일판매</dt><dd>{mm.forecastDaily.toFixed(1)}개</dd></div>
               </dl>
               <div className="mt-2 text-[0.84rem]"><span className="text-[0.76rem] text-ink-soft">진행 중 생산 </span>{activeText(active, mm)}</div>
+              <ScenarioButton product={p} className="mt-2.5 w-full" />
             </li>
           ))}
         </ul>
@@ -304,17 +309,17 @@ function ProductionSchedule() {
           <table className="text-[0.92rem]" data-testid="production-schedule">
             <thead>
               <tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>
-                <th className="py-2.5 pr-4 font-semibold">제품</th><th className="py-2.5 pr-4 font-semibold">착수 마감</th><th className="py-2.5 pr-4 font-semibold">생산기간 · 최소수량</th><th className="py-2.5 pr-4 font-semibold">가용 재고</th><th className="py-2.5 pr-4 font-semibold">예측 일판매</th><th className="py-2.5 pr-4 font-semibold">추천 생산량</th><th className="py-2.5 font-semibold">진행 중 생산</th>
+                <th className="py-2.5 pr-4 font-semibold">제품</th><th className="py-2.5 pr-4 font-semibold">착수 마감</th><th className="py-2.5 pr-4 font-semibold"><span className="sr-only">두 기간 비교: </span>재고 vs 생산+안전</th><th className="py-2.5 pr-4 font-semibold">생산기간 · 최소수량</th><th className="py-2.5 pr-4 font-semibold">가용 재고 · 일판매</th><th className="py-2.5 pr-4 font-semibold">추천 생산량</th><th className="py-2.5 font-semibold">진행 중 생산</th>
               </tr>
             </thead>
             <tbody>
               {rows.map(({ p, mm, active }) => (
                 <tr key={p.id} className="border-b" style={{ borderColor: "var(--border)" }} data-schedule={p.sku}>
-                  <td className="py-3 pr-4"><div className="font-semibold">{p.name}</div><div className="text-[0.76rem] text-ink-soft">{p.sku}</div></td>
+                  <td className="py-3 pr-4"><div className="whitespace-nowrap font-semibold">{p.name}</div><div className="text-[0.76rem] text-ink-soft">{p.sku}</div></td>
                   <td className="py-3 pr-4"><DeadlineBadge mm={mm} /></td>
+                  <td className="py-3 pr-4"><CoverBarFor product={p} compact /><ScenarioButton product={p} variant="link" /></td>
                   <td className="tabular py-3 pr-4">{mm.leadTimeDays}일{p.moq ? ` · ${p.moq.toLocaleString()}개` : ""}</td>
-                  <td className="tabular py-3 pr-4">{mm.availableStock.toLocaleString()}개<div className="text-[0.72rem] text-ink-soft">약 {Math.round(mm.availableStock / mm.forecastDaily)}일분</div></td>
-                  <td className="tabular py-3 pr-4">{mm.forecastDaily.toFixed(1)}개</td>
+                  <td className="tabular py-3 pr-4 whitespace-nowrap">{mm.availableStock.toLocaleString()}개 <span className="text-[0.76rem] text-ink-soft">약 {Math.round(mm.availableStock / mm.forecastDaily)}일분</span><div className="text-[0.76rem] text-ink-soft">일 {mm.forecastDaily.toFixed(1)}개</div></td>
                   <td className="tabular py-3 pr-4 font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}</td>
                   <td className="py-3 text-[0.84rem]">{activeText(active, mm)}</td>
                 </tr>
@@ -323,7 +328,7 @@ function ProductionSchedule() {
           </table>
         </div>
       )}
-      <p className="mt-3 text-[0.8rem] text-ink-soft">진행 중인 생산 수량은 재고 화면의 '입고 예정'에 입력해야 계산에 반영됩니다. 생산중·입고예정 계획이 있는 상품은 '생산 착수' Action을 만들지 않습니다.</p>
+      <Fold summary="입력·계산 안내" className="mt-2" testId="schedule-notes"><p className="text-[0.8rem] text-ink-soft">진행 중인 생산 수량은 재고 화면의 '입고 예정'에 입력해야 계산에 반영됩니다. 생산중·입고예정 계획이 있는 상품은 '생산 착수' Action을 만들지 않습니다. 착수 마감 = 재고가 버티는 기간 − (생산기간 + 안전 {m.planning.safetyDays}일), 소수점 버림.</p></Fold>
       {missing.length > 0 && <p className="mt-2 text-[0.84rem]" data-testid="leadtime-missing">생산기간 미입력 {missing.length}개: {missing.slice(0, 6).map((p) => p.name).join(", ")}{missing.length > 6 ? " 외" : ""} — 입력 전에는 6주 예측으로만 추천합니다.</p>}
     </DataCard>
   );
@@ -426,6 +431,12 @@ function ProductDrawer({ product, onClose }: { product: Product | null; onClose:
           </div>
         ))}
       </div>
+      {product.leadTimeDays != null && (
+        <div className="mt-5 rounded-xl border p-3.5" style={{ borderColor: "var(--border)" }} data-testid="drawer-production">
+          <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2"><h3 className="text-[1rem] font-bold">생산 판단</h3><ScenarioButton product={product} /></div>
+          <CoverBarFor product={product} />
+        </div>
+      )}
       <h3 className="mt-6 text-[1rem] font-bold">판매 추세 (8주)</h3>
       <div className="mt-2"><WeeklyTrend weekly={mm.weekly} height={180} /></div>
       <h3 className="mt-5 text-[1rem] font-bold">채널별 판매 (최근 8주)</h3>

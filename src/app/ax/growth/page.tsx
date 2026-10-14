@@ -14,6 +14,8 @@ import { OPEN_STATUSES } from "@/lib/analytics";
 import type { ActionCategory, ActionStatus, GrowthAction } from "@/lib/types";
 
 type StatusFilter = "열린 Action" | ActionStatus;
+/** 처음에 보여 줄 Action 수 — 나머지는 '나머지 n건 보기' (PASS 21, D-075) */
+const SHOW = 6;
 const STATUS_FILTERS: StatusFilter[] = ["열린 Action", "NEW", "REVIEWED", "IN_PROGRESS", "DONE", "DISMISSED"];
 const CATEGORIES: ("전체" | ActionCategory)[] = ["전체", "재고", "생산", "고객 관심", "채널", "B2B", "재구매", "정산"];
 
@@ -25,6 +27,7 @@ function Inner() {
   const [status, setStatus] = useState<StatusFilter>("열린 Action");
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("전체");
   const [open, setOpen] = useState<GrowthAction | null>(null);
+  const [more, setMore] = useState(false);
 
   // 빠른 이동(?a=Action ID) → 해당 Action 처리 화면을 바로 연다
   const aid = params.get("a");
@@ -55,7 +58,7 @@ function Inner() {
       />
 
       <div className="grid gap-5 @4xl:grid-cols-[minmax(0,1fr)_19rem] @4xl:items-start [&>*]:min-w-0">
-        <DataCard tourId="action-list" title={`Action ${list.length}건`} action={
+        <DataCard tourId="action-list" title={`Action ${list.length}건`} info={<>판매·재고·고객 행동에서 규칙(RULE)이 감지한 할 일입니다. 열린 Action의 맨 위 {m.missions.length || 3}개가 <b>오늘의 Mission</b>입니다 — 우선 → 높음 → 중간, 같은 등급은 실행 중 → 새 추천 → 검토 완료 순. 사람이 검토·승인해야 실행됩니다.</>} action={
           <select className="field !min-h-[42px] !w-auto" value={category} onChange={(e) => setCategory(e.target.value as typeof category)} aria-label="카테고리 필터">
             {CATEGORIES.map((c) => <option key={c} value={c}>{c === "전체" ? "카테고리 전체" : c}</option>)}
           </select>
@@ -72,18 +75,22 @@ function Inner() {
               );
             })}
           </div>
-          {status === "열린 Action" && m.missions.length > 0 && category === "전체" && (
-            <p className="mb-2.5 text-[0.84rem] text-ink-soft">위 {m.missions.length}개가 <b className="font-semibold text-ink">오늘의 Mission</b>입니다 — 우선 → 높음 → 중간, 같은 등급은 실행 중 → 새 추천 → 검토 완료 순.</p>
-          )}
           {list.length === 0 ? (
             <EmptyState title="조건에 맞는 Action이 없습니다" desc={status === "열린 Action" ? "RULE이 새 위험·기회를 감지하면 자동으로 추가됩니다." : undefined} />
           ) : (
-            <ul className="space-y-2.5">
-              {list.map((a) => {
+            <>
+            <ul className="space-y-2">
+              {(more ? list : list.slice(0, SHOW)).map((a) => {
                 const rank = status === "열린 Action" ? missionRank.get(a.id) : undefined;
                 return <li key={a.id}><ActionRow action={a} rank={rank} today={!!rank} onOpen={() => setOpen(a)} /></li>;
               })}
             </ul>
+            {list.length > SHOW && (
+              <button type="button" className="btn-ghost mt-2 w-full !min-h-[42px] text-[0.88rem]" aria-expanded={more} onClick={() => setMore((v) => !v)} data-testid="actions-more">
+                {more ? "접기" : `나머지 ${list.length - SHOW}건 보기`}
+              </button>
+            )}
+            </>
           )}
         </DataCard>
 
@@ -96,17 +103,19 @@ function Inner() {
             </ul>
             <Link href="/ax/reports#proofs" className="btn-secondary mt-3 !min-h-[42px] w-full text-[0.9rem]">실증·Evidence 보기 <ArrowRight size={16} aria-hidden /></Link>
           </DataCard>
-          <InsightCard
-            title="판단 방식 안내"
-            method="RULE · STATISTICAL"
-            compact
-            summary="성장률·재고일수·관심점수·납품일처럼 계산 가능한 지표는 코드로 계산하고, 임계값을 넘으면 Action이 생성됩니다. 같은 규칙의 Action은 완료·보류 후 14일간 다시 만들지 않습니다."
-            evidence={["재고: 소진 10일 이하 + 성장 10%↑ → 우선", "생산 착수: 생산기간+안전 14일 기준 마감 14일 이내", "고객 관심: 7일 점수 20↑ 그리고 이전 대비 +30%↑", "LLM 요약은 CONDITIONAL (API 승인 후)"]}
-          />
-          <div className="flex flex-wrap gap-2 text-[0.82rem] text-ink-soft">
-            <StatusBadge tone="neutral">L2 추천 → L3 사람 승인</StatusBadge>
-            <StatusBadge tone="neutral">L4 자동실행 없음</StatusBadge>
-          </div>
+          <DataCard title="판단 방식" collapsible defaultOpen={false} testId="growth-method">
+            <InsightCard
+              title="판단 방식 안내"
+              method="RULE · STATISTICAL"
+              compact
+              summary="성장률·재고일수·관심점수·납품일처럼 계산 가능한 지표는 코드로 계산하고, 임계값을 넘으면 Action이 생성됩니다. 같은 규칙의 Action은 완료·보류 후 14일간 다시 만들지 않습니다."
+              evidence={["재고: 소진 10일 이하 + 성장 10%↑ → 우선", "생산 착수: 생산기간+안전 14일 기준 마감 14일 이내", "고객 관심: 7일 점수 20↑ 그리고 이전 대비 +30%↑", "LLM 요약은 CONDITIONAL (API 승인 후)"]}
+            />
+            <div className="mt-3 flex flex-wrap gap-2 text-[0.82rem] text-ink-soft">
+              <StatusBadge tone="neutral">L2 추천 → L3 사람 승인</StatusBadge>
+              <StatusBadge tone="neutral">L4 자동실행 없음</StatusBadge>
+            </div>
+          </DataCard>
         </div>
       </div>
 

@@ -59,7 +59,7 @@ export interface ProductMetrics {
 /** 생산 판단 기준 (화면·근거에 그대로 표시) — 안전일수: 생산 지연·판매 변동 대비, 커버일수: 입고 후 판매할 기간 */
 /** 생산 계획 기본값 — 조직별 운영 기준값(src/lib/planning.ts)이 있으면 그 값을 쓴다 (PASS 15, R-21) */
 export const PLANNING = { safetyDays: DEFAULT_PLANNING.safetyDays, coverDays: DEFAULT_PLANNING.coverDays, roundTo: DEFAULT_PLANNING.roundTo } as const;
-type PlanBasis = Pick<PlanningSettings, "safetyDays" | "coverDays" | "roundTo">;
+export type PlanBasis = Pick<PlanningSettings, "safetyDays" | "coverDays" | "roundTo">;
 
 export const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
 
@@ -106,21 +106,38 @@ export function computeProductMetrics(product: Product, inventory: Inventory | u
   const forecastDaily = dailyVelocity * (1 + Math.max(-0.3, Math.min(growthRate, 1)) * 0.5);
   const availableStock = currentStock + (inventory?.incomingStock ?? 0);
   const leadTimeDays = product.leadTimeDays ?? null;
-  let recommendedOrder = inventory ? Math.max(0, Math.round((forecastDaily * plan.coverDays - availableStock) / plan.roundTo) * plan.roundTo) : 0;
+  let recommendedOrder = inventory ? sixWeekOrder(forecastDaily, availableStock, plan) : 0;
   let orderDeadline: string | null = null;
   let daysToDeadline: number | null = null;
   let planBasis: ProductMetrics["planBasis"] = "6주 예측";
-  if (inventory && leadTimeDays && forecastDaily > 0) {
-    // OEM 생산기간 반영 (계약 별지 제1호 ②): 가용 재고가 '생산기간 + 안전일수'보다 먼저 떨어지면 지금 착수해야 한다
-    const coverNow = availableStock / forecastDaily;
-    daysToDeadline = Math.floor(coverNow - leadTimeDays - plan.safetyDays);
-    orderDeadline = addDaysISO(today, daysToDeadline);
-    const need = forecastDaily * (leadTimeDays + plan.safetyDays + plan.coverDays) - availableStock;
-    recommendedOrder = need > 0 ? Math.max(product.moq ?? 0, Math.ceil(need / plan.roundTo) * plan.roundTo) : 0;
+  const pp = inventory ? planProduction(forecastDaily, availableStock, leadTimeDays, product.moq, plan, today) : null;
+  if (pp) {
+    ({ daysToDeadline, orderDeadline, recommendedOrder } = pp);
     planBasis = "생산기간 반영";
   }
 
   return { productId: product.id, weekly, currentStock, recent4wUnits, prev4wUnits, growthRate, dailyVelocity, daysOfStock, marginRate, recent4wRevenue, stockStatus, recommendedOrder, forecastDaily, availableStock, leadTimeDays, orderDeadline, daysToDeadline, planBasis };
+}
+
+/** 생산기간 미입력 상품의 추천 수량 — 6주(입고 후 판매 일수) 예상 판매 − 가용 재고 */
+export function sixWeekOrder(forecastDaily: number, availableStock: number, plan: PlanBasis = PLANNING) {
+  return Math.max(0, Math.round((forecastDaily * plan.coverDays - availableStock) / plan.roundTo) * plan.roundTo);
+}
+
+/** OEM 생산기간 반영 생산 판단 (계약 별지 제1호 ②) — 상품 지표와 '조건 바꿔 보기'(scenario.ts)가 같은 식을 쓴다.
+    가용 재고가 버티는 기간이 '생산기간 + 안전일수'보다 짧아지기 전에 착수해야 품절 없이 입고된다.
+    착수 마감 = 버티는 기간 − (생산기간 + 안전일수), 소수점 버림. 생산기간이 없거나 판매가 없으면 null */
+export function planProduction(forecastDaily: number, availableStock: number, leadTimeDays: number | null, moq: number | null | undefined, plan: PlanBasis, today: string) {
+  if (!leadTimeDays || forecastDaily <= 0) return null;
+  const coverDays = availableStock / forecastDaily;
+  const daysToDeadline = Math.floor(coverDays - leadTimeDays - plan.safetyDays);
+  const need = forecastDaily * (leadTimeDays + plan.safetyDays + plan.coverDays) - availableStock;
+  return {
+    coverDays,
+    daysToDeadline,
+    orderDeadline: addDaysISO(today, daysToDeadline),
+    recommendedOrder: need > 0 ? Math.max(moq ?? 0, Math.ceil(need / plan.roundTo) * plan.roundTo) : 0,
+  };
 }
 
 export type MatrixZone = "성장·부족" | "안정" | "느린 판매" | "과잉재고";

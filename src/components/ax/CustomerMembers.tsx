@@ -33,7 +33,7 @@ export function CustomerMembers() {
   const due = repurchaseDue(schedule);
 
   if (!can(role, "view_customers")) {
-    return <DataCard id="members" className="mt-6" title="회원 · 재구매"><p className="text-[0.92rem] text-ink-soft">고객 회원 정보는 개인정보 보호를 위해 대표·관리자만 열람합니다.</p></DataCard>;
+    return <DataCard id="members" title="회원 · 재구매"><p className="text-[0.92rem] text-ink-soft">고객 회원 정보는 개인정보 보호를 위해 대표·관리자만 열람합니다.</p></DataCard>;
   }
   const recent30 = accounts.filter((a) => daysBetween(a.createdAt.slice(0, 10), m.today) <= 30).length;
   const consent = accounts.filter((a) => a.marketingConsent).length;
@@ -41,7 +41,7 @@ export function CustomerMembers() {
   for (const p of purchases) purchaseCount.set(p.customerUserId, (purchaseCount.get(p.customerUserId) ?? 0) + 1);
 
   return (
-    <DataCard id="members" className="mt-6" title="회원 · 구매 기록 · 재구매" action={<StatusBadge tone="neutral">개인정보 · 대표/관리자 전용</StatusBadge>}>
+    <DataCard id="members" title="회원 · 구매 기록 · 재구매" action={<StatusBadge tone="neutral">개인정보 · 대표/관리자 전용</StatusBadge>}>
       <div className="grid grid-cols-2 gap-2 @3xl:grid-cols-5">
         {[
           ["회원", `${accounts.length}명`],

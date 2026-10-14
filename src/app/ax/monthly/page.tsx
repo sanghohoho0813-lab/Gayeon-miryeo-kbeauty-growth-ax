@@ -1,13 +1,13 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Bar, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useChartMotion } from "@/components/ax/TrendChart";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useNarrow } from "@/lib/use-narrow";
 import { PageHeader } from "@/components/ax/PageHeader";
+import { Tabs } from "@/components/ax/Tabs";
 import { DataCard, KpiCard } from "@/components/ax/Cards";
 import { EmptyState } from "@/components/ax/States";
 import { DataFreshness } from "@/components/ax/DataFreshness";
@@ -29,7 +29,6 @@ function Inner() {
   const { role } = useSession();
   const router = useRouter();
   const params = useSearchParams();
-  const narrow = useNarrow();
   if (!can(role, "view_financials")) return <PermissionNotice role={role} what="월별 매출·이익" />;
   const rows = monthlySummary(m.snapshot.sales, m.snapshot.products, m.snapshot.channels, m.today, 12);
   const current = rows[rows.length - 1].month;
@@ -40,30 +39,22 @@ function Inner() {
   const hasData = rows.some((r) => r.revenue > 0);
   const mr = marginRate(sel);
   const coverage = sel.revenue > 0 ? sel.costedRevenue / sel.revenue : null;
+  // 월 선택: 12개 버튼 대신 ‹ 월 › 한 줄을 제목 줄에 (PASS 21, D-075 — 모바일은 PASS 13부터)
+  const stepper = !hasData ? null : (
+    <div className="flex w-full items-center gap-1.5 @3xl:w-auto" data-testid="month-stepper">
+      <button className="btn-secondary !min-h-[42px] !px-2.5" disabled={idx === 0} onClick={() => router.replace(`/ax/monthly?m=${rows[idx - 1].month}`, { scroll: false })} aria-label="이전 달"><ChevronLeft size={18} aria-hidden /></button>
+      <select className="field tabular !min-h-[42px] flex-1 text-center font-semibold @3xl:!w-[11.5rem] @3xl:flex-none" value={sel.month} onChange={(e) => router.replace(`/ax/monthly?m=${e.target.value}`, { scroll: false })} aria-label="월 선택">
+        {rows.map((r) => <option key={r.month} value={r.month}>{monthLabel(r.month)}{r.month === current ? " (진행 중)" : ""}</option>)}
+      </select>
+      <button className="btn-secondary !min-h-[42px] !px-2.5" disabled={idx === rows.length - 1} onClick={() => router.replace(`/ax/monthly?m=${rows[idx + 1].month}`, { scroll: false })} aria-label="다음 달"><ChevronRight size={18} aria-hidden /></button>
+    </div>
+  );
 
   return (
     <div>
-      <PageHeader title="월별 실적" description="최근 12개월 월별 매출·매출총이익과 채널별·제품별 구성입니다. 이익은 원가가 입력된 제품만 계산하며 판관비는 포함하지 않습니다." actions={<DataFreshness />} />
+      <PageHeader title="월별 실적" description="최근 12개월 월별 매출·매출총이익과 채널별·제품별 구성입니다. 이익은 원가가 입력된 제품만 계산하며 판관비는 포함하지 않습니다." actions={<>{stepper}<DataFreshness /></>} />
       {!hasData ? <EmptyState title="판매 데이터가 없습니다" action={<Link href="/ax/data" className="btn-primary">판매 입력</Link>} /> : (
         <>
-          {narrow ? (
-            // 모바일: 12개 버튼(4줄) 대신 ‹ 월 › — 첫 화면에 실적이 보이게 (PASS 13)
-            <div className="mb-4 flex items-center gap-2" data-testid="month-stepper">
-              <button className="btn-secondary !min-h-[44px] !px-3" disabled={idx === 0} onClick={() => router.replace(`/ax/monthly?m=${rows[idx - 1].month}`, { scroll: false })} aria-label="이전 달"><ChevronLeft size={18} aria-hidden /></button>
-              <select className="field tabular !min-h-[44px] flex-1 text-center font-semibold" value={sel.month} onChange={(e) => router.replace(`/ax/monthly?m=${e.target.value}`, { scroll: false })} aria-label="월 선택">
-                {rows.map((r) => <option key={r.month} value={r.month}>{monthLabel(r.month)}{r.month === current ? " (진행 중)" : ""}</option>)}
-              </select>
-              <button className="btn-secondary !min-h-[44px] !px-3" disabled={idx === rows.length - 1} onClick={() => router.replace(`/ax/monthly?m=${rows[idx + 1].month}`, { scroll: false })} aria-label="다음 달"><ChevronRight size={18} aria-hidden /></button>
-            </div>
-          ) : (
-          <div className="mb-4 flex flex-wrap gap-1.5" role="radiogroup" aria-label="월 선택">
-            {rows.map((r) => (
-              <button key={r.month} role="radio" aria-checked={r.month === sel.month} onClick={() => router.replace(`/ax/monthly?m=${r.month}`, { scroll: false })} className="pressable tabular min-h-[38px] rounded-xl border px-3 text-[0.84rem] font-semibold" style={r.month === sel.month ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : { borderColor: "var(--border)", color: "var(--text-secondary)" }}>
-                {monthLabel(r.month)}{r.month === current ? " (진행 중)" : ""}
-              </button>
-            ))}
-          </div>
-          )}
 
           <div className="stagger grid grid-cols-1 gap-4 @md:grid-cols-2 @4xl:grid-cols-4" data-testid="monthly-kpis">
             <KpiCard label={`${monthLabel(sel.month)} 매출`} value={sel.revenue} format={formatKRW} trend={prev ? change(sel.revenue, prev.revenue) : null} trendLabel="전월 대비" />
@@ -72,9 +63,8 @@ function Inner() {
             <KpiCard label="받을 돈 (현재)" value={rs.outstanding} format={formatKRW} sub={rs.overdueCount ? `연체 ${rs.overdueCount}건 ${formatKRW(rs.overdueAmount)}` : "연체 없음"} href="/ax/channels?tab=settlements" />
           </div>
 
-          <MonthlyTargetCard key={sel.month} month={sel.month} actual={sel.revenue} />
-
-          <DataCard className="mt-6" title="12개월 매출·매출총이익" action={<ExportButton name="월별_실적" file="monthly" rows={rows.map((r) => { const tp = targetProgress(r.month, r.revenue, m.snapshot.monthlyTargets ?? [], m.today); return { 월: monthLabel(r.month), 매출: r.revenue, 판매수량: r.units, 매출총이익: r.grossProfit, 원가입력매출: r.costedRevenue, "이익률(%)": marginRate(r) == null ? "" : Math.round((marginRate(r) ?? 0) * 1000) / 10, 목표: tp.target ?? "", "달성률(%)": tp.rate == null ? "" : Math.round(tp.rate * 1000) / 10 }; })} />}>
+          <div className="mt-5 grid gap-5 @5xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] @5xl:items-start [&>*]:min-w-0">
+          <DataCard title="12개월 매출·매출총이익" info="단위 백만 원. 이번 달은 진행 중입니다. 판매 행의 날짜(주간 집계는 집계일) 기준이며, 이익은 원가가 입력된 제품만 계산합니다(판관비 제외)." action={<ExportButton name="월별_실적" file="monthly" rows={rows.map((r) => { const tp = targetProgress(r.month, r.revenue, m.snapshot.monthlyTargets ?? [], m.today); return { 월: monthLabel(r.month), 매출: r.revenue, 판매수량: r.units, 매출총이익: r.grossProfit, 원가입력매출: r.costedRevenue, "이익률(%)": marginRate(r) == null ? "" : Math.round((marginRate(r) ?? 0) * 1000) / 10, 목표: tp.target ?? "", "달성률(%)": tp.rate == null ? "" : Math.round(tp.rate * 1000) / 10 }; })} />}>
             <div style={{ height: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={rows.map((r) => { const t = (m.snapshot.monthlyTargets ?? []).find((x) => x.month === r.month)?.revenueTarget; return { month: monthLabel(r.month).slice(2), 매출: Math.round(r.revenue / 1e6), 매출총이익: Math.round(r.grossProfit / 1e6), 목표: t ? Math.round(t / 1e6) : null }; })} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
@@ -89,15 +79,28 @@ function Inner() {
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-            <p className="mt-2 text-[0.78rem] text-ink-soft">단위 백만 원 · 이번 달은 진행 중 · 판매 행의 날짜(주간 집계는 집계일) 기준</p>
           </DataCard>
-
-          <div className="mt-6 grid grid-cols-1 gap-6 @4xl:grid-cols-2">
-            <BreakdownTable file={`monthly_channels_${sel.month}`} title={`${monthLabel(sel.month)} 채널별`} rows={sel.byChannel} total={sel.revenue} testId="monthly-channels" />
-            <BreakdownTable file={`monthly_products_${sel.month}`} title={`${monthLabel(sel.month)} 제품별`} rows={sel.byProduct} total={sel.revenue} testId="monthly-products" />
+          <MonthlyTargetCard key={sel.month} month={sel.month} actual={sel.revenue} />
           </div>
+
+          <Breakdowns month={sel.month} byChannel={sel.byChannel} byProduct={sel.byProduct} total={sel.revenue} />
         </>
       )}
+    </div>
+  );
+}
+
+/* 채널별·제품별 구성 — 같은 표 두 개를 탭 하나로 묶음 (PASS 21, D-075) */
+function Breakdowns({ month, byChannel, byProduct, total }: { month: string; byChannel: Breakdown[]; byProduct: Breakdown[]; total: number }) {
+  const [view, setView] = useState<"channel" | "product">("channel");
+  const isCh = view === "channel";
+  const title = `${monthLabel(month)} ${isCh ? "채널별" : "제품별"}`;
+  return (
+    <div className="mt-5">
+      <Tabs tabs={[{ id: "channel", label: "채널별" }, { id: "product", label: "제품별" }]} value={view} onChange={setView} className="mb-3 w-fit" panelId="monthly-breakdown" label="구성 보기" />
+      <div id="monthly-breakdown" role="tabpanel" aria-labelledby={`monthly-breakdown-tab-${view}`}>
+        <BreakdownTable key={view} file={`monthly_${isCh ? "channels" : "products"}_${month}`} title={title} rows={isCh ? byChannel : byProduct} total={total} testId={isCh ? "monthly-channels" : "monthly-products"} />
+      </div>
     </div>
   );
 }

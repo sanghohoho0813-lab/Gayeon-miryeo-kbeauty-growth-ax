@@ -10,16 +10,23 @@ import { X } from "lucide-react";
 function Layer({ children }: { children: ReactNode }) {
   return typeof document === "undefined" ? null : createPortal(children, document.body);
 }
+/* 겹쳐 열린 창(상세 위 '조건 바꿔 보기' 등)은 맨 위 창만 Esc로 닫는다 (PASS 21) */
+const overlayStack: number[] = [];
+let overlaySeq = 0;
 function useOverlayLifecycle(open: boolean, onClose: () => void) {
   const trigger = useRef<Element | null>(null);
   const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
     trigger.current = document.activeElement;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const id = ++overlaySeq;
+    overlayStack.push(id);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && overlayStack[overlayStack.length - 1] === id) onClose(); };
     document.addEventListener("keydown", onKey);
     const t = setTimeout(() => panel.current?.querySelector<HTMLElement>("[data-autofocus], button, input, select, textarea")?.focus(), 30);
     return () => {
+      const i = overlayStack.indexOf(id);
+      if (i >= 0) overlayStack.splice(i, 1);
       document.removeEventListener("keydown", onKey);
       clearTimeout(t);
       (trigger.current as HTMLElement | null)?.focus?.();

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Copy, Info, RefreshCw, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
+import { Fold } from "@/components/ax/InfoTip";
 import { DataCard } from "@/components/ax/Cards";
 import { PermissionNotice } from "@/components/ax/PermissionNotice";
 import { toast } from "@/components/ax/Toast";
@@ -66,7 +67,7 @@ export default function SystemCheckPage() {
         description="시험버전을 공개하기 전에 연결·데이터베이스·보안·고객 화면 설정을 자동으로 확인합니다. 키·비밀번호 값은 표시하지 않습니다."
         actions={<button className="btn-secondary" onClick={() => void run()} disabled={busy}><RefreshCw size={16} aria-hidden className={busy ? "animate-spin" : ""} /> {busy ? "점검 중…" : "다시 점검"}</button>}
       />
-      {!isLive && <p className="mb-4 rounded-xl p-3 text-[0.9rem]" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>DEMO 모드: 데이터베이스·보안 점검은 Live 연결 후 실행됩니다. 지금은 공개에 필요한 설정이 무엇인지 보여 줍니다.</p>}
+      {!isLive && <p className="mb-4 rounded-xl px-3 py-2 text-[0.86rem]" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>DEMO 모드 — 데이터베이스·보안 점검은 Live 연결 후 실행됩니다. 지금은 공개에 필요한 설정을 보여 줍니다.</p>}
 
       <DataCard>
         <div className="flex flex-wrap items-center justify-between gap-3" data-testid="readiness-summary" data-ready={s?.ready ? "1" : "0"}>
@@ -93,24 +94,31 @@ export default function SystemCheckPage() {
       {checks && GROUPS.map((g) => {
         const list = checks.filter((c) => c.group === g);
         if (!list.length) return null;
+        // 확인이 필요한 항목만 펼쳐 두고, 정상 항목은 '정상 n건'으로 접는다 (PASS 21, D-075)
+        const attention = list.filter((c) => c.status !== "ok");
+        const ok = list.filter((c) => c.status === "ok");
+        const row = (c: (typeof list)[number]) => {
+          const I = ICON[c.status];
+          return (
+            <li key={c.id} data-check={c.id} data-status={c.status} className="ax-card flex items-start gap-3 px-4 py-3">
+              <I.C size={20} className="mt-0.5 shrink-0" style={{ color: I.color }} aria-label={I.label} />
+              <div className="min-w-0 flex-1">
+                <div className="break-any font-bold">{c.label}</div>
+                <p className="break-any mt-0.5 text-[0.86rem]">{c.detail}</p>
+                {c.fix && c.status !== "ok" && <p className="break-any mt-1 text-[0.82rem] text-ink-soft">해결: {c.fix}</p>}
+              </div>
+            </li>
+          );
+        };
         return (
-          <section key={g} className="mt-6">
-            <h2 className="mb-2 text-[1.05rem] font-bold">{g}</h2>
-            <ul className="space-y-2">
-              {list.map((c) => {
-                const I = ICON[c.status];
-                return (
-                  <li key={c.id} data-check={c.id} data-status={c.status} className="ax-card flex items-start gap-3 p-4">
-                    <I.C size={22} className="mt-0.5 shrink-0" style={{ color: I.color }} aria-label={I.label} />
-                    <div className="min-w-0 flex-1">
-                      <div className="break-any font-bold">{c.label}</div>
-                      <p className="break-any mt-0.5 text-[0.88rem]">{c.detail}</p>
-                      {c.fix && c.status !== "ok" && <p className="break-any mt-1 text-[0.84rem] text-ink-soft">해결: {c.fix}</p>}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+          <section key={g} className="mt-5">
+            <h2 className="mb-2 text-[1.02rem] font-bold">{g}</h2>
+            {attention.length > 0 && <ul className="space-y-2">{attention.map(row)}</ul>}
+            {ok.length > 0 && (
+              <Fold summary={`정상 ${ok.length}건`} className={attention.length ? "mt-1.5" : ""} testId={`ok-${g}`}>
+                <ul className="space-y-2">{ok.map(row)}</ul>
+              </Fold>
+            )}
           </section>
         );
       })}

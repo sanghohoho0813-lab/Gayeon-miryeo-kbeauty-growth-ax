@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { RotateCcw } from "lucide-react";
+import { InfoTip } from "./InfoTip";
 import { DataCard, StatusBadge } from "./Cards";
 import { toast } from "./Toast";
 import { useData, useModel } from "@/components/providers/DataProvider";
@@ -52,7 +53,7 @@ export function PlanningCard() {
   const dl = (x: { daysToDeadline: number | null; orderDeadline: string | null }) => (x.daysToDeadline == null || !x.orderDeadline ? "-" : `${formatDateKR(x.orderDeadline).slice(5)} (${x.daysToDeadline <= 0 ? "지남" : `D-${x.daysToDeadline}`})`);
 
   return (
-    <DataCard title="운영 기준값" id="planning" className="@4xl:col-span-2" subtitle="생산 착수·추천 생산량과 Action 사후 성과 측정에 쓰는 기준 — 실제 OEM 계약 조건·상품 회전에 맞게 조정" action={
+    <DataCard title="운영 기준값" id="planning" className="@4xl:col-span-2" info="생산 착수 마감·추천 생산량과 Action 사후 성과 측정에 쓰는 기준입니다. 실제 OEM 계약 조건·상품 회전에 맞게 조정하세요. 대표(OWNER)만 바꿀 수 있습니다." action={
       <StatusBadge tone={isDefaultPlanning(cur) ? "neutral" : "primary"}>{isDefaultPlanning(cur) ? "기본값 사용 중" : "조정됨"}</StatusBadge>
     }>
       <div className="grid gap-5 @3xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -61,23 +62,22 @@ export function PlanningCard() {
             const L = PLANNING_LIMITS[k];
             return (
               <div key={k}>
-                <label className="field-label" htmlFor={`pl-${k}`}>{L.label} <span className="font-normal text-ink-soft">(기본 {DEFAULT_PLANNING[k]}{L.unit})</span></label>
+                <div className="flex items-center gap-1"><label className="field-label !mb-0" htmlFor={`pl-${k}`}>{L.label} <span className="font-normal text-ink-soft">(기본 {DEFAULT_PLANNING[k]}{L.unit})</span></label><InfoTip text={L.help} label={`${L.label} 설명`} /></div>
                 <div className="flex items-center gap-2">
                   <input id={`pl-${k}`} inputMode="numeric" className="field tabular" value={draft[k]} disabled={!owner} onChange={(e) => set(k, e.target.value)} aria-describedby={`pl-${k}-help`} />
                   <span className="shrink-0 text-[0.9rem] text-ink-soft">{L.unit}</span>
                 </div>
-                <p id={`pl-${k}-help`} className="mt-1 text-[0.8rem] leading-snug text-ink-soft">{L.min}~{L.max}{L.unit}. {L.help}</p>
+                <p id={`pl-${k}-help`} className="mt-1 text-[0.78rem] leading-snug text-ink-soft">{L.min}~{L.max}{L.unit}<span className="sr-only">. {L.help}</span></p>
               </div>
             );
           })}
           <div>
-            <span className="field-label" id="pl-outcome-label">사후 성과 측정 기간 <span className="font-normal text-ink-soft">(기본 {DEFAULT_PLANNING.outcomeDays}일)</span></span>
+            <div className="flex items-center gap-1"><span className="field-label !mb-0" id="pl-outcome-label">사후 성과 측정 기간 <span className="font-normal text-ink-soft">(기본 {DEFAULT_PLANNING.outcomeDays}일)</span></span><InfoTip text="완료한 Action의 효과를 완료 후 며칠 동안 보고, 완료 전 같은 일수와 비교할지 정합니다. 회전이 느린 상품은 28일을 권합니다." label="사후 성과 측정 기간 설명" /></div>
             <div className="flex gap-1.5" role="radiogroup" aria-labelledby="pl-outcome-label">
               {OUTCOME_OPTIONS.map((d) => (
                 <button key={d} role="radio" aria-checked={outcome === d} disabled={!owner} onClick={() => setOutcome(d)} className="pressable min-h-[42px] flex-1 rounded-xl border text-[0.9rem] font-semibold disabled:opacity-60" style={outcome === d ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : { borderColor: "var(--border)", color: "var(--text-secondary)" }}>{d}일</button>
               ))}
             </div>
-            <p className="mt-1 text-[0.8rem] leading-snug text-ink-soft">완료한 Action의 효과를 완료 후 며칠 동안 보고, 완료 전 같은 일수와 비교할지. 회전이 느린 상품은 28일</p>
           </div>
         </div>
 

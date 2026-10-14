@@ -30,11 +30,12 @@ export function PracticeCard() {
   const files: [string, () => PracticeFile][] = [["sales", () => practiceSalesFile(m.today)], ["products", practiceProductFile], ["week", () => practiceWeekFile(m.today)]];
 
   return (
-    <DataCard className="mb-6" title={on ? "샘플 자료 연습 중" : "실제 자료 전에 샘플 자료로 연습하기"} action={<StatusBadge tone={on ? "warning" : "neutral"}>{on ? "연습 모드" : "선택"}</StatusBadge>}>
+    <DataCard className="mb-5" title={on ? "샘플 자료 연습 중" : "샘플 자료로 먼저 연습하기"} action={<StatusBadge tone={on ? "warning" : "neutral"}>{on ? "연습 모드" : "선택"}</StatusBadge>}
+      info={on ? "모든 이름이 '샘플', SKU가 'SAMPLE-'로 시작하는 가상 자료입니다(실적 아님). 날짜는 오늘 기준으로 만들어집니다." : "가상 샘플 파일 3개(판매 8주·상품 정보·재고·추가 1주)로 첫 주 업무를 실제 순서 그대로 해 봅니다. Demo 시연 데이터를 비운 빈 상태에서 시작하므로 실제 자료를 처음 올리는 날과 같은 화면을 봅니다. 이 브라우저에만 저장되고, 끝나면 시연 데이터로 되돌립니다."}>
       <div data-testid="practice-card" data-state={on ? "on" : "off"}>
         {!on ? (
           <>
-            <p className="text-[0.9rem] text-ink-soft">가상 샘플 파일 3개(판매 8주·상품 정보·재고·추가 1주)로 첫 주 업무를 실제 순서 그대로 해 봅니다. Demo 시연 데이터를 비운 <b>빈 상태</b>에서 시작하므로 실제 자료를 처음 올리는 날과 같은 화면을 봅니다. 이 브라우저에만 저장되고, 끝나면 시연 데이터로 되돌립니다.</p>
+            <p className="text-[0.88rem] text-ink-soft">가상 샘플 파일로 첫 주 업무를 실제 순서대로 해 봅니다 (약 30분, 이 브라우저에만 저장).</p>
             {realCount > 0 && <p className="mt-2 rounded-lg p-2.5 text-[0.86rem]" style={{ background: "var(--danger-soft)", color: "var(--danger)" }} data-testid="practice-real-warning">이 브라우저에 직접 입력한 실데이터 {realCount.toLocaleString()}건이 있습니다. 연습을 시작하면 지워지니 먼저 <Link className="font-semibold underline" href="/ax/data?tab=export#transfer">백업 파일</Link>을 받으세요.</p>}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <button className="btn-primary" disabled={!owner} onClick={() => setConfirm("start")} data-testid="practice-start"><FlaskConical size={16} aria-hidden /> 샘플 자료로 연습 시작</button>
@@ -43,7 +44,7 @@ export function PracticeCard() {
           </>
         ) : (
           <>
-            <p className="text-[0.9rem] text-ink-soft">모든 이름이 &lsquo;샘플&rsquo;, SKU가 &lsquo;SAMPLE-&rsquo;로 시작하는 <b>가상 자료</b>입니다 (실적 아님). 날짜는 오늘 기준으로 만들어집니다. 아래 순서대로 파일을 올리고 화면을 확인하세요.</p>
+            <p className="text-[0.88rem] text-ink-soft"><b>가상 자료</b>(실적 아님) — 아래 순서대로 파일을 올리고 화면을 확인하세요.</p>
             <div className="mt-3 grid gap-2 @xl:grid-cols-3">
               {files.map(([key, make]) => {
                 const f = make();
