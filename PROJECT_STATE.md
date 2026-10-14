@@ -42,6 +42,7 @@ CURRENT PASS: 16 — **AX Sprint II Reviewer Experience Page**(사용자 요청 
 - 구성 8개: HERO → 왜 AX인가 → **핵심 작동 방식(직접 눌러 보는 데모)** → 고객 신호 → Closed Loop → 개발 현황(구현 완료 / PILOT·실증 중 / 향후 고도화) → 확장 방향 → 마무리. 원고·금지 표현·영상 장면: `AX_SPRINT2_REVIEW_SOURCE.md`
 - 데모: 샘플 제품 3개 × 상황 3개(현재 추세 · 최근 판매 30% 증가 · OEM 입고 예정 반영) → Business AX와 같은 계산 함수로 예측 판매·가용 재고·재고 소진 예상·생산 착수 마감·추천 생산량·실제 RULE Action. 기본 장면: 샘플 앰플 C — 재고 '안정'(약 95일분)이지만 OEM 45일 + 안전 14일 → **착수 D-4 · 1,750개**
 - 데이터 경계: 공개 시연 데이터(`src/lib/review/ax-sprint2-demo.ts`)만 — 운영 DB·인증·저장소 쓰기·이벤트 저장·Action 생성 없음 (qa-review: 외부/API 요청 0, 저장소 새 키 0, 번들에 DB 클라이언트 없음)
+- 2026-10-14 보완(사용자 요청, 2곳만): HERO에 작은 보조문구 "주식회사 가연인터내셔널 · AX Sprint II 심사용"(신청기업) → 프로젝트명 "MIRYEO K-Beauty Growth AX · PILOT" 위계, 데모 제목 아래 분석 방식 카드(현재 PILOT: 규칙·통계 기반 / 향후 고도화: 시계열·머신러닝) — 기존 칩 2개를 같은 내용의 2단 카드로 교체. 데모 수치·계산·섹션 내용 변경 없음
 - 수정 시: 샘플 수치를 바꾸면 원고 2절 표 + `qa-review` 기대값을 함께 바꾼다. `/ax` 기기 보기 틀은 `/review`에서 꺼짐(`DeviceView.tsx`)
 
 ## PASS 16 변경 요약 (2026-10-14) — AX Sprint II 심사위원 페이지

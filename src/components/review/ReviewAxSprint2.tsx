@@ -131,7 +131,8 @@ function Hero() {
         <p className="mt-5 max-w-[44rem] text-[clamp(1rem,1.6vw,1.15rem)] leading-relaxed text-white/85 [word-break:keep-all]">
           국내외 판매·재고·OEM 생산·고객행동 데이터를 연결해 재고위험과 생산 필요시점을 분석하고, 대표와 실무자가 다음 Action을 결정할 수 있도록 지원합니다.
         </p>
-        <div className="mt-6 flex flex-wrap items-center gap-2">
+        <p className="mt-7 text-[0.86rem] font-semibold text-white/75" data-testid="applicant">주식회사 가연인터내셔널 · AX Sprint II 심사용</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[0.82rem] font-bold"><CircleDot size={14} aria-hidden /> MIRYEO K-Beauty Growth AX · PILOT</span>
           <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[0.82rem] font-semibold">현재 개발·실증 진행 중</span>
           <NoticeBadge tone="dark" />
@@ -260,9 +261,15 @@ function Demo({ now }: { now: string }) {
       <div className="mx-auto w-full max-w-[1180px] px-4 py-14 md:px-6 md:py-20">
         <SectionHead id="demo" no="02" eyebrow="핵심 작동 방식 · 직접 눌러 보기" title="이 제품, 언제 다시 생산해야 할까요?"
           lead="샘플 제품과 상황을 고르면, 실제 Business AX와 같은 계산 규칙으로 재고 소진·생산 착수 마감·추천 생산량을 다시 계산합니다." />
-        <div className="mt-5 flex flex-wrap gap-2 text-[0.86rem]">
-          <span className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold" style={{ background: "var(--rv-teal-soft)", color: "var(--rv-teal)" }}><Check size={15} aria-hidden /> 현재 PILOT: 규칙·통계 기반의 설명 가능한 분석·예측</span>
-          <span className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-semibold" style={{ background: "var(--rv-bg)", color: "var(--rv-soft)" }}>향후: 실제 운영데이터 축적 후 시계열·머신러닝 기반 수요예측 고도화</span>
+        <div className="mt-5 grid max-w-[56rem] gap-px overflow-hidden rounded-xl border md:grid-cols-2 [word-break:keep-all]" style={{ borderColor: "var(--rv-line)", background: "var(--rv-line)" }} role="note" aria-label="분석 방식: 현재 PILOT과 향후 고도화" data-testid="demo-method">
+          <p className="px-4 py-3 text-[0.95rem] leading-relaxed" style={{ background: "var(--rv-teal-soft)", color: "var(--rv-ink)" }}>
+            <span className="mb-0.5 flex items-center gap-1.5 text-[0.8rem] font-bold" style={{ color: "var(--rv-teal)" }}><Check size={14} aria-hidden /> 현재 PILOT</span>
+            규칙·통계 기반의 설명 가능한 분석·예측을 중심으로 구현되어 있습니다.
+          </p>
+          <p className="bg-white px-4 py-3 text-[0.95rem] leading-relaxed" style={{ color: "var(--rv-ink)" }}>
+            <span className="mb-0.5 flex items-center gap-1.5 text-[0.8rem] font-bold" style={{ color: "var(--rv-soft)" }}><ArrowRight size={14} aria-hidden /> 향후 고도화</span>
+            실제 운영데이터 축적 후 시계열·머신러닝 기반 수요예측으로 단계적으로 고도화합니다.
+          </p>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
