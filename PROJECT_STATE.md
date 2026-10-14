@@ -47,7 +47,7 @@ CURRENT PASS: 16 — **AX Sprint II Reviewer Experience Page**(사용자 요청 
 ## PASS 16 변경 요약 (2026-10-14) — AX Sprint II 심사위원 페이지
 | 항목 | 상태 |
 |---|---|
-| `/review/ax-sprint2` 공개 읽기 전용 페이지 (D-068): 상단 고정 시연 표시·페이지 안 이동, 8개 섹션, 인터랙티브 데모(제품·상황 선택 → 실제 계산 함수 결과·시간선·8주 판매·계산 방법), 고객 신호(여정·최근 7일 신호·관심점수 표·결합 판단), Closed Loop, 3단 개발 현황, 확장 3단계 | VERIFIED (qa-review 79/79 · axe 0 · 8개 폭 가로 넘침 0 · 콘솔 오류 0) |
+| `/review/ax-sprint2` 공개 읽기 전용 페이지 (D-068): 상단 고정 시연 표시·페이지 안 이동, 8개 섹션, 인터랙티브 데모(제품·상황 선택 → 실제 계산 함수 결과·시간선·8주 판매·계산 방법), 고객 신호(여정·최근 7일 신호·관심점수 표·결합 판단), Closed Loop, 3단 개발 현황, 확장 3단계 | VERIFIED (qa-review 80/80 · axe 0 · 8개 폭 가로 넘침 0 · 콘솔 오류 0) |
 | 원고·기준 `AX_SPRINT2_REVIEW_SOURCE.md` (섹션 순서·핵심 메시지·현재/PILOT/향후·금지 표현·영상 장면 8컷·데모 숫자) | DONE |
 | `/ax`·`/beauty`·`/login` 회귀 없음 (새 파일 위주, 기존 변경은 `DeviceView.tsx` 한 줄) | VERIFIED (전체 회귀) |
 
