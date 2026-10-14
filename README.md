@@ -11,6 +11,7 @@ Customer Event → AX Decision(RULE) → Human Action → Result → Proof Event
 | MIRYEO Business AX | `/ax` | 대표·관리자·직원 (OWNER / ADMIN / STAFF) |
 | MIRYEO AI Beauty | `/beauty` | 고객 (비회원: 익명 세션 / 회원: `/beauty/login`·`/beauty/me`, 동의 기반) |
 | 로그인 (Live) | `/login` | 구성원 |
+| AX Sprint II 심사 페이지 | `/review/ax-sprint2` | 심사위원 — 공개·읽기 전용·시연 데이터만 (D-068, `AX_SPRINT2_REVIEW_SOURCE.md`) |
 
 ## 실행
 ```bash
@@ -39,6 +40,7 @@ UI (src/app, src/components)
 ```
 - Schema / RLS: `supabase/migrations/001~009` (005·007·008·009 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
 - 월별 실적 `/ax/monthly`, 정산·미수금 `/ax/channels?tab=settlements`, 대표 브리핑 `src/lib/briefing.ts`, 내보내기 `/ax/data?tab=export`
+- AX Sprint II 심사 페이지 (PASS 16): `src/app/review/ax-sprint2/page.tsx` → `src/components/review/ReviewAxSprint2.tsx`, 공개 시연 데이터·계산 연결 `src/lib/review/ax-sprint2-demo.ts`(실제 `computeProductMetrics`·`generateCandidates`·`computeCustomerInsight` 사용, 저장·전송 없음)
 - 고도화·UI/UX (PASS 15): 운영 기준값 `src/lib/planning.ts` + `src/components/ax/PlanningCard.tsx`(설정 > 운영 기준값, migration 009 `organizations.planning`) → `computeProductMetrics`·`measureOutcome`에 전달, 대화상자·처리 창 body portal `src/components/ax/Modal.tsx`, 처리 창 '지금 다시 계산하면'·첫 단계 버튼 고정 `ActionDrawer.tsx`, 고객 앱 모바일 메뉴 4칸 `BeautyHeader.tsx`
 - 고도화·UI/UX (PASS 14): 대표 보고 모드 `src/app/ax/present/page.tsx` + `src/lib/present.ts`(슬라이드 목록·권한·주간 매출), 순위 막대 `src/components/ax/RankBars.tsx`(채널 비교), 실증·Evidence 12주 타임라인·한글 표기(`PROOF_TYPE_LABEL` in `src/lib/evidence.ts`), 설정 바로가기, 주간 점검 품질 항목 `src/lib/weekly-routine.ts`
 - UI/UX·고도화 (PASS 13): 알림 센터 `src/lib/notifications.ts`(계산형 — 해결하면 사라짐) + `src/components/ax/NotificationCenter.tsx`(헤더 종 아이콘), 모바일 표→카드 `src/lib/use-narrow.ts`(상품·재고·생산 화면), 월 이동 줄(`/ax/monthly` 모바일), 탭 가장자리 흐림·자동 스크롤 `Tabs.tsx`

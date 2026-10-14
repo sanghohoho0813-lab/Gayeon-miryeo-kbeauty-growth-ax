@@ -1,4 +1,4 @@
-# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 15)
+# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 16)
 
 DATE: 2026-10-13 · Next.js 16.4.0 · MODE TESTED: DEMO + LIVE(로컬 Supabase 호환 스택) · BROWSER: Chromium (Playwright)
 
@@ -9,6 +9,7 @@ DATE: 2026-10-13 · Next.js 16.4.0 · MODE TESTED: DEMO + LIVE(로컬 Supabase �
 | `npm run build` (Next 16, Turbopack) | PASS |
 | `npm audit` | 0 vulnerabilities (2026-10-14, PASS 15) |
 | **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 96/96** (A 9 + B 87 — PASS 15: 운영 기준값 저장 → organizations.planning(차이만)·생산 판단 반영·관리자 API 수정 0행(RLS)·기본값으로 null. PASS 14: 보고 모드가 Live 데이터로 9장 생성·LIVE 표시·DEMO 경고 없음. PASS 13: 알림 센터가 Live 데이터에서 계산·개수 일치·위험순·화면 연결. PASS 11: 상품·채널 0개인 첫날 판매 파일 가져오기 표시, Live에 샘플 연습 없음, 상품 파일 재고 열 → inventory(새 상품 UUID 연결·빈 칸은 재고 미생성), 샘플 자료 혼입 시 품질 점검 오류 포함) |
+| **PASS 16 AX Sprint II 심사 페이지** `qa-review` (`/review/ax-sprint2` 200·noindex 메타/헤더·제목·설명·JS 없이도 시연 표시, `/ax`·`/beauty`·`/login`·`/beauty/finder` 200, 링크는 #뿐·사이드바/관리자 헤더/기기 전환 없음·로그인 문구 없음, 내부 용어·과장·금지 표현·거래처명 0·LIVE/READY/NEXT 없음, 필수 문구 10개, 개발 현황 3단 라벨·향후 항목이 구현 완료에 섞이지 않음, **시연 표시가 모든 스크롤 위치에서 보임**, CTA 이동, 데모 7개 경우가 실제 계산 결과와 일치(앰플 C D-4·1,750 / 30% 증가 11일 지남·3,150 / 입고 예정 D-48·0, 세럼 A 21·900 / -5·3,000 / 57·0, 크림 B 0)·실제 RULE Action·키보드 화살표 선택, 고객 신호 한글 단계·관심점수 56 vs 29 +93%·결합 Action, **저장소 새 키 0·외부 요청 0·/api·POST 0·데이터 fetch 0·페이지 JS에 DB 클라이언트 없음**, axe 0(PC·390)·h1 1개, 8개 폭 가로 넘침 0·첫 화면 시연 표시·콘솔 오류 0, 줄인 동작 즉시 이동, 모바일 선택 영역 ≥ 44px, `/ax` 기기 보기 설정 영향 없음) | PASS 79/79 |
 | **PASS 15 고도화·UI/UX** `qa-pass15` (PC·모바일 처리 창 제목·닫기·첫 단계 버튼이 헤더·하단 메뉴에 가리지 않음·배경 막이 헤더까지·닫기, 대화상자 2열 유지·axe 0·Esc 포커스 복귀, 고객 앱 모바일 메뉴 4칸·잘림 없음·현재 화면·Finder 단계 정렬·'질문 1 / 5'·카드 2줄 이하, 가져오기 단계 한글·단계 이동·✓, **운영 기준값** 기본값·저장/초기화 비활성·범위 오류·숫자 오류·미리보기(현재 = 생산 화면 값, 증가)·마감 날짜·사후 성과 기간 안내·차이만 저장·새로고침 유지·생산 화면 반영(미리보기 값과 같음)·처리 창 추천 당시 기록 + 최신 재계산·사후 성과 n/28일·관리자 읽기 전용·axe 0·기본값으로(null)·백업 가져오기 범위 검사) | PASS 41/41 |
 | **PASS 14 고도화·UI/UX** `qa-pass14` (채널 순위 막대 정렬·이름 겹침 없음·이전 4주 선·스크린리더 증감·표도 매출순, 모바일 채널·B2B·수출·정산 카드·KPI 2열·정산 카드 입금 기록·가로 넘침 0, 고객 제목·관심 카드 이름 잘림 없음, 실증 내부 코드 노출 없음·12주 타임라인(시작 전·Week 2 단계 상태)·Money KPI 한글+REQUIRED 표기 유지·Before/After 접기·Proof 한글·결과 확정, 주간 리포트 Proof 한글·보고 모드 링크, 설정 바로가기 6개·헤더에 가리지 않는 이동·테마 이름 1줄, **보고 모드** 열기·전체 덮기·표지·키보드 →/숫자/End/Home·점 목록·주소 ?s·대시보드와 같은 4주 매출·주간 4주 합 = 4주 매출·'/' 비활성·axe 0·인쇄 9쪽(앱 숨김)·Esc 복귀·직원 6장·빠른 이동·모바일 폭·버튼, 주간 점검 7항목·품질 오류 발생/연결, 빈 데이터 안내) | PASS 57/57 (2회) |
 | **PASS 13 UI/UX·알림 센터** `qa-pass13` (모바일 390: 상품·재고·생산 착수·OEM 현황 표→카드 개수·내용·직원 마진 숨김·카드→상세·재고 수정·상태 필터·가로 넘침 0, 월별 '‹ 월 ›' 높이·이전/다음·처음 달 비활성, 데이터 관리 탭 가장자리 흐림·뒤쪽 탭 자동 스크롤·Home 키, 데이터 상태 1줄, 알림 센터 개수·이름·위험순·첫 알림 포커스·내용·axe 0·Esc 포커스 복귀·바깥 클릭·화면 이동, 역할(대표 확정 대기·관리자·직원 연체 없음), 품질 오류·입력 10일 지연 발생→수정 시 사라짐, 빈 상태, 모바일 패널 폭·제목 1줄, PC 표·12개월 버튼 유지) | PASS 55/55 (2회 연속) |
@@ -21,12 +22,12 @@ DATE: 2026-10-13 · Next.js 16.4.0 · MODE TESTED: DEMO + LIVE(로컬 Supabase �
 | **PASS 7** 화면 설정 첫 화면 적용 `qa-boot` (JS 차단 상태 3종 + hydration 중 기본 테마 없음 + 설정 변경) | PASS 5/5 |
 | 보안 헤더·robots (Demo 로컬 + 환경변수 3조합 규칙 평가) | PASS |
 | **PASS 6 Demo** (공개 전 점검 Demo 판정·권한·API, 주간 운영 점검 시드 제외·실입력 정상·지연 탐지·주간 리포트·배너) | PASS 19/19 |
-| **접근성** axe-core WCAG 2.1 A/AA — 34개 화면(보고 모드 2·B2B·수출 추가) × 1440·390px, **차트가 다 그려진 뒤 검사** (reduced motion) | **PASS 0건** (수정 전 4종: 대비·버튼 이름·라벨 불일치·스크롤 영역 키보드) |
+| **접근성** axe-core WCAG 2.1 A/AA — 35개 화면(심사 페이지 추가) × 1440·390px, **차트가 다 그려진 뒤 검사** (reduced motion) | **PASS 0건** (수정 전 4종: 대비·버튼 이름·라벨 불일치·스크롤 영역 키보드) |
 | **AI 브리핑** (가짜 Anthropic 서버 :4010) — 요청 형식(모델·effort·fallbacks·beta 헤더)·시스템 규칙·개인정보 미포함·근거 없는 숫자 폐기·거절 처리·직원 차단·임의 입력 거부 | PASS 11/11 |
 | AI 꺼짐(기본 빌드) `POST /api/ai/briefing` | 503 AI_DISABLED (호출 없음) |
 | 2단계 보완 Demo Flow (회원·마이페이지·재구매·정산·월별·브리핑·내보내기·권한·탈퇴) | PASS 41/41 |
 | PASS 3 Demo Flow (상품 일괄 등록·권한) | PASS 11/11 |
-| Route QA: 35 route(`/ax/present` 추가) × 8 viewport (1920/1440/1280/1024/768/430/390/360) — 가로 overflow, console error, HTTP error | PASS (0건) |
+| Route QA: 36 route(`/review/ax-sprint2` 추가) × 8 viewport (1920/1440/1280/1024/768/430/390/360) — 가로 overflow, console error, HTTP error | PASS (0건) |
 | Whole-App Acceptance Flow (PASS 1 회귀) | PASS 31/31 |
 | PASS 2 Flow (Baseline·주간 리포트·PDF·파일 가져오기·구성원·권한) | PASS 33/33 |
 | DB 검증 `npm run verify:db` (Postgres 16 + Supabase auth stub): migration 001~009, RLS·트리거·이벤트 한도·고객/정산·생산기간/월 목표·**운영 기준값(범위·키·정수·OWNER만) 18개 추가** 135개 시나리오, 005~009 재실행 | PASS 135/135 |

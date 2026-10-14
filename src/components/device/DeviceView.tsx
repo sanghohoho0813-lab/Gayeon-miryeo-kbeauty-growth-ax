@@ -234,7 +234,9 @@ export function DeviceViewProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(MODE_KEY, m); } catch { /* noop */ }
   }, []);
 
-  const available = desktop && !isFrame;
+  // 심사위원 페이지(/review)는 PC·Mobile 미리보기 틀 없이 그대로 보여 준다 (내부 화면에서 고른 보기 방식이 따라오지 않게)
+  const pathname = usePathname();
+  const available = desktop && !isFrame && !pathname?.startsWith("/review");
   const effective: DeviceMode = available ? mode : "pc";
 
   return (
