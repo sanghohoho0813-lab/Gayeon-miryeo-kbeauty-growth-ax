@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BarChart3, Sparkles } from "lucide-react";
+import { ReviewVideo } from "@/components/review/ReviewVideo";
+import { formatDurationKR, REVIEW_VIDEO } from "@/lib/review/ax-sprint2-video";
 
 /* 루트 포털 — 내부 운영 시스템과 고객 플랫폼 진입점 분리 */
 export default function Home() {
@@ -54,6 +56,21 @@ export default function Home() {
           </span>
         </Link>
       </div>
+
+      {/* AX Sprint II 담당자용 소개 영상 (PASS 17, D-069) — 심사 페이지와 같은 원본 영상 */}
+      <section aria-labelledby="home-video-title" className="mt-16 w-full max-w-6xl" data-testid="home-video">
+        <p className="text-center text-[0.86rem] font-semibold tracking-[0.18em] text-[#6B6550]">AX SPRINT II · 담당자용</p>
+        <h2 id="home-video-title" className="mt-2 text-center text-[1.6rem] font-bold text-[#16233f] md:text-[2rem]">
+          MIRYEO K-Beauty Growth AX 소개 영상 <span className="text-[1rem] font-semibold text-[#5e6678]">{formatDurationKR(REVIEW_VIDEO.durationSec)}</span>
+        </h2>
+        <p className="mt-2 text-center text-[0.95rem] text-[#5e6678]">주식회사 가연인터내셔널 · 세로(9:16) · 가로(16:9) · 자막 포함</p>
+        <div className="mt-6 text-left">
+          <ReviewVideo idPrefix="hv" />
+        </div>
+        <p className="mt-4 text-center text-[0.9rem]">
+          <Link href="/review/ax-sprint2" className="font-semibold text-[#1b3a6b] underline underline-offset-4">AX Sprint II 심사 페이지 보기 →</Link>
+        </p>
+      </section>
 
       <p className="mt-12 text-[0.82rem] text-[#6B6550]">AX Platform by 미래AI랩 · PILOT</p>
     </main>

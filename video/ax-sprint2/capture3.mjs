@@ -1,0 +1,12 @@
+import { chromium } from "/home/user/Gayeon-miryeo-kbeauty-growth-ax/node_modules/playwright-core/index.mjs";
+const OUT = process.argv[2]; const B = "http://localhost:3100";
+const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+await ctx.addInitScript(() => { localStorage.setItem("miryeo-ax-tutorial-v2", "1"); localStorage.setItem("miryeo-demo-role", "OWNER"); });
+const p = await ctx.newPage(); await p.emulateMedia({ reducedMotion: "reduce" });
+await p.goto(B + "/ax/growth", { waitUntil: "networkidle" }); await p.waitForTimeout(1000);
+await p.getByText("처리하기").first().click(); await p.waitForTimeout(1200);
+await p.screenshot({ path: `${OUT}/pc_drawer.png` });
+const r = await p.evaluate(() => { const d = document.querySelector("[data-overlay=drawer] [role=dialog], [role=dialog]"); const q = d?.getBoundingClientRect(); return q ? [q.left, q.top, q.width, q.height].map(Math.round) : null; });
+console.log("drawer", JSON.stringify(r));
+await b.close();

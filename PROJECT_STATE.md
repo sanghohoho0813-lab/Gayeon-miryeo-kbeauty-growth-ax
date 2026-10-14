@@ -1,8 +1,8 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-10-14 (PASS 16 — AX Sprint II 심사위원 페이지 `/review/ax-sprint2`: 공개 읽기 전용 시연 화면)
+LAST UPDATED: 2026-10-14 (PASS 17 — AX Sprint II 담당자용 소개 영상 3분 51초: 세로 9:16·가로 16:9 원본 1080p, 영상 페이지·심사 페이지·홈 게시)
 DELIVERY STAGE: 계약 제11조 2단계 개발 완료(1차 보고·5영업일 확인 대기) + **3단계 일부 개발 착수**(사용자 지시 2026-10-09: "3단계도 일부 개발, Supabase는 나중에 연동")
-CURRENT PASS: 16 — **AX Sprint II Reviewer Experience Page**(사용자 요청 2026-10-14): 심사위원 전용 공개 페이지 `/review/ax-sprint2` — 내부 AX와 분리된 Public Read-only Demo Surface(D-068), 원고·기준 `AX_SPRINT2_REVIEW_SOURCE.md`. 이전 PASS 15: 다음 단계 고도화·UI/UX 대폭 개선(사용자 요청 2026-10-14 두 번째 "다음단계 고도화 및 uiux 대폭개선"). **운영 기준값**(조직별 안전일수·입고 후 일수·생산 단위·사후 성과 기간, migration 009, D-065), **대화상자·처리 창이 헤더 아래 깔리던 결함 수정**(D-064), 처리 창 '지금 다시 계산하면'·첫 단계 버튼 고정(D-066), 고객 앱 모바일 메뉴·Finder(D-067), 가져오기 단계 한글. 이전 PASS 14: **대표 보고 모드** `/ax/present`(R-01, D-061), 채널 순위 막대·모바일 카드(D-060), 실증·Evidence 한글 우선·12주 타임라인(D-062), 설정 바로가기, 주간 점검 품질 항목(R-22, D-063). 이전 PASS 13: UI/UX 개선·다음 단계 고도화("uiux개선, 다음단계 고도화"). 모바일에서 넓은 표 4개를 카드로(D-058), 월별 실적 '‹ 월 ›'·탭 가장자리 흐림·데이터 상태 1줄, **알림 센터**(종 아이콘 → 오늘 확인할 것 7종, 계산형 D-059). 다음 우선순위(3단계 보고 방식)는 사용자 결정 대기. **push = Production 배포**(D-040)
+CURRENT PASS: 17 — **AX Sprint II 담당자용 소개 영상**(사용자 요청 2026-10-14, D-069): 제공 음성 + 스타일 가이드 v4.1로 26장면 영상(세로·가로 1080p, 자막 포함) 제작 → `/review/ax-sprint2/video`(비율 전환·속도·영상 흐름·내려받기) + 심사 페이지 '소개 영상' 섹션 + 홈(`/`) 섹션. 제작 원본·장면표 `video/ax-sprint2/`. 이전 PASS 16: **AX Sprint II Reviewer Experience Page**(사용자 요청 2026-10-14): 심사위원 전용 공개 페이지 `/review/ax-sprint2` — 내부 AX와 분리된 Public Read-only Demo Surface(D-068), 원고·기준 `AX_SPRINT2_REVIEW_SOURCE.md`. 이전 PASS 15: 다음 단계 고도화·UI/UX 대폭 개선(사용자 요청 2026-10-14 두 번째 "다음단계 고도화 및 uiux 대폭개선"). **운영 기준값**(조직별 안전일수·입고 후 일수·생산 단위·사후 성과 기간, migration 009, D-065), **대화상자·처리 창이 헤더 아래 깔리던 결함 수정**(D-064), 처리 창 '지금 다시 계산하면'·첫 단계 버튼 고정(D-066), 고객 앱 모바일 메뉴·Finder(D-067), 가져오기 단계 한글. 이전 PASS 14: **대표 보고 모드** `/ax/present`(R-01, D-061), 채널 순위 막대·모바일 카드(D-060), 실증·Evidence 한글 우선·12주 타임라인(D-062), 설정 바로가기, 주간 점검 품질 항목(R-22, D-063). 이전 PASS 13: UI/UX 개선·다음 단계 고도화("uiux개선, 다음단계 고도화"). 모바일에서 넓은 표 4개를 카드로(D-058), 월별 실적 '‹ 월 ›'·탭 가장자리 흐림·데이터 상태 1줄, **알림 센터**(종 아이콘 → 오늘 확인할 것 7종, 계산형 D-059). 다음 우선순위(3단계 보고 방식)는 사용자 결정 대기. **push = Production 배포**(D-040)
 
 ## 계약 별지 제1호 대조 (2026-09-30 기준)
 | No | 핵심모듈 | 구현 | 화면 |
@@ -33,10 +33,11 @@ CURRENT PASS: 16 — **AX Sprint II Reviewer Experience Page**(사용자 요청 
 
 **3단계 보고서 초안**: `STAGE3_DELIVERY_REPORT.md` — 샘플 자료 검증 결과·발견 결함·실제 자료 적용에 필요한 것·보고 방식 결정(가/나/다). `[ ]` 칸은 발송 전 채움.
 
-## REVIEW SURFACE (PASS 16, D-068)
+## REVIEW SURFACE (PASS 16, D-068 · 영상 PASS 17, D-069)
 | 경로 | 상태 |
 |---|---|
 | `/review/ax-sprint2` — AX Sprint II 심사위원 페이지 | **Public Demo · No Live Data · No Internal Navigation · No Write** |
+| `/review/ax-sprint2/video` — 소개 영상 페이지 (세로 9:16 / 가로 16:9 · 원본 1080p 내려받기) | **Public Demo · No Live Data · No Internal Navigation · No Write** |
 
 - 대상: AX Sprint II 심사위원 (로그인 없음, 검색 노출 차단). 주소: https://gayeon-miryeo-kbeauty-growth-ax.vercel.app/review/ax-sprint2
 - 구성 8개: HERO → 왜 AX인가 → **핵심 작동 방식(직접 눌러 보는 데모)** → 고객 신호 → Closed Loop → 개발 현황(구현 완료 / PILOT·실증 중 / 향후 고도화) → 확장 방향 → 마무리. 원고·금지 표현·영상 장면: `AX_SPRINT2_REVIEW_SOURCE.md`
@@ -44,6 +45,13 @@ CURRENT PASS: 16 — **AX Sprint II Reviewer Experience Page**(사용자 요청 
 - 데이터 경계: 공개 시연 데이터(`src/lib/review/ax-sprint2-demo.ts`)만 — 운영 DB·인증·저장소 쓰기·이벤트 저장·Action 생성 없음 (qa-review: 외부/API 요청 0, 저장소 새 키 0, 번들에 DB 클라이언트 없음)
 - 2026-10-14 보완(사용자 요청, 2곳만): HERO에 작은 보조문구 "주식회사 가연인터내셔널 · AX Sprint II 심사용"(신청기업) → 프로젝트명 "MIRYEO K-Beauty Growth AX · PILOT" 위계, 데모 제목 아래 분석 방식 카드(현재 PILOT: 규칙·통계 기반 / 향후 고도화: 시계열·머신러닝) — 기존 칩 2개를 같은 내용의 2단 카드로 교체. 데모 수치·계산·섹션 내용 변경 없음
 - 수정 시: 샘플 수치를 바꾸면 원고 2절 표 + `qa-review` 기대값을 함께 바꾼다. `/ax` 기기 보기 틀은 `/review`에서 꺼짐(`DeviceView.tsx`)
+
+## PASS 17 변경 요약 (2026-10-14) — AX Sprint II 담당자용 소개 영상
+| 항목 | 상태 |
+|---|---|
+| 영상 제작 (D-069): 제공 음성 1.13배·쉼 축소·-14 LUFS, 음성 인식으로 자막 정렬(99.2%, 87조각), 26장면(회사소개서 사진·실제 Demo 화면·인포그래픽), 세로 1080×1920 · 가로 1920×1080, 230.87초 | DONE — 자막 글자는 대표 확인 필요(대본 파일 없이 음성 인식 기반) |
+| 영상 페이지 `/review/ax-sprint2/video` + 심사 페이지 '소개 영상' 섹션 + 홈 섹션 (`ReviewVideo`: 비율 전환·위치/속도 유지·1/1.25/1.5배·전체 화면·영상 흐름 14개·내려받기) | VERIFIED (qa-video) |
+| 제작 원본 `video/ax-sprint2/` (대본 chunks·자막 srt·장면 build.py·렌더 스크립트·장면표 README) | DONE |
 
 ## PASS 16 변경 요약 (2026-10-14) — AX Sprint II 심사위원 페이지
 | 항목 | 상태 |

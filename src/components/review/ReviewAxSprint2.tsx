@@ -3,6 +3,8 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowDown, ArrowRight, Check, CircleDot, Database, Eye, Factory, Globe2, Heart, LineChart, MousePointerClick, PackageCheck, RotateCcw, Search, ShieldCheck, ShoppingBag, Sparkles, Store, Truck, UserCheck, Video } from "lucide-react";
 import { formatDateKR, addDaysISO } from "@/lib/date";
+import { ReviewVideo } from "@/components/review/ReviewVideo";
+import { formatDurationKR, REVIEW_VIDEO } from "@/lib/review/ax-sprint2-video";
 import { analyzeReviewProduct, REVIEW_DEMO_NOTICE, REVIEW_PRODUCTS, reviewSignalActions, reviewSignals, SCENARIOS, SIGNAL_STEPS, type ScenarioId } from "@/lib/review/ax-sprint2-demo";
 
 /* AX Sprint II 심사위원 전용 페이지 (PASS 16, D-068)
@@ -33,6 +35,7 @@ const THEME: CSSProperties = {
 };
 
 const NAV = [
+  { id: "video", label: "소개 영상" },
   { id: "why", label: "왜 AX인가" },
   { id: "demo", label: "작동 방식" },
   { id: "signal", label: "고객 신호" },
@@ -87,6 +90,7 @@ export function ReviewAxSprint2({ now }: { now: string }) {
       <TopBar />
       <main id="main" tabIndex={-1} className="outline-none">
         <Hero />
+        <VideoSection />
         <Why />
         <Demo now={now} />
         <Signal now={now} />
@@ -140,6 +144,28 @@ function Hero() {
         <button onClick={() => scrollToId("why")} className="mt-9 inline-flex min-h-[52px] items-center gap-2 rounded-xl bg-white px-6 text-[1rem] font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" style={{ color: "var(--rv-navy)" }} data-testid="hero-cta">
           핵심 작동방식 보기 <ArrowDown size={18} aria-hidden />
         </button>
+        <button onClick={() => scrollToId("video")} className="ml-0 mt-3 inline-flex min-h-[52px] items-center gap-2 rounded-xl border border-white/40 px-6 text-[1rem] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:ml-3 sm:mt-9" data-testid="hero-video">
+          <Video size={18} aria-hidden /> 소개 영상 보기 ({formatDurationKR(REVIEW_VIDEO.durationSec)})
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- 소개 영상 (PASS 17, D-069) ---------------- */
+function VideoSection() {
+  return (
+    <section id="video" tabIndex={-1} aria-labelledby="video-title" className="scroll-mt-20 outline-none" data-testid="review-video-section">
+      <div className="mx-auto w-full max-w-[1180px] px-4 py-14 md:px-6 md:py-16">
+        <header className="max-w-[54rem] [word-break:keep-all]">
+          <p className="text-[0.84rem] font-bold tracking-wide" style={{ color: "var(--rv-teal)" }}>소개 영상 · {formatDurationKR(REVIEW_VIDEO.durationSec)}</p>
+          <h2 id="video-title" className="mt-2 text-[clamp(1.45rem,3.2vw,2.15rem)] font-bold leading-[1.3] tracking-tight" style={{ color: "var(--rv-navy)" }}>먼저 영상으로 전체 흐름을 보세요</h2>
+          <p className="mt-3 text-[1.02rem] leading-relaxed" style={{ color: "var(--rv-soft)" }}>왜 AX를 도입하려는지, 실제로 어떤 시스템을 만들고 있는지 3분여로 정리했습니다. 세로·가로 영상을 고를 수 있고 배속으로 보셔도 됩니다.</p>
+        </header>
+        <div className="mt-7"><ReviewVideo idPrefix="rv" /></div>
+        <p className="mt-4 text-[0.86rem]" style={{ color: "var(--rv-soft)" }}>
+          <a href="/review/ax-sprint2/video" className="font-semibold underline underline-offset-4" style={{ color: "var(--rv-navy)" }}>영상만 크게 보기 →</a>
+        </p>
       </div>
     </section>
   );

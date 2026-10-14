@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../fonts/pretendard.css">
+<style>
+  /* AX 영상 스타일 가이드 v4.1 — Deep Navy / Warm Ivory / Muted Slate · Gold 메인 · Secondary teal 1계열 */
+  :root { --gold:#d2a45f; --gold2:#b97935; --gold-soft:#e8c995; --sec:#3f8585; --sec-soft:#7fb7b2;
+          --acc:var(--gold); --hi:var(--gold-soft); --ink:#f4f1ec; --ink2:rgba(244,241,236,.72); --ink3:rgba(244,241,236,.5); --line:rgba(255,255,255,.08); }
+  * { box-sizing:border-box; margin:0; padding:0; animation:none !important; transition:none !important; }
+  html,body { overflow:hidden; background:#10171e; color:var(--ink); font-family:'Pretendard Variable','Pretendard',sans-serif;
+              -webkit-font-smoothing:antialiased; word-break:keep-all; }
+  body.v { width:1080px; height:1920px; } body.h { width:1920px; height:1080px; }
+  #stage { position:absolute; inset:0; overflow:hidden; }
+  .scene { position:absolute; inset:0; opacity:0; overflow:hidden; }
+  .abs { position:absolute; }
+  /* 배경 3계열 */
+  .bgD { position:absolute; inset:-6%; background: radial-gradient(70% 42% at 86% 8%, rgba(210,164,95,.16), transparent 62%), linear-gradient(165deg, #10171e 0%, #171f28 52%, #0d1218 100%); }
+  .bgL { position:absolute; inset:-6%; background: radial-gradient(58% 34% at 90% 8%, rgba(210,164,95,.16), transparent 62%), linear-gradient(165deg, #fbf7f0 0%, #f3ece2 55%, #ece2d5 100%); }
+  .bgS { position:absolute; inset:-6%; background: radial-gradient(55% 38% at 12% 90%, rgba(63,133,133,.16), transparent 62%), linear-gradient(160deg, #1b2630 0%, #22303a 55%, #172129 100%); }
+  .grid { position:absolute; inset:0; opacity:.45; background-image:linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+          background-size:90px 90px; -webkit-mask-image:radial-gradient(80% 60% at 50% 40%, #000 30%, transparent 85%); }
+  .light { --ink:#171b20; --ink2:rgba(23,27,32,.72); --ink3:rgba(23,27,32,.5); --hi:#a96a27; --acc:#b97935; --line:rgba(23,27,32,.06); color:var(--ink); }
+
+  /* 글자 */
+  .eyebrow { font-size:26px; font-weight:700; letter-spacing:.3em; color:var(--hi); text-transform:uppercase; }
+  .h0 { font-size:150px; font-weight:800; letter-spacing:-.035em; line-height:1.06; }
+  .h1 { font-size:96px; font-weight:800; letter-spacing:-.03em; line-height:1.12; }
+  .h2 { font-size:68px; font-weight:800; letter-spacing:-.02em; line-height:1.2; }
+  .h3 { font-size:52px; font-weight:700; letter-spacing:-.01em; line-height:1.28; }
+  .p  { font-size:52px; font-weight:500; color:var(--ink2); line-height:1.42; }
+  .big { font-size:240px; font-weight:800; letter-spacing:-.04em; line-height:1; }
+  .acc { color:var(--hi); font-weight:800; }
+  .dim { color:var(--ink3); }
+  .note { position:absolute; font-size:22px; font-weight:500; color:var(--ink3); line-height:1.45; }
+  .tag { display:inline-block; font-size:24px; font-weight:700; letter-spacing:.06em; color:var(--ink3); }
+
+  /* 카드 · 칩 · 노드 */
+  .glass { background:linear-gradient(160deg, rgba(255,255,255,.075), rgba(255,255,255,.025)); border:1px solid rgba(255,255,255,.12);
+           border-radius:28px; box-shadow:0 40px 80px -30px rgba(0,0,0,.7); }
+  .light .glass { background:#fff; border-color:rgba(23,27,32,.09); box-shadow:0 30px 60px -32px rgba(70,45,20,.30); }
+  .chip { display:inline-flex; align-items:center; gap:14px; padding:14px 28px; border-radius:999px; background:rgba(255,255,255,.06);
+          border:1px solid rgba(255,255,255,.14); font-size:52px; font-weight:700; white-space:nowrap; }
+  .chip::before { content:''; width:14px; height:14px; border-radius:50%; background:var(--c, var(--gold)); flex:none; }
+  .light .chip { background:#fff; border-color:rgba(23,27,32,.12); box-shadow:0 18px 40px -26px rgba(70,45,20,.35); }
+  .node { padding:24px 26px; border-radius:22px; text-align:center; font-size:52px; font-weight:700; background:linear-gradient(160deg, #262b32, #1b1f25);
+          border:1px solid rgba(255,255,255,.14); border-top:5px solid var(--c, rgba(255,255,255,.14)); box-shadow:0 30px 60px -30px rgba(0,0,0,.7); }
+  .node small { display:block; font-size:30px; font-weight:600; color:var(--ink2); margin-top:6px; }
+  .node.hi { border-color:rgba(232,201,149,.6); border-top-color:var(--gold); color:var(--hi); }
+  .hub { border-radius:50%; background:radial-gradient(circle at 35% 30%, #e6c48c, var(--gold) 55%, var(--gold2)); display:flex; align-items:center;
+         justify-content:center; text-align:center; font-weight:800; color:#1a130a; box-shadow:0 0 0 12px rgba(210,164,95,.14), 0 30px 60px -20px rgba(0,0,0,.7); line-height:1.15; }
+  .numtag { display:flex; align-items:center; gap:22px; padding:18px 30px 18px 18px; border-radius:22px; background:rgba(15,18,22,.55);
+            border:1px solid rgba(232,201,149,.4); font-size:52px; font-weight:700; line-height:1.22; }
+  .numtag .num { flex:none; width:68px; height:68px; border-radius:50%; background:var(--c, var(--gold)); color:#16110d; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; }
+  .light .numtag { background:#fff; border-color:rgba(23,27,32,.10); box-shadow:0 24px 50px -30px rgba(70,45,20,.30); }
+  .status { display:inline-flex; align-items:center; gap:18px; padding:16px 30px; border-radius:999px; font-size:46px; font-weight:700; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); }
+  .status i { width:16px; height:16px; border-radius:50%; background:var(--c, #6fd39a); box-shadow:0 0 14px var(--c, rgba(111,211,154,.8)); }
+  .light .status { background:#fff; border-color:rgba(23,27,32,.12); }
+  .strike { position:absolute; left:-6px; top:52%; height:6px; width:0; border-radius:3px; background:var(--gold); }
+  .orbit { width:22px; height:22px; border-radius:50%; background:var(--hi); box-shadow:0 0 18px 4px rgba(232,201,149,.7); }
+  .track { height:24px; border-radius:12px; background:rgba(255,255,255,.08); overflow:hidden; } .light .track { background:rgba(23,27,32,.08); }
+  .fill { height:100%; width:0; border-radius:12px; background:var(--c, linear-gradient(90deg, var(--gold2), var(--gold))); }
+  .doc { position:absolute; width:150px; height:196px; border-radius:12px; background:#f6f1e8; box-shadow:0 18px 30px -16px rgba(0,0,0,.6); }
+  .doc::before { content:''; position:absolute; left:18px; right:18px; top:24px; height:12px; border-radius:6px; background:rgba(23,27,32,.22); box-shadow:0 26px 0 rgba(23,27,32,.12), 0 48px 0 rgba(23,27,32,.12), 0 70px 0 rgba(23,27,32,.12), 0 92px 0 rgba(23,27,32,.08); }
+  .doc.xl { background:#fffdf8; }
+
+  /* 기기 틀 */
+  .phone { border:14px solid #07090b; border-radius:56px; background:#000; overflow:hidden; aspect-ratio:9/19.6;
+           box-shadow:0 50px 90px -30px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.1); }
+  .phone .screen { position:absolute; inset:0; overflow:hidden; border-radius:42px; background:#fff; }
+  .phone .notch { position:absolute; top:10px; left:50%; transform:translateX(-50%); width:30%; height:30px; background:#07090b; border-radius:18px; z-index:2; }
+  .browser { border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.14); background:#f5f7fa; box-shadow:0 50px 90px -30px rgba(0,0,0,.85); }
+  .light .browser { border-color:rgba(23,27,32,.12); box-shadow:0 40px 80px -36px rgba(70,45,20,.45); }
+  .browser .bar { height:40px; background:#1b1f25; display:flex; align-items:center; gap:8px; padding:0 16px; }
+  .browser .bar i { width:12px; height:12px; border-radius:50%; background:rgba(255,255,255,.22); }
+  .browser .bar span { margin-left:16px; padding:4px 14px; border-radius:8px; background:rgba(255,255,255,.08); font-size:16px; font-weight:700; letter-spacing:.1em; color:rgba(244,241,236,.6); }
+  .view { position:relative; overflow:hidden; background:#fff; }
+  img.shot { position:absolute; left:0; top:0; max-width:none; transform-origin:0 0; }
+  .focus { position:absolute; border:5px solid var(--gold); border-radius:18px; box-shadow:0 0 0 9999px rgba(10,14,20,.0); opacity:0; }
+
+  /* 자막 — 밝은 장면에서도 같은 어두운 상자 */
+  #sub { position:absolute; display:flex; align-items:flex-end; justify-content:center; z-index:50; }
+  body.v #sub { left:132px; right:132px; top:1330px; height:180px; }
+  body.h #sub { left:160px; right:160px; top:842px; height:150px; }
+  #sub span { padding:16px 30px; border-radius:20px; background:rgba(15,18,22,.82); border:1px solid rgba(255,255,255,.10);
+              font-weight:700; letter-spacing:-.01em; line-height:1.38; text-align:center; white-space:pre-line; color:#f4f1ec; }
+  body.v #sub span { max-width:816px; font-size:52px; } body.h #sub span { max-width:1500px; font-size:46px; }
+  #sub b { color:var(--gold-soft); font-weight:800; }
+  #brand { position:absolute; z-index:40; font-size:22px; font-weight:700; letter-spacing:.14em; color:rgba(244,241,236,.55); }
+  body.v #brand { display:none; } body.h #brand { left:120px; top:40px; }
+  #brand.onlight { color:rgba(23,27,32,.5); }
+  .guide { position:absolute; pointer-events:none; outline:2px dashed rgba(255,80,80,.7); display:none; z-index:99; }
+  body.show-guide .guide { display:block; }
+</style></head>
+<body class="/*FMT*/"><div id="stage">
+<!--SCENES-->
+  <div id="brand">주식회사 가연인터내셔널 · MIRYEO K-BEAUTY GROWTH AX</div>
+  <div id="sub"><span></span></div>
+<!--GUIDES-->
+</div>
+<script>
+  const SUBS = /*SUBS*/;
+  const DUR = /*DUR*/;
+  const LIGHT = /*LIGHT*/;
+  if (new URLSearchParams(location.search).get('guide')) document.body.classList.add('show-guide');
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const eo = (x) => 1 - Math.pow(1 - x, 3);
+  const eio = (x) => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  const lerp = (a, b, x) => a + (b - a) * x;
+  const vis = (t, tin, tout, d = .6) => Math.min(eo(clamp((t - tin) / d)), 1 - eio(clamp((t - (tout - d * .8)) / (d * .8))));
+  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const animated = [...document.querySelectorAll('[data-in]')];
+  const draws = [...document.querySelectorAll('[data-draw]')].map((p) => ({ p, L: p.getTotalLength(), r: p.dataset.draw.split(',').map(Number) }));
+  const grows = [...document.querySelectorAll('[data-grow]')];
+  const growsH = [...document.querySelectorAll('[data-growh]')];
+  const strikes = [...document.querySelectorAll('[data-strike]')];
+  const orbits = [...document.querySelectorAll('[data-orbit]')];
+  const kbs = [...document.querySelectorAll('[data-kb]')];
+  const moves = [...document.querySelectorAll('[data-move]')];
+  const counts = [...document.querySelectorAll('[data-count]')];
+  const focuses = [...document.querySelectorAll('[data-focus]')];
+  const widths = [...document.querySelectorAll('[data-w]')];
+  const bgs = [...document.querySelectorAll('.bgD,.bgL,.bgS')];
+  const subEl = document.querySelector('#sub span'); const brand = document.getElementById('brand');
+  let subIdx = -2;
+  function render(t) {
+    for (const g of bgs) g.style.transform = `translate(${Math.sin(t / 9) * 24}px, ${Math.cos(t / 11) * 16}px) scale(1.02)`;
+    for (const el of animated) {
+      const tin = +el.dataset.in, tout = +el.dataset.out, a = el.dataset.a || 'fade';
+      const isScene = el.classList.contains('scene');
+      const p = eo(clamp((t - tin) / .8));
+      let op = isScene ? vis(t, tin, tout, .55) : vis(t, tin, tout, .7);
+      if (el.dataset.dim) op *= lerp(1, .38, eo(clamp((t - +el.dataset.dim) / .5)));
+      el.style.opacity = op;
+      el.style.visibility = op <= 0.001 ? 'hidden' : 'visible';
+      const base = el.dataset.t || '';
+      if (a === 'up') el.style.transform = `${base} translateY(${(1 - p) * 34}px)`;
+      else if (a === 'left') el.style.transform = `${base} translateX(${(1 - p) * -60}px)`;
+      else if (a === 'scale') el.style.transform = `${base} scale(${lerp(.94, 1, p)})`;
+      else if (a === 'card') el.style.transform = `${base} translateY(${(1 - p) * 60}px) scale(${lerp(.92, 1, p)})`;
+      else if (a === 'push') el.style.transform = `${base} translateY(${(1 - p) * 160}px) scale(${lerp(.82, 1, p)})`;
+    }
+    for (const { p, L, r } of draws) { p.style.strokeDasharray = L; p.style.strokeDashoffset = L * (1 - eio(clamp((t - r[0]) / (r[1] - r[0])))); }
+    for (const g of grows) { const [a, b, w] = g.dataset.grow.split(',').map(Number); g.style.width = `${lerp(0, w, eio(clamp((t - a) / (b - a))))}px`; }
+    for (const g of growsH) { const [a, b, h] = g.dataset.growh.split(',').map(Number); g.style.height = `${lerp(0, h, eio(clamp((t - a) / (b - a))))}px`; }
+    for (const s of strikes) s.style.width = `calc(${eio(clamp((t - +s.dataset.strike) / .8)) * 100}% + 12px)`;
+    for (const o of orbits) {
+      const [t0, cx, cy, rx, ry, per] = o.dataset.orbit.split(',').map(Number);
+      const ang = -Math.PI / 2 + Math.max(0, t - t0) / per * Math.PI * 2;
+      o.style.left = `${cx + rx * Math.cos(ang) - 11}px`; o.style.top = `${cy + ry * Math.sin(ang) - 11}px`;
+    }
+    //  data-kb="t0,t1,s0,x0,y0,s1,x1,y1;t2,t3,…" — 여러 구간 이어 붙이기 (스크롤·확대 이동)
+    for (const im of kbs) {
+      const segs = im.dataset.kb.split(';').map((s) => s.split(',').map(Number));
+      let st = segs[0].slice(2, 5); // 시작 상태
+      for (const sg of segs) {
+        const [a, b, s0, x0, y0, s1, x1, y1] = sg;
+        if (t <= a) break;
+        const k = eio(clamp((t - a) / (b - a)));
+        st = [lerp(s0, s1, k), lerp(x0, x1, k), lerp(y0, y1, k)];
+      }
+      im.style.transform = `translate(${st[1]}px, ${st[2]}px) scale(${st[0]})`;
+    }
+    //  data-move="t0,t1,x0,y0,s0,x1,y1,s1" — 요소 위치 이동 (흩어짐 → 수렴)
+    for (const m of moves) {
+      const [a, b, x0, y0, s0, x1, y1, s1] = m.dataset.move.split(',').map(Number);
+      const k = eio(clamp((t - a) / (b - a)));
+      m.style.translate = `${lerp(x0, x1, k)}px ${lerp(y0, y1, k)}px`; m.style.scale = `${lerp(s0, s1, k)}`;
+    }
+    //  data-count="t0,t1,from,to,decimals,suffix"
+    for (const c of counts) {
+      const [a, b, f, to, dec] = c.dataset.count.split(',').map(Number); const suf = c.dataset.count.split(',')[5] || '';
+      const v = lerp(f, to, eo(clamp((t - a) / (b - a))));
+      c.textContent = (dec ? v.toFixed(dec) : Math.round(v).toLocaleString('ko-KR')) + suf;
+    }
+    //  data-w="t0,t1,w0,w1;t2,t3,w1,w2" — 폭 변화 (줄어듦·늘어남)
+    for (const e of widths) {
+      const segs = e.dataset.w.split(';').map((q) => q.split(',').map(Number)); let w = segs[0][2];
+      for (const [a, b, w0, w1] of segs) { if (t <= a) break; w = lerp(w0, w1, eio(clamp((t - a) / (b - a)))); }
+      e.style.width = `${w}px`;
+    }
+    for (const f of focuses) { const [a, b] = f.dataset.focus.split(',').map(Number); f.style.opacity = Math.min(eo(clamp((t - a) / .4)), 1 - eo(clamp((t - b) / .4))); }
+    const onLight = LIGHT.some(([a, b]) => t >= a + .3 && t < b - .2);
+    brand.className = onLight ? 'onlight' : '';
+    const i = SUBS.findIndex(([a, b]) => t >= a - .12 && t < b + .12);
+    if (i !== subIdx) { subIdx = i; if (i >= 0) subEl.innerHTML = esc(SUBS[i][2]).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
+    if (i < 0) subEl.parentElement.style.opacity = 0;
+    else { const [a, b] = SUBS[i]; subEl.parentElement.style.opacity = Math.min(clamp((t - a + .12) / .12), clamp((b + .12 - t) / .12)); }
+  }
+  window.render = render; window.DUR = DUR;
+  render(+(new URLSearchParams(location.search).get('t') || 0));
+</script>
+</body></html>
