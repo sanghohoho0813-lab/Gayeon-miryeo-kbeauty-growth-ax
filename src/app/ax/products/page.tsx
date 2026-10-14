@@ -18,7 +18,7 @@ import { ProductVisual } from "@/components/shared/ProductVisual";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
-import { formatKRW, formatPct, formatPrice, PLANNING, productInsight, type ProductMetrics } from "@/lib/analytics";
+import { formatKRW, formatPct, formatPrice, productInsight, type ProductMetrics } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
 import type { Inventory, Product } from "@/lib/types";
 
@@ -216,7 +216,7 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
         </div>
         )}
         <p className="mt-3 text-[0.8rem] text-ink-soft">
-          생산기간 입력 상품: 추천 생산량 = 예측 일판매 × (생산기간 + 안전 {PLANNING.safetyDays}일 + 입고 후 {PLANNING.coverDays}일) − (현재 + 입고 예정), 최소 생산수량 이상·{PLANNING.roundTo}개 단위 · 착수 마감 = 가용 재고가 생산기간 + 안전일수보다 먼저 바닥나기 전 날.
+          생산기간 입력 상품: 추천 생산량 = 예측 일판매 × (생산기간 + 안전 {m.planning.safetyDays}일 + 입고 후 {m.planning.coverDays}일) − (현재 + 입고 예정), 최소 생산수량 이상·{m.planning.roundTo}개 단위 · 착수 마감 = 가용 재고가 생산기간 + 안전일수보다 먼저 바닥나기 전 날.
           미입력 상품: 6주 예상 판매 − 현재 − 입고 예정. 예측 일판매 = 최근 4주 판매속도 × 추세 보정. (RULE, 사람 승인 필요)
         </p>
       </DataCard>
@@ -280,7 +280,7 @@ function ProductionSchedule() {
   );
   return (
     <DataCard title="생산 착수 일정 (OEM 생산기간 반영)" className="mb-6" action={<Link href="/ax/data?tab=products" className="btn-secondary !min-h-[40px] text-[0.86rem]">생산기간 입력</Link>}>
-      <p className="mb-3 text-[0.86rem] text-ink-soft">가용 재고(현재 + 입고 예정)가 생산기간 + 안전 {PLANNING.safetyDays}일보다 먼저 바닥나기 전에 생산을 시작해야 품절 없이 입고됩니다. 마감이 가까운 순서입니다.</p>
+      <p className="mb-3 text-[0.86rem] text-ink-soft">가용 재고(현재 + 입고 예정)가 생산기간 + 안전 {m.planning.safetyDays}일보다 먼저 바닥나기 전에 생산을 시작해야 품절 없이 입고됩니다. 마감이 가까운 순서입니다. <Link href="/ax/settings#planning" className="font-semibold underline" data-testid="planning-link">기준값(안전 {m.planning.safetyDays}일·입고 후 {m.planning.coverDays}일·{m.planning.roundTo}개 단위) 바꾸기</Link></p>
       {rows.length === 0 ? <EmptyState title="생산기간이 입력된 상품이 없습니다" desc="상품별 OEM 생산기간(발주→입고 일수)을 입력하면 착수 마감일과 추천 생산량을 계산합니다." /> : narrow ? (
         <ul className="space-y-2.5" data-testid="production-schedule">
           {rows.map(({ p, mm, active }) => (

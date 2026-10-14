@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
-/* Modal / Drawer — ESC 닫기, 닫힌 뒤 Trigger로 포커스 복원, Backdrop 잔존 0 */
+/* Modal / Drawer — ESC 닫기, 닫힌 뒤 Trigger로 포커스 복원, Backdrop 잔존 0.
+   PASS 15: body 바로 아래(portal)에 그린다 — 본문 안에 그리면 헤더(z-20)·하단 메뉴(z-30)보다 아래 층이 되어
+   처리 창 제목·닫기 버튼이 헤더에, 모바일 하단 버튼이 하단 메뉴에 가려졌다. 컨테이너 쿼리(@xl 등)는 오버레이가 기준. */
+function Layer({ children }: { children: ReactNode }) {
+  return typeof document === "undefined" ? null : createPortal(children, document.body);
+}
 function useOverlayLifecycle(open: boolean, onClose: () => void) {
   const trigger = useRef<Element | null>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -26,7 +32,8 @@ export function Modal({ open, onClose, title, children, maxWidth = "max-w-lg" }:
   const panel = useOverlayLifecycle(open, onClose);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
+    <Layer>
+    <div className="@container fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title} data-overlay="modal">
       <button className="route-fade absolute inset-0 bg-black/45" aria-label="닫기" tabIndex={-1} onClick={onClose} />
       <div ref={panel} className={`ax-card modal-in relative max-h-[88vh] w-full overflow-y-auto p-6 ${maxWidth}`}>
         <div className="mb-4 flex items-start justify-between gap-4">
@@ -38,6 +45,7 @@ export function Modal({ open, onClose, title, children, maxWidth = "max-w-lg" }:
         {children}
       </div>
     </div>
+    </Layer>
   );
 }
 
@@ -45,7 +53,8 @@ export function Drawer({ open, onClose, title, children, footer }: { open: boole
   const panel = useOverlayLifecycle(open, onClose);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={title}>
+    <Layer>
+    <div className="@container fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={title} data-overlay="drawer">
       <button className="route-fade absolute inset-0 bg-black/45" aria-label="닫기" tabIndex={-1} onClick={onClose} />
       <div ref={panel} className="drawer-in absolute inset-y-0 right-0 flex w-full max-w-[600px] flex-col bg-surface shadow-2xl">
         <div className="flex items-start justify-between gap-4 border-b px-6 py-5" style={{ borderColor: "var(--border)" }}>
@@ -55,8 +64,9 @@ export function Drawer({ open, onClose, title, children, footer }: { open: boole
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
-        {footer && <div className="border-t px-6 py-4" style={{ borderColor: "var(--border)" }}>{footer}</div>}
+        {footer && <div className="border-t px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]" style={{ borderColor: "var(--border)" }}>{footer}</div>}
       </div>
     </div>
+    </Layer>
   );
 }

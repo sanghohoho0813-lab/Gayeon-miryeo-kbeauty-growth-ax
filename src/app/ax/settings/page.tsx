@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, StatusBadge } from "@/components/ax/Cards";
 import { ThemePickerPanel } from "@/components/ax/ThemePicker";
 import { MembersCard } from "@/components/ax/MembersCard";
+import { PlanningCard } from "@/components/ax/PlanningCard";
 import { RoleMenu } from "@/components/ax/UtilityHeader";
 import { Modal } from "@/components/ax/Modal";
 import { toast } from "@/components/ax/Toast";
@@ -31,6 +32,7 @@ const SECTIONS = [
   { id: "roles", label: "역할·권한" },
   { id: "data", label: "데이터" },
   { id: "pilot", label: "실증 운영" },
+  { id: "planning", label: "운영 기준값" },
   { id: "assets", label: "기술·사업화 자산" },
   { id: "members", label: "구성원" },
 ] as const;
@@ -160,6 +162,8 @@ export default function SettingsPage() {
             </ul>
           </div>
         </DataCard>
+
+        <PlanningCard />
 
         <DataCard title="기술·사업화 자산" className="@4xl:col-span-2" id="assets">
           <p className="mb-3 text-[0.88rem] text-ink-soft">실제 확인된 상태와 번호만 입력합니다. 확인 전에는 &lsquo;미확인&rsquo;으로 두며, 번호를 임의로 만들지 않습니다.</p>

@@ -71,7 +71,7 @@ export default function FinderPage() {
   return (
     <div className="mx-auto max-w-[780px] pt-8">
       {/* Step Indicator */}
-      <ol className="mb-9 flex items-center justify-between" aria-label="진행 단계">
+      <ol className="mb-9 flex items-start justify-between" aria-label="진행 단계">
         {STEPS.map((s, i) => {
           const done = i < step;
           const current = i === step;
@@ -92,7 +92,7 @@ export default function FinderPage() {
               >
                 {done ? <Check size={17} aria-hidden /> : i + 1}
               </button>
-              <span className="text-[0.75rem] font-semibold" style={{ color: current ? "var(--b-navy)" : "var(--b-text-soft)" }}>
+              <span className="text-center text-[0.75rem] font-semibold leading-tight [word-break:keep-all]" style={{ color: current ? "var(--b-navy)" : "var(--b-text-soft)" }}>
                 {s}
               </span>
             </li>
@@ -101,9 +101,9 @@ export default function FinderPage() {
       </ol>
 
       {step < 5 && (
-        <div className="rounded-[28px] border bg-white p-7 @xl:p-9" style={{ borderColor: "var(--b-border)" }}>
+        <div className="rounded-[28px] border bg-white p-5 @md:p-7 @xl:p-9" style={{ borderColor: "var(--b-border)" }}>
           <p className="text-[0.85rem] font-bold" style={{ color: "var(--b-gold-ink)" }}>
-            STEP {step + 1}/5
+            질문 {step + 1} / 5
           </p>
 
           {step === 0 && (
@@ -122,7 +122,7 @@ export default function FinderPage() {
                       key={c.id}
                       onClick={() => toggleConcern(c.id)}
                       aria-pressed={on}
-                      className="flex min-h-[110px] flex-col items-center justify-center gap-2 rounded-2xl border-2 p-4 transition-all"
+                      className="flex min-h-[110px] flex-col items-center justify-center gap-2 rounded-2xl border-2 p-3 text-center transition-all @md:p-4"
                       style={
                         on
                           ? { borderColor: "var(--b-navy)", background: "var(--b-surface-warm)" }
@@ -131,7 +131,7 @@ export default function FinderPage() {
                     >
                       <c.icon size={26} style={{ color: "var(--b-navy)" }} aria-hidden />
                       <span className="text-[0.95rem] font-bold">{c.label}</span>
-                      <span className="text-[0.78rem]" style={{ color: "var(--b-text-soft)" }}>
+                      <span className="text-[0.78rem] leading-snug [word-break:keep-all]" style={{ color: "var(--b-text-soft)" }}>
                         {c.desc}
                       </span>
                     </button>

@@ -1,6 +1,7 @@
 import type { DataSnapshot, DataSource } from "./data/source";
 import { uuidv4 } from "./data/source";
-import type { Channel, Inventory, MonthlyTarget, Product, ProductCategory, SalesRecord, Settlement, SettlementKind, SettlementStatus, SkinConcern, Texture } from "./types";
+import type { Channel, Inventory, MonthlyTarget, PlanningSettings, Product, ProductCategory, SalesRecord, Settlement, SettlementKind, SettlementStatus, SkinConcern, Texture } from "./types";
+import { planningPatch, resolvePlanning } from "./planning";
 import { realScope } from "./start-guide";
 import { isPracticeName, isPracticeSku } from "./practice-kit";
 
@@ -20,7 +21,8 @@ export interface TransferFile {
   exportedAt: string;
   fromMode: "demo" | "live";
   orgName: string;
-  org: { pilotStartedOn: string | null; axOwnerName: string | null };
+  /** planning — PASS 15 운영 기준값 (없어도 되는 필드: 이전 백업 호환) */
+  org: { pilotStartedOn: string | null; axOwnerName: string | null; planning?: Partial<PlanningSettings> | null };
   channels: Channel[];
   products: Product[];
   inventory: Inventory[];
@@ -59,7 +61,7 @@ export function buildTransfer(s: DataSnapshot, mode: "demo" | "live", now = new 
     exportedAt: now,
     fromMode: mode,
     orgName: s.org.name,
-    org: practice ? { pilotStartedOn: null, axOwnerName: null } : { pilotStartedOn: s.org.pilotStartedOn ?? null, axOwnerName: s.org.axOwnerName ?? null },
+    org: practice ? { pilotStartedOn: null, axOwnerName: null } : { pilotStartedOn: s.org.pilotStartedOn ?? null, axOwnerName: s.org.axOwnerName ?? null, planning: planningPatch(resolvePlanning(s.org)) },
     channels,
     products: real.products,
     inventory: real.inventory,
@@ -173,7 +175,8 @@ export function parseTransfer(text: string): ParsedTransfer | { fatal: string } 
       exportedAt: typeof raw.exportedAt === "string" ? raw.exportedAt.slice(0, 40) : "",
       fromMode: raw.fromMode === "live" ? "live" : "demo",
       orgName: str(raw.orgName, 100) ?? "",
-      org: { pilotStartedOn: date(org.pilotStartedOn), axOwnerName: optStr(org.axOwnerName, 60) },
+      // 운영 기준값은 범위 안 값만 (resolvePlanning이 범위 밖·모르는 값은 기본값으로)
+      org: { pilotStartedOn: date(org.pilotStartedOn), axOwnerName: optStr(org.axOwnerName, 60), planning: isObj(org.planning) ? planningPatch(resolvePlanning({ planning: org.planning as Partial<PlanningSettings> })) : null },
       channels, products, inventory, sales, settlements, monthlyTargets,
     },
   };
@@ -191,7 +194,7 @@ export interface TransferPlan {
   sales: { create: Omit<SalesRecord, "id">[]; duplicate: number };
   settlements: { create: Settlement[]; matched: number };
   targets: { create: MonthlyTarget[]; matched: number };
-  org: { pilotStartedOn?: string; axOwnerName?: string };
+  org: { pilotStartedOn?: string; axOwnerName?: string; planning?: Partial<PlanningSettings> };
   /** 가져올 Demo 이름 채널 (가져온 뒤 이름 변경 권장) */
   demoNamedChannels: string[];
   empty: boolean;
@@ -252,6 +255,8 @@ export function planTransfer(f: TransferFile, cur: DataSnapshot): TransferPlan {
   const org: TransferPlan["org"] = {};
   if (!cur.org.pilotStartedOn && f.org.pilotStartedOn) org.pilotStartedOn = f.org.pilotStartedOn;
   if (!cur.org.axOwnerName?.trim() && f.org.axOwnerName) org.axOwnerName = f.org.axOwnerName;
+  // 운영 기준값: 지금 기본값을 쓰고 있을 때만 파일 값을 가져온다 (이미 바꾼 값은 덮어쓰지 않음)
+  if (!planningPatch(resolvePlanning(cur.org)) && f.org.planning) org.planning = f.org.planning;
   return {
     channels: { create: chCreate, matched: chMatched },
     products: { create: pCreate, matched: pMatched },

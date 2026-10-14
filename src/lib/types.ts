@@ -266,6 +266,20 @@ export interface OrgSettings {
   pilotStartedOn?: string | null;
   /** 실증 책임자 (로그인 역할과 별개). 비어 있으면 REQUIRED / UNASSIGNED */
   axOwnerName?: string | null;
+  /** 운영 기준값 (PASS 15) — 기본값과 다른 항목만 저장. 없으면 기본값 */
+  planning?: Partial<PlanningSettings> | null;
+}
+
+/** 생산 계획·사후 성과 기준 (src/lib/planning.ts) */
+export interface PlanningSettings {
+  /** 생산기간 외 안전 여유 일수 */
+  safetyDays: number;
+  /** 입고 후 판매할 일수 (추천 생산량) */
+  coverDays: number;
+  /** 추천 생산량 올림 단위 */
+  roundTo: number;
+  /** Action 사후 성과 측정 기간 */
+  outcomeDays: 7 | 14 | 28;
 }
 
 /** Money KPI 3 — PROJECT_SPEC 기준 */

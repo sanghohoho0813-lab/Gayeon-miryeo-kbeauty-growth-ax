@@ -13,6 +13,7 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { can, ROLE_LABEL } from "@/lib/permissions";
 import { isLive } from "@/lib/config";
 import { formatDateTimeKR } from "@/lib/date";
+import { OPEN_STATUSES } from "@/lib/analytics";
 
 /* Growth Action Lifecycle — AX Decision → Human Action → Result → Proof Event (L2~L3, 자동실행 없음) */
 
@@ -45,7 +46,10 @@ export function ActionDrawer({ action, onClose }: { action: GrowthAction | null;
 
   if (!action) return <Drawer open={false} onClose={onClose}>{null}</Drawer>;
   const a = model.actions.find((x) => x.id === action.id) ?? action;
-  const current = model.candidateByRule.get(a.ruleKey)?.snapshot ?? a.snapshot;
+  const cand = model.candidateByRule.get(a.ruleKey);
+  const current = cand?.snapshot ?? a.snapshot;
+  // 추천 뒤 데이터·운영 기준값이 바뀌어 RULE 결과가 달라졌으면 '지금 다시 계산한 판단'을 함께 보여 준다 (추천 당시 기록은 그대로)
+  const recalc = cand && OPEN_STATUSES.includes(a.status) && (cand.recommendation !== a.recommendation || cand.judgement !== a.judgement) ? cand : null;
   const events = model.snapshot.actionEvents.filter((e) => e.growthActionId === a.id);
   const product = a.linkedProductId ? model.productById.get(a.linkedProductId) : undefined;
   const canApprove = can(role, "approve_action");
@@ -67,7 +71,12 @@ export function ActionDrawer({ action, onClose }: { action: GrowthAction | null;
   const stepIndex = a.status === "DISMISSED" ? -1 : STEPS.indexOf(a.status as (typeof STEPS)[number]);
 
   return (
-    <Drawer open onClose={onClose} title={a.title}>
+    <Drawer open onClose={onClose} title={a.title} footer={a.status === "NEW" ? (
+      // 첫 단계 버튼은 아래에 고정 — 근거가 길어도 스크롤 없이 누를 수 있게 (PASS 15)
+      <button className="btn-primary w-full" disabled={busy} onClick={() => act("검토 완료로 표시했습니다", () => run((s) => s.updateAction(a.id, { status: "REVIEWED" }, { from: "NEW", to: "REVIEWED", actorName })))}>
+        <ClipboardCheck size={17} aria-hidden /> 근거 확인 — 검토 완료
+      </button>
+    ) : undefined}>
       <div className="flex flex-wrap items-center gap-1.5">
         <StatusBadge tone={ACTION_STATUS_TONE[a.status]}>{ACTION_STATUS_LABEL[a.status]}</StatusBadge>
         <StatusBadge tone="neutral">{a.category}</StatusBadge>
@@ -93,6 +102,14 @@ export function ActionDrawer({ action, onClose }: { action: GrowthAction | null;
           <div className="mt-3 text-[0.88rem]"><span className="font-semibold">예상 영향:</span> {a.impact.join(" · ")}</div>
           <div className="mt-1 text-[0.88rem]"><span className="font-semibold">권장 행동:</span> {a.recommendation}</div>
         </div>
+        {recalc && (
+          <div className="mt-2 rounded-xl border p-3.5 text-[0.88rem]" style={{ borderColor: "var(--warning)" }} data-testid="action-recalc">
+            <div className="font-bold" style={{ color: "var(--warning)" }}>지금 데이터·기준으로 다시 계산하면</div>
+            <p className="mt-1">{recalc.judgement}</p>
+            <p className="mt-1"><span className="font-semibold">권장 행동:</span> {recalc.recommendation}</p>
+            <p className="mt-1 text-[0.8rem] text-ink-soft">위 판단·근거는 추천 당시 기록이라 바꾸지 않습니다. 검토할 때 이 최신 계산을 함께 보세요.</p>
+          </div>
+        )}
         {product && (
           <Link href={a.href} className="mt-2 inline-flex items-center gap-1 text-[0.88rem] font-semibold" style={{ color: "var(--primary)" }}>
             관련 화면 열기 <ExternalLink size={14} aria-hidden />
@@ -108,14 +125,6 @@ export function ActionDrawer({ action, onClose }: { action: GrowthAction | null;
 
       {/* 상태별 조작 */}
       <section className="mt-5 space-y-3">
-        {a.status === "NEW" && (
-          <div className="flex flex-wrap gap-2">
-            <button className="btn-primary" disabled={busy} onClick={() => act("검토 완료로 표시했습니다", () => run((s) => s.updateAction(a.id, { status: "REVIEWED" }, { from: "NEW", to: "REVIEWED", actorName })))}>
-              <ClipboardCheck size={17} aria-hidden /> 근거 확인 — 검토 완료
-            </button>
-          </div>
-        )}
-
         {a.status === "REVIEWED" && (
           canApprove ? (
             <div className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>

@@ -29,7 +29,8 @@ export function doneAt(a: GrowthAction, s: DataSnapshot): string | null {
   return ev?.createdAt ?? (a.status === "DONE" ? a.updatedAt : null);
 }
 
-export function measureOutcome(a: GrowthAction, s: DataSnapshot, today: string): ActionOutcome {
+/** windowDays — 사후 성과 측정 기간 (운영 기준값, 기본 14일). 완료 전 같은 일수와 비교 */
+export function measureOutcome(a: GrowthAction, s: DataSnapshot, today: string, windowDays: number = OUTCOME_DAYS): ActionOutcome {
   if (a.status !== "DONE") return { measurable: false, reason: "완료된 Action만 측정합니다.", complete: false, metrics: [] };
   const done = doneAt(a, s);
   if (!done) return { measurable: false, reason: "완료 시각 기록이 없습니다.", complete: false, metrics: [] };
@@ -51,8 +52,8 @@ export function measureOutcome(a: GrowthAction, s: DataSnapshot, today: string):
   }
   const start = seoul(a.approvedAt ?? a.createdAt);
   const end = seoul(done);
-  const before = { from: addDaysISO(start, -OUTCOME_DAYS), to: addDaysISO(start, -1) };
-  const afterTo = addDaysISO(end, OUTCOME_DAYS - 1);
+  const before = { from: addDaysISO(start, -windowDays), to: addDaysISO(start, -1) };
+  const afterTo = addDaysISO(end, windowDays - 1);
   // 오늘 판매는 아직 입력 중일 수 있고, 판매를 며칠씩 몰아 올리는 경우도 많다 → 어제까지 + 판매 기록이 있는 마지막 날까지만 센다 (빈 날을 0으로 세면 '감소'로 보임)
   const latestSale = s.sales.reduce((mx, x) => (x.saleDate > mx ? x.saleDate : mx), "");
   const lastDay = [afterTo, addDaysISO(today, -1), latestSale].filter(Boolean).sort()[0];
@@ -62,8 +63,8 @@ export function measureOutcome(a: GrowthAction, s: DataSnapshot, today: string):
   const b = sum(before.from, before.to), af = sum(end, lastDay);
   const metric = (label: string, unit: string, bv: number, av: number): OutcomeMetric => ({ label, unit, before: round1(bv), after: round1(av), change: bv > 0 ? (av - bv) / bv : null });
   const metrics = [
-    ...(key === "ch" ? [] : [metric("일평균 판매량", "개", b.units / OUTCOME_DAYS, af.units / days)]),
-    metric("일평균 매출", "원", b.revenue / OUTCOME_DAYS, af.revenue / days),
+    ...(key === "ch" ? [] : [metric("일평균 판매량", "개", b.units / windowDays, af.units / days)]),
+    metric("일평균 매출", "원", b.revenue / windowDays, af.revenue / days),
   ];
-  return { measurable: true, target, before, after: { from: end, to: lastDay, days }, complete: days >= OUTCOME_DAYS, metrics };
+  return { measurable: true, target, before, after: { from: end, to: lastDay, days }, complete: days >= windowDays, metrics };
 }

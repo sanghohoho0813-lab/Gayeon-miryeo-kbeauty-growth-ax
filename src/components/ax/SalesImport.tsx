@@ -8,7 +8,7 @@ import { useData, useModel } from "@/components/providers/DataProvider";
 import { autoMap, diagnoseSales, findUnknownMasters, readTable, SALES_FIELDS, validateSalesRows, type ColumnMap, type SalesField } from "@/lib/import";
 import { ImportMasters, SalesDiagnosisCard } from "./ImportMasters";
 
-/* 판매 파일 가져오기 — 1 Upload → 2 열 매핑 → 3 검증 → 4 Confirm. 기존 데이터는 변경하지 않고 추가만 한다. */
+/* 판매 파일 가져오기 — 1 파일 선택 → 2 열 확인 → 3 검사 → 4 저장. 기존 데이터는 변경하지 않고 추가만 한다. */
 export function SalesImport() {
   const m = useModel();
   const { run } = useData();
@@ -69,10 +69,17 @@ export function SalesImport() {
 
   return (
     <DataCard title="파일 가져오기 (CSV · 엑셀)" action={<a href="/samples/sales_template.csv" download className="btn-secondary !min-h-[40px] text-[0.86rem]"><Download size={15} aria-hidden /> 샘플 CSV</a>}>
-      <ol className="mb-4 flex flex-wrap gap-2 text-[0.8rem] font-semibold">
-        {["1 Upload", "2 열 매핑", "3 Validation", "4 Confirm"].map((s, i) => (
-          <li key={s} className="badge" style={i <= step ? { background: "var(--primary-soft)", color: "var(--primary)" } : { background: "var(--surface-muted)", color: "var(--text-secondary)" }}>{s}</li>
-        ))}
+      {/* 단계 표시 — 한글 (PASS 15). 지금 단계는 aria-current, 지난 단계는 ✓ */}
+      <ol className="mb-4 flex flex-wrap gap-2 text-[0.8rem] font-semibold" aria-label="가져오기 단계" data-testid="import-steps">
+        {["파일 선택", "열 확인", "검사", "저장"].map((s, i) => {
+          const cur = i === step;
+          const lit = i <= step || (step === 2 && i === 3); // 검사 결과가 보이면 저장도 바로 가능
+          return (
+            <li key={s} aria-current={cur ? "step" : undefined} className="badge" style={lit ? { background: "var(--primary-soft)", color: "var(--primary)" } : { background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
+              {i < step ? "✓" : i + 1} {s}
+            </li>
+          );
+        })}
       </ol>
 
       <label className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-5 text-center transition-colors hover:bg-surface-muted" style={{ borderColor: "var(--border)" }}>

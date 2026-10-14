@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* supabase/setup_all.sql 생성 — 새 Supabase 프로젝트의 SQL Editor에 한 번에 붙여 넣는 설치 파일.
-   migration 001·002·003·005·006·007·008을 순서대로 합친다 (004 Demo seed 제외).
+   migration 001·002·003·005·006·007·008·009를 순서대로 합친다 (004 Demo seed 제외).
    사용: node scripts/build-setup-sql.mjs        → 파일 생성
          node scripts/build-setup-sql.mjs --check → 파일이 migration과 다르면 실패 (verify:db에서 사용) */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -9,7 +9,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const files = ["001_base_schema.sql", "002_indexes.sql", "003_rls.sql", "005_pilot_v2_pass2.sql", "006_event_guard.sql", "007_stage2_customers_settlements.sql", "008_pass10_leadtime_targets.sql"];
+const files = ["001_base_schema.sql", "002_indexes.sql", "003_rls.sql", "005_pilot_v2_pass2.sql", "006_event_guard.sql", "007_stage2_customers_settlements.sql", "008_pass10_leadtime_targets.sql", "009_pass15_planning.sql"];
 const parts = files.map((f) => ({ f, sql: readFileSync(join(root, "supabase/migrations", f), "utf8").trimEnd() }));
 const hash = createHash("sha256").update(parts.map((p) => p.sql).join("\n")).digest("hex").slice(0, 12);
 

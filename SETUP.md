@@ -12,13 +12,14 @@ Demo 모드: Seed + 브라우저 저장소. 설정 > Demo 초기화로 원상복
 
 ### [SUPABASE]
 1. Supabase Project 생성(또는 기존 Project 확인)
-2. **새 프로젝트(권장)**: SQL Editor에 `supabase/setup_all.sql` 전체를 붙여 넣고 Run — 001·002·003·005·006·007·008을 한 트랜잭션으로 설치 (실패하면 아무것도 바뀌지 않음, 004 Demo seed 제외). 이미 일부를 실행한 프로젝트는 아래처럼 남은 번호만 실행.
+2. **새 프로젝트(권장)**: SQL Editor에 `supabase/setup_all.sql` 전체를 붙여 넣고 Run — 001·002·003·005·006·007·008·009를 한 트랜잭션으로 설치 (실패하면 아무것도 바뀌지 않음, 004 Demo seed 제외). 이미 일부를 실행한 프로젝트는 아래처럼 남은 번호만 실행.
    - 개별 실행 순서: `001_base_schema.sql` → `002_indexes.sql` → `003_rls.sql` → **`005_pilot_v2_pass2.sql`** → **`006_event_guard.sql`** → **`007_stage2_customers_settlements.sql`** → **`008_pass10_leadtime_targets.sql`**
    - **005는 필수**: Baseline Lock, Action 상태 가드, 고객 이벤트 익명 기록 정책 수정(003만으로는 고객 이벤트가 기록되지 않음), Realtime 등록
    - `004_seed_demo_optional.sql`은 동작 확인용 (실운영 DB에는 선택)
    - **006 권장(고객 화면 공개 전 필수)**: 익명 이벤트 한도·서버 시각 강제
    - **007 필수**: 고객 회원·구매이력·정산·제품 사용기간
    - **008 필수**: 제품별 OEM 생산기간·최소 생산수량, 월 매출 목표(대표만 입력). 없으면 Live 화면이 'migration 008 적용 여부를 확인하세요' 오류를 보여줌 (Demo로 대체하지 않음)
+   - **009 필수 (PASS 15)**: 운영 기준값 `organizations.planning`(안전일수·입고 후 일수·생산 단위·사후 성과 기간, 대표만 수정, 범위 CHECK). 없으면 기본값으로 계산하고, 저장할 때 'migration 009 적용 여부를 확인하세요' 오류 — 공개 전 점검(`/ax/system`)이 009 적용 여부를 확인
    - 이미 적용한 번호 이후만 추가 실행하면 됨 (005~008 재실행 안전)
 3. Authentication > Users에서 OWNER 계정 생성 (email + password)
 
@@ -68,7 +69,7 @@ values ('<org id>', '<auth user id>', 'STAFF'); -- OWNER / ADMIN / STAFF
 4-1. 대표 보고·회의: 대시보드 **보고 모드** (`/ax/present`) — 데이터에서 자동으로 만든 슬라이드 9장(직원은 매출·이익 제외 6장), ←/→ 넘김, 전체 화면, 인쇄·PDF(슬라이드 1장 = 가로 1쪽)
 
 ## E. 검증 도구 (개발자용 — 실제 Supabase DB에는 실행하지 않는다)
-- `npm run verify:db` — 로컬 Postgres에 auth stub을 만들고 001~008 + RLS·트리거 117개 시나리오 실행, `setup_all.sql`이 최신인지 확인하고 새 DB에 한 번에 적용해 개별 migration 결과와 스키마가 같은지 비교
+- `npm run verify:db` — 로컬 Postgres에 auth stub을 만들고 001~009 + RLS·트리거 135개 시나리오 실행, `setup_all.sql`이 최신인지 확인하고 새 DB에 한 번에 적용해 개별 migration 결과와 스키마가 같은지 비교
 - `npm run setup-sql` — migration을 고친 뒤 `supabase/setup_all.sql` 다시 생성 (직접 수정 금지)
 - `bash supabase/tests/live-e2e/run.sh` — 로컬 Supabase 호환 스택으로 앱을 **Live 모드로 빌드·실행**하고 브라우저 E2E 실행 (Phase A 7 + B 60 — 공개 전 점검 정상 판정과 RLS 해제 시 노출 탐지 포함)
   - 전제: Postgres 16 실행 중, Supabase Auth 바이너리(`GOTRUE_BIN`, `github.com/supabase/auth`를 Go로 빌드), `npm i --no-save playwright-core@1.56` (설치된 Chromium 1194와 같은 버전), Chromium(`CHROMIUM_PATH`)

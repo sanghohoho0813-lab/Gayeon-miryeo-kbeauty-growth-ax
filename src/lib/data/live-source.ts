@@ -6,6 +6,7 @@ import { uuidv4 } from "./source";
 import type {
   B2BAccount, Channel, CustomerEvent, CustomerProfile, ExportRecord, GrowthAction, ActionEvent,
   CustomerAccount, CustomerPurchase, Inventory, KpiBaseline, Product, ProductionPlan, ProofEvent, SalesRecord, Settlement, TechAsset,
+  OrgSettings,
 } from "../types";
 
 /* LIVE 저장소 — Supabase만 사용. 오류는 그대로 throw → 화면에서 Error State.
@@ -110,7 +111,7 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
       const techRows = must<Row[]>(tech).map(toTech);
       const techAssets = TECH_KINDS.map((kind) => techRows.find((t) => t.kind === kind) ?? { id: `new-${kind}`, kind, status: "미확인" as const, updatedAt: new Date().toISOString() });
       return {
-        org: { name: o.data.name, pilotStartedOn: o.data.pilot_started_on, axOwnerName: o.data.ax_owner_name ?? null },
+        org: { name: o.data.name, pilotStartedOn: o.data.pilot_started_on, axOwnerName: o.data.ax_owner_name ?? null, planning: (o.data.planning as OrgSettings["planning"]) ?? null },
         products: must<Row[]>(products).map(toProduct),
         inventory: must<Row[]>(inventory).map(toInventory),
         production: must<Row[]>(production).map(toProduction),
@@ -233,7 +234,10 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
       if ("name" in patch) map.name = patch.name;
       if ("pilotStartedOn" in patch) map.pilot_started_on = patch.pilotStartedOn;
       if ("axOwnerName" in patch) map.ax_owner_name = patch.axOwnerName;
-      must(await sb.from("organizations").update(map).eq("id", org).select("id"));
+      if ("planning" in patch) map.planning = patch.planning ?? null;
+      const res = await sb.from("organizations").update(map).eq("id", org).select("id");
+      if (res.error && "planning" in map && /planning/.test(res.error.message)) throw new Error(`${res.error.message} — supabase/migrations/009 적용 여부를 확인하세요`);
+      must(res);
     },
     async upsertSettlement(st) {
       const row: Row = { organization_id: org, kind: st.kind, counterparty: st.counterparty, ref_id: st.refId ?? null, description: st.description ?? null, amount: st.amount, paid_amount: st.paidAmount, issued_on: st.issuedOn, due_on: st.dueOn ?? null, paid_on: st.paidOn ?? null, status: st.status, note: st.note ?? null };

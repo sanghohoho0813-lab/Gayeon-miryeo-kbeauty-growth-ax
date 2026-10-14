@@ -9,10 +9,10 @@ import { DeviceSwitch, useDeviceView } from "@/components/device/DeviceView";
 import { isLive } from "@/lib/config";
 
 const NAV = [
-  { href: "/beauty", label: "홈" },
-  { href: "/beauty/finder", label: "AI 뷰티 파인더" },
-  { href: "/beauty/products", label: "제품" },
-  { href: "/beauty/passport", label: "뷰티 패스포트" },
+  { href: "/beauty", label: "홈", short: "홈" },
+  { href: "/beauty/finder", label: "AI 뷰티 파인더", short: "AI 파인더" },
+  { href: "/beauty/products", label: "제품", short: "제품" },
+  { href: "/beauty/passport", label: "뷰티 패스포트", short: "패스포트" },
 ];
 
 /* Demo/운영자 전용 Control Bar — 일반 고객에게는 노출하지 않는다 (Hybrid Demo Control Layer) */
@@ -80,10 +80,11 @@ export function BeautyHeader() {
             <AccountLink />
           </div>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-4 pb-2.5 @3xl:hidden" aria-label="모바일 메뉴">
+        {/* 모바일: 4칸 한 줄 (이전: 가로로 넘쳐 '뷰티 패스포트'가 잘림) — 짧은 이름, 현재 화면 표시 */}
+        <nav className="grid grid-cols-4 gap-1.5 px-4 pb-2.5 @3xl:hidden" aria-label="모바일 메뉴" data-testid="beauty-mobile-nav">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} className="pressable shrink-0 rounded-full px-3.5 py-2 text-[0.86rem] font-semibold" style={active(n.href) ? { background: "var(--b-navy)", color: "#fff" } : { color: "var(--b-text-soft)", background: "var(--b-surface-warm)" }}>
-              {n.label}
+            <Link key={n.href} href={n.href} aria-current={active(n.href) ? "page" : undefined} className="pressable flex min-h-[40px] items-center justify-center whitespace-nowrap rounded-full px-1 text-[0.84rem] font-semibold" style={active(n.href) ? { background: "var(--b-navy)", color: "#fff" } : { color: "var(--b-text-soft)", background: "var(--b-surface-warm)" }}>
+              {n.short}
             </Link>
           ))}
         </nav>

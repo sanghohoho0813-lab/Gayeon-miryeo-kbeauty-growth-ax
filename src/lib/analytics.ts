@@ -17,6 +17,8 @@ import type {
   SkinConcern,
   ProductionPlan,
 } from "./types";
+import type { PlanningSettings } from "./types";
+import { DEFAULT_PLANNING } from "./planning";
 import { daysBetween, todayISO, addDaysISO } from "./date";
 import { repurchaseDue, repurchaseSchedule } from "./repurchase";
 import { summarizeReceivables } from "./settlements";
@@ -55,7 +57,9 @@ export interface ProductMetrics {
 }
 
 /** 생산 판단 기준 (화면·근거에 그대로 표시) — 안전일수: 생산 지연·판매 변동 대비, 커버일수: 입고 후 판매할 기간 */
-export const PLANNING = { safetyDays: 14, coverDays: 42, roundTo: 50 } as const;
+/** 생산 계획 기본값 — 조직별 운영 기준값(src/lib/planning.ts)이 있으면 그 값을 쓴다 (PASS 15, R-21) */
+export const PLANNING = { safetyDays: DEFAULT_PLANNING.safetyDays, coverDays: DEFAULT_PLANNING.coverDays, roundTo: DEFAULT_PLANNING.roundTo } as const;
+type PlanBasis = Pick<PlanningSettings, "safetyDays" | "coverDays" | "roundTo">;
 
 export const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
 
@@ -82,7 +86,7 @@ function revenueBetween(sales: SalesRecord[], filter: (s: SalesRecord) => boolea
 }
 
 /** asOf: 판매 분석 기준일 (마지막 판매일 — D-053). 재고·착수 마감은 오늘(today) 기준 */
-export function computeProductMetrics(product: Product, inventory: Inventory | undefined, sales: SalesRecord[], today: string, asOf: string = today): ProductMetrics {
+export function computeProductMetrics(product: Product, inventory: Inventory | undefined, sales: SalesRecord[], today: string, asOf: string = today, plan: PlanBasis = PLANNING): ProductMetrics {
   const weekly = weeklyUnits(sales, (s) => s.productId === product.id, asOf);
   const recent4wUnits = sum(weekly.slice(4));
   const prev4wUnits = sum(weekly.slice(0, 4));
@@ -102,17 +106,17 @@ export function computeProductMetrics(product: Product, inventory: Inventory | u
   const forecastDaily = dailyVelocity * (1 + Math.max(-0.3, Math.min(growthRate, 1)) * 0.5);
   const availableStock = currentStock + (inventory?.incomingStock ?? 0);
   const leadTimeDays = product.leadTimeDays ?? null;
-  let recommendedOrder = inventory ? Math.max(0, Math.round((forecastDaily * 42 - availableStock) / 50) * 50) : 0;
+  let recommendedOrder = inventory ? Math.max(0, Math.round((forecastDaily * plan.coverDays - availableStock) / plan.roundTo) * plan.roundTo) : 0;
   let orderDeadline: string | null = null;
   let daysToDeadline: number | null = null;
   let planBasis: ProductMetrics["planBasis"] = "6주 예측";
   if (inventory && leadTimeDays && forecastDaily > 0) {
     // OEM 생산기간 반영 (계약 별지 제1호 ②): 가용 재고가 '생산기간 + 안전일수'보다 먼저 떨어지면 지금 착수해야 한다
     const coverNow = availableStock / forecastDaily;
-    daysToDeadline = Math.floor(coverNow - leadTimeDays - PLANNING.safetyDays);
+    daysToDeadline = Math.floor(coverNow - leadTimeDays - plan.safetyDays);
     orderDeadline = addDaysISO(today, daysToDeadline);
-    const need = forecastDaily * (leadTimeDays + PLANNING.safetyDays + PLANNING.coverDays) - availableStock;
-    recommendedOrder = need > 0 ? Math.max(product.moq ?? 0, Math.ceil(need / PLANNING.roundTo) * PLANNING.roundTo) : 0;
+    const need = forecastDaily * (leadTimeDays + plan.safetyDays + plan.coverDays) - availableStock;
+    recommendedOrder = need > 0 ? Math.max(product.moq ?? 0, Math.ceil(need / plan.roundTo) * plan.roundTo) : 0;
     planBasis = "생산기간 반영";
   }
 
@@ -364,9 +368,11 @@ export function generateCandidates(input: {
   accounts?: CustomerAccount[];
   purchases?: CustomerPurchase[];
   settlements?: Settlement[];
+  /** 운영 기준값 — 판단 문장에 실제 적용한 안전일수·입고 후 일수를 쓴다 */
+  plan?: PlanBasis;
 }): GrowthActionCandidate[] {
   const out: GrowthActionCandidate[] = [];
-  const { products, metrics, channelStats, interest, b2b, customers, today, production = [], accounts = [], purchases = [], settlements = [] } = input;
+  const { products, metrics, channelStats, interest, b2b, customers, today, production = [], accounts = [], purchases = [], settlements = [], plan = PLANNING } = input;
   const daysText = (m: ProductMetrics) => (Number.isFinite(m.daysOfStock) ? `${Math.round(m.daysOfStock)}일` : "-");
 
   for (const p of products) {
@@ -387,13 +393,13 @@ export function generateCandidates(input: {
         ruleKey: `lead:${p.id}`, category: "생산", priority: d <= 0 ? "우선" : d <= 7 ? "높음" : "중간",
         title: `${p.name} OEM 생산 착수 ${d <= 0 ? "(마감 지남)" : `D-${d}`}`,
         judgement: d <= 0
-          ? `생산기간 ${lead}일과 안전재고 ${PLANNING.safetyDays}일을 감안한 착수 마감일(${m.orderDeadline})이 지났습니다. 지금 착수해도 입고 전에 재고가 부족할 수 있습니다.`
-          : `생산기간 ${lead}일과 안전재고 ${PLANNING.safetyDays}일을 감안하면 ${m.orderDeadline}까지 생산을 시작해야 품절 없이 입고됩니다.`,
+          ? `생산기간 ${lead}일과 안전재고 ${plan.safetyDays}일을 감안한 착수 마감일(${m.orderDeadline})이 지났습니다. 지금 착수해도 입고 전에 재고가 부족할 수 있습니다.`
+          : `생산기간 ${lead}일과 안전재고 ${plan.safetyDays}일을 감안하면 ${m.orderDeadline}까지 생산을 시작해야 품절 없이 입고됩니다.`,
         evidence: [
           `예측 일판매 ${m.forecastDaily.toFixed(1)}개 (최근 4주 ${m.dailyVelocity.toFixed(1)}개 × 추세 ${g >= 0 ? "+" : ""}${g}% 반영)`,
           `가용 재고 ${m.availableStock.toLocaleString()}개 (현재 + 입고예정) → 약 ${cover}일분`,
-          `생산기간 ${lead}일 + 안전 ${PLANNING.safetyDays}일`,
-          `추천 생산량 ${m.recommendedOrder.toLocaleString()}개 (입고 후 ${PLANNING.coverDays}일분${p.moq ? ` · 최소 ${p.moq.toLocaleString()}개` : ""})`,
+          `생산기간 ${lead}일 + 안전 ${plan.safetyDays}일`,
+          `추천 생산량 ${m.recommendedOrder.toLocaleString()}개 (입고 후 ${plan.coverDays}일분${p.moq ? ` · 최소 ${p.moq.toLocaleString()}개` : ""})`,
         ],
         impact: ["품절로 인한 판매기회 손실 방지", "급한 추가 생산(긴급 비용) 방지"],
         recommendation: `${m.orderDeadline}까지 OEM 생산 약 ${m.recommendedOrder.toLocaleString()}개 착수를 검토하세요. 착수하면 생산 계획에 '생산중'으로 기록하세요.`,

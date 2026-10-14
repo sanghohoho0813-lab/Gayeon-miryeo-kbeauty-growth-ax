@@ -18,7 +18,7 @@ npm install
 npm run dev          # Demo 모드 (기본)
 npm run typecheck
 npm run build
-npm run verify:db    # (선택) 로컬 Postgres로 migration + RLS·트리거 117개 시나리오 + setup_all.sql 동등성 검증
+npm run verify:db    # (선택) 로컬 Postgres로 migration + RLS·트리거 135개 시나리오 + setup_all.sql 동등성 검증
 npm run setup-sql    # migration 수정 후 supabase/setup_all.sql 재생성
 bash supabase/tests/live-e2e/run.sh   # (선택) 로컬 Supabase 호환 스택에서 Live 모드 브라우저 E2E (SETUP.md §E)
 ```
@@ -37,8 +37,9 @@ UI (src/app, src/components)
        └ live-source.ts  (Supabase, RLS)
  └ buildModel (src/lib/model.ts) → analytics.ts (RULE / STATISTICAL)
 ```
-- Schema / RLS: `supabase/migrations/001~008` (005·007·008 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
+- Schema / RLS: `supabase/migrations/001~009` (005·007·008·009 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
 - 월별 실적 `/ax/monthly`, 정산·미수금 `/ax/channels?tab=settlements`, 대표 브리핑 `src/lib/briefing.ts`, 내보내기 `/ax/data?tab=export`
+- 고도화·UI/UX (PASS 15): 운영 기준값 `src/lib/planning.ts` + `src/components/ax/PlanningCard.tsx`(설정 > 운영 기준값, migration 009 `organizations.planning`) → `computeProductMetrics`·`measureOutcome`에 전달, 대화상자·처리 창 body portal `src/components/ax/Modal.tsx`, 처리 창 '지금 다시 계산하면'·첫 단계 버튼 고정 `ActionDrawer.tsx`, 고객 앱 모바일 메뉴 4칸 `BeautyHeader.tsx`
 - 고도화·UI/UX (PASS 14): 대표 보고 모드 `src/app/ax/present/page.tsx` + `src/lib/present.ts`(슬라이드 목록·권한·주간 매출), 순위 막대 `src/components/ax/RankBars.tsx`(채널 비교), 실증·Evidence 12주 타임라인·한글 표기(`PROOF_TYPE_LABEL` in `src/lib/evidence.ts`), 설정 바로가기, 주간 점검 품질 항목 `src/lib/weekly-routine.ts`
 - UI/UX·고도화 (PASS 13): 알림 센터 `src/lib/notifications.ts`(계산형 — 해결하면 사라짐) + `src/components/ax/NotificationCenter.tsx`(헤더 종 아이콘), 모바일 표→카드 `src/lib/use-narrow.ts`(상품·재고·생산 화면), 월 이동 줄(`/ax/monthly` 모바일), 탭 가장자리 흐림·자동 스크롤 `Tabs.tsx`
 - UI/UX (PASS 12): 대시보드 `src/app/ax/page.tsx`(핵심 숫자 → 오늘 할 일+브리핑 → 분석 탭), 빠른 이동 `src/components/ax/QuickJump.tsx`(Ctrl/⌘+K), 컴팩트 행 `ActionRow`·stat tile `KpiCard`(`src/components/ax/Cards.tsx`), 접근성 탭 `Tabs.tsx`, 차트 애니메이션 규칙 `useChartMotion`(`TrendChart.tsx`)

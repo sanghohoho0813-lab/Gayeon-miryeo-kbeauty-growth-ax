@@ -3,7 +3,7 @@ import type { Role } from "./types";
 import { can } from "./permissions";
 import { summarizeReceivables } from "./settlements";
 import { checkDataQuality } from "./data-quality";
-import { measureOutcome, doneAt, OUTCOME_DAYS } from "./action-outcome";
+import { measureOutcome, doneAt } from "./action-outcome";
 import { addDaysISO, daysBetween, formatDateKR, todayISO } from "./date";
 import { formatKRW } from "./analytics";
 
@@ -58,8 +58,8 @@ export function buildNotifications(m: AxModel, role: Role, opts: { allowPractice
     if (a.status !== "DONE") return false;
     const d = doneAt(a, s);
     if (!d) return false;
-    const ready = addDaysISO(todayISO(new Date(d)), OUTCOME_DAYS - 1);
-    return ready <= yesterday && daysBetween(ready, m.today) <= 7 && measureOutcome(a, s, m.today).complete;
+    const ready = addDaysISO(todayISO(new Date(d)), m.planning.outcomeDays - 1);
+    return ready <= yesterday && daysBetween(ready, m.today) <= 7 && measureOutcome(a, s, m.today, m.planning.outcomeDays).complete;
   });
   if (measured.length) out.push({ id: "outcome", tone: "success", title: `사후 성과 측정 완료 ${measured.length}건`, detail: measured.slice(0, 2).map((a) => a.title).join(" · "), href: "/ax/reports/weekly" });
 

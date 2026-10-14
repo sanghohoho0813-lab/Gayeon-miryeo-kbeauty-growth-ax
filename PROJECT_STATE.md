@@ -1,8 +1,8 @@
 # PROJECT_STATE — MIRYEO K-Beauty Growth AX
 
-LAST UPDATED: 2026-10-14 (PASS 14 — UI/UX 대폭 개선·고도화: 대표 보고 모드, 채널·고객·실증·설정 화면 정리, 주간 점검 품질 항목)
+LAST UPDATED: 2026-10-14 (PASS 15 — 고도화·UI/UX: 운영 기준값(R-21·R-23, migration 009), 대화상자·처리 창 층 결함 수정, 처리 창 최신 재계산, 고객 앱 모바일)
 DELIVERY STAGE: 계약 제11조 2단계 개발 완료(1차 보고·5영업일 확인 대기) + **3단계 일부 개발 착수**(사용자 지시 2026-10-09: "3단계도 일부 개발, Supabase는 나중에 연동")
-CURRENT PASS: 14 — 다음 단계 고도화·UI/UX 대폭 개선(사용자 요청 2026-10-14 "다음단계 고도화 및 uiux 대폭개선"). **대표 보고 모드** `/ax/present`(R-01, D-061), 채널 순위 막대·모바일 카드(D-060), 실증·Evidence 한글 우선·12주 타임라인(D-062), 설정 바로가기, 주간 점검 품질 항목(R-22, D-063). 이전 PASS 13: UI/UX 개선·다음 단계 고도화("uiux개선, 다음단계 고도화"). 모바일에서 넓은 표 4개를 카드로(D-058), 월별 실적 '‹ 월 ›'·탭 가장자리 흐림·데이터 상태 1줄, **알림 센터**(종 아이콘 → 오늘 확인할 것 7종, 계산형 D-059). 다음 우선순위(3단계 보고 방식)는 사용자 결정 대기. **push = Production 배포**(D-040)
+CURRENT PASS: 15 — 다음 단계 고도화·UI/UX 대폭 개선(사용자 요청 2026-10-14 두 번째 "다음단계 고도화 및 uiux 대폭개선"). **운영 기준값**(조직별 안전일수·입고 후 일수·생산 단위·사후 성과 기간, migration 009, D-065), **대화상자·처리 창이 헤더 아래 깔리던 결함 수정**(D-064), 처리 창 '지금 다시 계산하면'·첫 단계 버튼 고정(D-066), 고객 앱 모바일 메뉴·Finder(D-067), 가져오기 단계 한글. 이전 PASS 14: **대표 보고 모드** `/ax/present`(R-01, D-061), 채널 순위 막대·모바일 카드(D-060), 실증·Evidence 한글 우선·12주 타임라인(D-062), 설정 바로가기, 주간 점검 품질 항목(R-22, D-063). 이전 PASS 13: UI/UX 개선·다음 단계 고도화("uiux개선, 다음단계 고도화"). 모바일에서 넓은 표 4개를 카드로(D-058), 월별 실적 '‹ 월 ›'·탭 가장자리 흐림·데이터 상태 1줄, **알림 센터**(종 아이콘 → 오늘 확인할 것 7종, 계산형 D-059). 다음 우선순위(3단계 보고 방식)는 사용자 결정 대기. **push = Production 배포**(D-040)
 
 ## 계약 별지 제1호 대조 (2026-09-30 기준)
 | No | 핵심모듈 | 구현 | 화면 |
@@ -32,6 +32,15 @@ CURRENT PASS: 14 — 다음 단계 고도화·UI/UX 대폭 개선(사용자 요�
 | 담당자 면담/현장확인 대비 | 하루 전 점검·시연 순서 7단계(현재 근거 표시)·예상 질문 7개(시스템 사실만) + 샘플 자료 연습 모드로 리허설 가능 | PILOT | 실데이터로 리허설 (Live 이후) |
 
 **3단계 보고서 초안**: `STAGE3_DELIVERY_REPORT.md` — 샘플 자료 검증 결과·발견 결함·실제 자료 적용에 필요한 것·보고 방식 결정(가/나/다). `[ ]` 칸은 발송 전 채움.
+
+## PASS 15 변경 요약 (2026-10-14) — 고도화·UI/UX
+| 항목 | 상태 |
+|---|---|
+| **운영 기준값** (R-21·R-23, D-065): 설정 > 운영 기준값 — 안전 재고일수·입고 후 판매 일수·생산 수량 단위·사후 성과 측정 기간, 대표만 수정, 저장 전 영향 미리보기(가장 급한 상품의 착수 마감·추천 생산량), 생산 판단·Action 문장·사후 성과·알림 센터에 반영, 백업 포함. **migration 009** `organizations.planning` (범위·키 CHECK, OWNER만 수정) | Demo VERIFIED · DB 135/135 · Live E2E |
+| **결함 수정** (D-064): 대화상자·Action 처리 창이 헤더(제목·닫기 버튼 가림)·하단 메뉴 아래에 그려지던 문제 → body portal, 배경 막이 헤더까지 덮음 | VERIFIED (PC·모바일 위치 검증) |
+| 처리 창 (D-066): 첫 단계 버튼 아래 고정, 추천 뒤 데이터·기준값이 바뀌면 '지금 다시 계산하면' 상자 (추천 당시 기록 보존) | VERIFIED |
+| 고객 앱 모바일 (D-067): 상단 메뉴 4칸 한 줄(이전: '뷰티 패스포트' 잘림)·현재 화면 표시, Finder 단계 원 정렬·'질문 1 / 5'·고민 카드 줄바꿈 | VERIFIED |
+| 판매 파일 가져오기 단계 한글 (파일 선택·열 확인·검사·저장, 현재 단계·지난 단계 ✓) | VERIFIED |
 
 ## PASS 14 변경 요약 (2026-10-14) — 고도화·UI/UX
 | 항목 | 상태 |
@@ -224,6 +233,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 - 높이 < 약 880px이면 frame이 비율 축소 (내부 viewport 390 유지) — KNOWN
 
 ## 7. QA
+- 2026-10-14 (PASS 15 고도화·UI/UX): typecheck / build / audit 0 PASS, **PASS15 41/41**, PASS14 57 · PASS13 55 · PASS12 46, 샘플 리허설 51, **DB 135/135**(009 운영 기준값 18개 추가, setup_all 동등), **Live E2E 96/96**(운영 기준값 저장·RLS·초기화 4항목 추가), Demo PASS10 42 · Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5, Route 35×8 이상 0, 접근성 34화면 × 2폭 + 연습 상태 11화면 0건, 처리 창·대화상자 층 결함 1건(PILOT V2부터) 발견·수정 → `QA_REPORT.md`
 - 2026-10-14 (PASS 14 고도화·UI/UX): typecheck / build / audit 0 PASS, **PASS14 57/57**(최종 빌드 재실행 포함 2회), PASS13 55 · PASS12 46, 샘플 리허설 51, **Live E2E 92/92**(보고 모드 Live 1항목 추가), Demo PASS10 42 · Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5, Route 35×8 이상 0, 접근성 34화면(보고 모드 2·B2B·수출 추가) × 1440·390 + 연습 상태 11화면 0건, DB 변경 없음 → `QA_REPORT.md`
 - 2026-10-13 (PASS 13 UI/UX·알림 센터): typecheck / build / audit 0 PASS, **PASS13 55/55**(2회 연속), PASS12 46, 샘플 리허설 51, **Live E2E 91/91**(알림 센터 Live 계산 1항목 추가), Demo PASS10 42 · Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5, Route 34×8 이상 0, 접근성 30화면 + 연습 상태 11화면 0건 + 알림 패널 열린 상태 0건 (종 버튼 이름·보이는 숫자 불일치 1건 발견·수정), DB 변경 없음 → `QA_REPORT.md`
 - 2026-10-13 (PASS 12 UI/UX): typecheck / build / audit 0 PASS, **PASS12 UI/UX 46/46**(3회 연속), 샘플 리허설 51, Live E2E 90/90, Demo PASS10 42 · Flow 31 · PASS2 33 · PASS3 11 · Stage2 41 · PASS6 19 · PASS8 32 · PASS9 24 · boot 5, Route 34×8 이상 0, 접근성 30화면 + 연습 상태 11화면 0건 (상태 칩 개수 배지 대비 부족 1건 발견·수정), DB는 변경 없음(117 — PASS 11 결과) → `QA_REPORT.md`
@@ -235,7 +245,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | # | 구분 | 작업 | 상태 |
 |---|---|---|---|
 | 1 | SUPABASE | Project 생성 | WAITING |
-| 2 | SUPABASE | 새 프로젝트: **`supabase/setup_all.sql` 1회 실행** (또는 001→002→003→005→006→007→008 개별, 004 선택). 이미 007까지 적용한 DB면 008만 추가 | WAITING |
+| 2 | SUPABASE | 새 프로젝트: **`supabase/setup_all.sql` 1회 실행** (또는 001→002→003→005→006→007→008→009 개별, 004 선택). 이미 008까지 적용한 DB면 009만 추가 | WAITING |
 | 3 | SUPABASE | OWNER 계정 생성 → `/login` → 조직 만들기 | WAITING |
 | 4 | ENV | `NEXT_PUBLIC_DATA_MODE=live`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | WAITING |
 | 5 | ENV | `NEXT_PUBLIC_MIRYEO_ORG_ID` (조직 생성 후) | WAITING |
@@ -250,6 +260,7 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 | 8-4 | DATA | 거래처별 청구·입금 현황 (미수금 초기값) | WAITING |
 | 8-5 | DATA | 제품별 OEM 생산기간(일)·최소 생산수량 — 생산 착수 마감일 계산 (미입력 시 기존 소진일 기준) | WAITING |
 | 8-6 | DATA | 월 매출 목표 (대표 입력, 시스템이 만들지 않음) | WAITING |
+| 8-6a | DATA (선택) | 운영 기준값 — OEM 계약서·실제 입고 주기 기준 안전 재고일수·입고 후 판매 일수·생산 수량 단위, 사후 성과 측정 기간 (설정 > 운영 기준값, 미입력 시 업계 일반값 14·42·50·14) | OPTIONAL |
 | 8-7 | DECISION | 3단계 보고 방식 (샘플 자료 검증 / 실제 자료 적용 후 / 둘 다) — `STAGE3_DELIVERY_REPORT.md` §6 | WAITING |
 | 8-8 | (선택) PRACTICE | 대표·AX OWNER가 Demo 주소 `/ax/start` > 샘플 자료로 연습하기 (약 30분, 이 브라우저만) | OPTIONAL |
 | 9 | PEOPLE | AX OWNER 지정, ADMIN/STAFF 계정 목록 | WAITING |
@@ -285,5 +296,5 @@ BRANCH: `claude/miryeo-kbeauty-growth-ax-9urrn9`
 3-1. 실데이터가 4주 이상 쌓이면 대표 보고 모드(`/ax/present`)로 첫 월간 보고 리허설 — 슬라이드 문장·순서가 실제 회의에 맞는지 대표 피드백 (PASS 14)
 4. Week 1~4 운영 지원: 주간 운영 점검 7항목 기준값을 실제 입력 주기에 맞게 조정(`ROUTINE_RULES`), 운영 점검 알림(R-17 — 화면 안 알림 센터는 PASS 13 완료, 메일·메신저 발송) 필요성 판단
 5. (승인 시) AI 문장화 켜기 + 실호출 1회 확인 — D-034
-6. 실제 OEM 생산기간·MOQ·월 목표를 받으면 생산 착수 일정·목표 카드로 리허설, `PLANNING` 상수 조정 여부 확인 (PASS 10)
+6. 실제 OEM 생산기간·MOQ·월 목표를 받으면 생산 착수 일정·목표 카드로 리허설, 설정 > 운영 기준값(PASS 15)에서 안전일수·입고 후 일수·생산 단위를 실제 계약 조건으로 조정 (상품별 다른 값이 필요하면 R-21 상품별 확장)
 7. 실데이터 첫 업로드 직후 데이터 관리 > 품질 점검으로 원가 단위·중복·미래 날짜 정리 (Week 0)

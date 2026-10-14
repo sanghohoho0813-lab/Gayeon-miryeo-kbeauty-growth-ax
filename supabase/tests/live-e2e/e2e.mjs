@@ -504,6 +504,27 @@ if (PHASE === "B") {
     return [read, w.status];
   }, { gw: GW, org: orgId, month: kstMonth });
   ok("ADMIN: 목표 열람 가능 · 입력칸 없음 · API로 입력 시도 차단 (RLS)", adminTgt[0] === 1 && adminTgt[1] >= 400 && (await admin.locator("#target-input").count()) === 0 && (await count("select count(*) n from monthly_targets where organization_id = $1", [orgId])) === 1, JSON.stringify(adminTgt));
+  // PASS 15 — 운영 기준값 (009): 대표 저장 → organizations.planning(기본값과 다른 항목만) · 생산 판단 반영 · 관리자 API 수정 차단 · 기본값으로
+  await owner.goto(`${APP}/ax/settings#planning`, { waitUntil: "networkidle" });
+  await owner.locator("#pl-safetyDays").waitFor({ timeout: 10000 });
+  await owner.fill("#pl-safetyDays", "21");
+  await owner.getByTestId("planning-save").click();
+  await owner.waitForTimeout(1500);
+  const pl = await one("select planning from organizations where id = $1", [orgId]);
+  ok("Live 운영 기준값 저장 → organizations.planning = {safetyDays: 21}", JSON.stringify(pl?.planning) === JSON.stringify({ safetyDays: 21 }), JSON.stringify(pl));
+  await owner.goto(`${APP}/ax/products?tab=production`, { waitUntil: "networkidle" });
+  ok("Live 생산 착수 일정: 안전 21일 기준", (await owner.getByTestId("planning-link").innerText()).includes("안전 21일"));
+  const adminPl = await admin.evaluate(async ({ gw, org }) => {
+    const key = Object.keys(localStorage).find((k) => k.includes("auth-token"));
+    const tok = JSON.parse(localStorage.getItem(key)).access_token;
+    const r = await fetch(`${gw}/rest/v1/organizations?id=eq.${org}`, { method: "PATCH", headers: { authorization: `Bearer ${tok}`, apikey: "x", "content-type": "application/json", prefer: "return=representation" }, body: JSON.stringify({ planning: { safetyDays: 7 } }) });
+    return [r.status, r.ok ? (await r.json()).length : -1];
+  }, { gw: GW, org: orgId });
+  ok("ADMIN: API로 운영 기준값 수정 시도 → 0행 (RLS, OWNER만) · 값 유지", (adminPl[0] >= 400 || adminPl[1] === 0) && JSON.stringify((await one("select planning from organizations where id = $1", [orgId]))?.planning) === JSON.stringify({ safetyDays: 21 }), JSON.stringify(adminPl));
+  await owner.goto(`${APP}/ax/settings#planning`, { waitUntil: "networkidle" });
+  await owner.getByTestId("planning-reset").click();
+  await owner.waitForTimeout(1500);
+  ok("Live 기본값으로 → planning null", (await one("select planning from organizations where id = $1", [orgId]))?.planning === null);
   await owner.goto(`${APP}/ax/reports/weekly`, { waitUntil: "networkidle" });
   ok("Live 주간 리포트: 완료 Action 사후 성과 (자동 측정)", await owner.locator('[data-testid="weekly-report"] [data-testid="action-outcome"]').first().waitFor({ timeout: 10000 }).then(() => true, () => false));
   const qProd = await one("select id from products where organization_id = $1 and sku = 'MR-TONER-01'", [orgId]);

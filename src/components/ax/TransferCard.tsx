@@ -98,7 +98,7 @@ export function TransferCard() {
               <li>판매 <b>새로 {plan.sales.create.length.toLocaleString()}</b> · 중복 {plan.sales.duplicate.toLocaleString()}</li>
               <li>정산 <b>새로 {plan.settlements.create.length}</b> · 이미 있음 {plan.settlements.matched}</li>
               <li>월 목표 <b>새로 {plan.targets.create.length}</b> · 이미 있음 {plan.targets.matched}</li>
-              <li>설정 {Object.keys(plan.org).length ? Object.keys(plan.org).map((k) => (k === "pilotStartedOn" ? "Pilot 시작일" : "AX OWNER")).join("·") : "변경 없음"}</li>
+              <li>설정 {Object.keys(plan.org).length ? Object.keys(plan.org).map((k) => (k === "pilotStartedOn" ? "Pilot 시작일" : k === "planning" ? "운영 기준값" : "AX OWNER")).join("·") : "변경 없음"}</li>
             </ul>
             <p className="mt-2 text-[0.8rem] text-ink-soft">이미 있는 상품(SKU 같음)·채널(이름 같음)·정산·판매는 건너뛰고 기존 값을 바꾸지 않습니다. 여러 번 가져와도 중복되지 않습니다.</p>
             {plan.demoNamedChannels.length > 0 && <p className="mt-1 text-[0.82rem]" style={{ color: "var(--warning)" }}>이름에 'Demo'가 있는 채널 {plan.demoNamedChannels.length}개({plan.demoNamedChannels.join(", ")})를 그대로 만듭니다 — 가져온 뒤 채널 관리에서 실제 이름으로 바꾸세요.</p>}
