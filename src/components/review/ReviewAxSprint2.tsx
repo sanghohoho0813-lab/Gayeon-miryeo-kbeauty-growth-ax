@@ -309,7 +309,7 @@ function Demo({ now }: { now: string }) {
           <div className="min-w-0 space-y-4" aria-live="polite" data-testid="demo-result" data-deadline={dl ?? ""} data-order={m.recommendedOrder}>
             <ol className="grid grid-cols-2 gap-2.5 xl:grid-cols-4" aria-label="분석 단계: 판매 추세, 재고, OEM 생산기간을 넣어 재고 소진을 예상">
               <Step n="1" label="판매 추세 → 예측" value={`하루 ${m.forecastDaily.toFixed(1)}개`} sub={`최근 4주 평균 ${m.dailyVelocity.toFixed(1)}개 · 추세 ${m.growthRate >= 0 ? "+" : ""}${Math.round(m.growthRate * 100)}%`} />
-              <Step n="2" label="재고 (현재 + 입고 예정)" value={`${m.availableStock.toLocaleString()}개`} sub={`현재 ${m.currentStock.toLocaleString()} + 입고예정 ${r.inventory.incomingStock.toLocaleString()}`} />
+              <Step n="2" label="가용 재고" value={`${m.availableStock.toLocaleString()}개`} sub={`현재 ${m.currentStock.toLocaleString()} + 입고예정 ${r.inventory.incomingStock.toLocaleString()}`} />
               <Step n="3" label="OEM 생산기간" value={`${L}일`} sub={`+ 안전 재고 ${S}일 = ${L + S}일 필요`} />
               <Step n="4" label="재고 소진 예상" value={`약 ${Math.round(cover)}일 뒤`} sub={`${formatDateKR(addDaysISO(r.today, Math.floor(cover)))} 무렵`} highlight />
             </ol>
