@@ -3,19 +3,30 @@
 import { isLive } from "@/lib/config";
 import Link from "next/link";
 import { use, useEffect, useRef, useState } from "react";
-import { Check, ChevronLeft, ExternalLink, Heart, Sparkles } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, ExternalLink, Heart, Sparkles } from "lucide-react";
 import { BeautyProductCard } from "@/components/beauty/BeautyProductCard";
 import { useBeautyData } from "@/components/beauty/BeautyDataProvider";
+import { CONCERNS } from "@/components/beauty/concerns";
+import { formatDay, useBeautyMemory } from "@/components/beauty/useBeautyMemory";
 import { ProductVisual } from "@/components/shared/ProductVisual";
 import { getLastResult, getWishlist, pushRecentlyViewed, toggleWishlist } from "@/lib/beauty-store";
 import { track } from "@/lib/customer-events";
 import type { PurchaseLink } from "@/lib/types";
 
-const ROUTINE_ORDER = ["클렌저·토너로 결 정돈", "에센스·앰플 집중 케어", "크림으로 마무리 보습", "낮에는 선케어로 마무리"];
+const ROUTINE_ORDER = [
+  { k: "클렌징 · 토너", d: "결 정돈" },
+  { k: "에센스 · 앰플", d: "집중 케어" },
+  { k: "크림", d: "마무리 보습" },
+  { k: "선케어", d: "낮 루틴 마무리" },
+];
 
+/* 제품 상세 (D-073) — 핵심을 '구매'가 아니라 '추천 이유'로.
+   사진 → 이름·종류·가격 → 왜 나에게 추천됐나요? → 이런 피부 고민에 맞아요 → 내 루틴에서 언제 → 설명 → 구매 채널.
+   개인화 문구는 저장된 Finder 결과가 있을 때만 (가짜 개인화 없음). */
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { products } = useBeautyData();
+  const mem = useBeautyMemory();
   const product = products.find((p) => p.id === id);
   const [wished, setWished] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -35,12 +46,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     return (
       <div className="py-24 text-center">
         <p className="text-[1.1rem] font-bold">제품을 찾을 수 없습니다.</p>
-        <Link href="/beauty/products" className="mt-3 inline-block font-semibold underline" style={{ color: "var(--b-navy)" }}>제품 목록으로</Link>
+        <Link href="/beauty/products" className="b-link mt-3">제품 목록으로</Link>
       </div>
     );
   }
 
   const related = products.filter((p) => p.id !== product.id && p.concerns.some((c) => product.concerns.includes(c))).slice(0, 4);
+  const matched = mem.result ? mem.result.profile.concerns.filter((c) => product.concerns.includes(c)) : [];
+  const who = mem.name ? `${mem.name}님이` : "최근 상담에서";
+  const toggleWish = () => { const next = toggleWishlist(product.id).includes(product.id); setWished(next); track(next ? "wishlist_add" : "wishlist_remove", product.id); };
 
   const goPurchase = (l: PurchaseLink) => {
     track("outbound_purchase_click", product.id, { channel: l.label, hasUrl: !!l.url });
@@ -49,99 +63,139 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   };
 
   return (
-    <div className="pt-6">
-      <Link href="/beauty/products" className="inline-flex items-center gap-1 text-[0.9rem] font-semibold hover:underline" style={{ color: "var(--b-text-soft)" }}>
+    <div className="pb-24 pt-4 @3xl:pb-0">
+      <Link href="/beauty/products" className="inline-flex min-h-[44px] items-center gap-1 text-[0.88rem] font-semibold" style={{ color: "var(--b-text-soft)" }}>
         <ChevronLeft size={17} aria-hidden /> 제품 목록
       </Link>
 
-      <div className="mt-4 grid gap-8 @3xl:grid-cols-2">
-        <div className="flex min-h-[360px] items-center justify-center rounded-[28px] border" style={{ borderColor: "var(--b-border)", background: "linear-gradient(160deg, #fff, var(--b-surface-warm))" }}>
-          <div className="h-[280px]"><ProductVisual category={product.category} variant={product.id.length} className="h-full" /></div>
+      <div className="mt-2 grid gap-8 @3xl:grid-cols-[1.1fr_1fr] @3xl:gap-14">
+        <div>
+          <div className="flex aspect-[4/5] max-h-[620px] w-full items-center justify-center rounded-[32px] @3xl:sticky @3xl:top-28" style={{ background: "var(--b-surface-warm)" }}>
+            <div className="h-[76%]"><ProductVisual category={product.category} variant={product.id.length} productId={product.id} alt={`${product.name} 제품 사진`} className="h-full" /></div>
+          </div>
         </div>
 
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            {product.isBest && <span className="rounded-full px-3 py-1 text-[0.76rem] font-bold text-white" style={{ background: "var(--b-navy)" }}>베스트</span>}
-            {product.isNew && <span className="rounded-full px-3 py-1 text-[0.76rem] font-bold text-white" style={{ background: "var(--b-gold-ink)" }}>신제품</span>}
-            <span className="text-[0.85rem] font-semibold" style={{ color: "var(--b-gold-ink)" }}>{[product.line, product.category].filter(Boolean).join(" · ")}</span>
+          <p className="b-eyebrow">{[product.line, product.category].filter(Boolean).join(" · ")}</p>
+          <h1 className="b-display mt-3 text-[2rem] @3xl:text-[2.5rem]">{product.name}</h1>
+          {product.nameEn && <p className="b-caption mt-1">{product.nameEn}</p>}
+          <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="tabular text-[1.2rem] font-semibold">₩{product.price.toLocaleString()}</span>
+            {(product.isBest || product.isNew) && <span className="b-caption">{[product.isBest && "베스트", product.isNew && "신제품"].filter(Boolean).join(" · ")}</span>}
           </div>
-          <h1 className="font-display mt-2.5 text-[1.8rem] font-bold leading-tight" style={{ color: "var(--b-navy)" }}>{product.name}</h1>
-          {product.nameEn && <p className="mt-0.5 text-[0.9rem]" style={{ color: "var(--b-text-soft)" }}>{product.nameEn}</p>}
-          <div className="tabular mt-4 text-[1.7rem] font-bold">₩{product.price.toLocaleString()}</div>
-          {product.description && <p className="mt-3 text-[1rem] leading-relaxed" style={{ color: "var(--b-text-soft)" }}>{product.description}</p>}
 
-          <div className="mt-5 rounded-2xl p-5" style={{ background: "var(--b-surface-warm)" }}>
-            <div className="text-[0.9rem] font-bold">이런 분께 추천해요</div>
-            <ul className="mt-2 space-y-1.5 text-[0.92rem]" style={{ color: "var(--b-text-soft)" }}>
-              {product.concerns.map((c) => <li key={c} className="flex items-center gap-2"><Check size={16} style={{ color: "var(--b-navy)" }} aria-hidden /> {c} 고민을 선택한 분</li>)}
-              {product.texture && <li className="flex items-center gap-2"><Check size={16} style={{ color: "var(--b-navy)" }} aria-hidden /> {product.texture === "가벼움" ? "가벼운 사용감을 좋아하는 분" : product.texture === "리치" ? "촉촉하고 리치한 사용감을 좋아하는 분" : "부담 없는 중간 사용감을 좋아하는 분"}</li>}
+          {/* 왜 나에게 추천됐나요? */}
+          <section className="mt-8 border-t pt-6" style={{ borderColor: "var(--b-line)" }} aria-labelledby="h-why" data-testid="why-me">
+            <h2 id="h-why" className="flex items-center gap-2 text-[1.05rem] font-bold"><Sparkles size={17} style={{ color: "var(--b-gold-ink)" }} aria-hidden /> 왜 나에게 추천됐나요?</h2>
+            {myReason || matched.length > 0 ? (
+              <>
+                <p className="b-section mt-3 text-[1.2rem] leading-snug">{who} 선택한 {(matched.length ? matched : product.concerns).join(" + ")} 고민과 잘 맞는 제품입니다.</p>
+                {myReason && <p className="b-body mt-2">{myReason}</p>}
+                {mem.result && <p className="b-caption mt-2">{formatDay(mem.result.createdAt)} 상담 결과 기준</p>}
+              </>
+            ) : (
+              <>
+                <p className="b-body mt-2">{product.concerns.join(" · ")} 고민을 선택한 분께 추천되는 {product.category} 제품입니다. AI 뷰티 파인더를 완료하면 나에게 맞춘 추천 이유를 볼 수 있어요.</p>
+                <Link href="/beauty/finder" className="b-link mt-1 text-[0.9rem]">나에게 맞는지 확인하기 →</Link>
+              </>
+            )}
+          </section>
+
+          {/* 이런 피부 고민에 맞아요 */}
+          <section className="mt-8 border-t pt-6" style={{ borderColor: "var(--b-line)" }} aria-labelledby="h-fit">
+            <h2 id="h-fit" className="text-[1.05rem] font-bold">이런 피부 고민에 맞아요</h2>
+            <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-4">
+              {product.concerns.map((c) => {
+                const meta = CONCERNS.find((x) => x.id === c);
+                const mine = mem.concerns.includes(c);
+                return (
+                  <li key={c} className="flex items-center gap-2.5">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full border" style={mine ? { background: "var(--b-ink)", borderColor: "var(--b-ink)", color: "#fff" } : { borderColor: "var(--b-line-strong)", color: "var(--b-ink)" }}>
+                      {meta ? <meta.icon size={18} strokeWidth={1.7} aria-hidden /> : <Check size={16} aria-hidden />}
+                    </span>
+                    <span className="text-[0.92rem] font-semibold">{meta?.label ?? c}{mine && <span className="ml-1.5 text-[0.7rem] font-bold" style={{ color: "var(--b-gold-ink)" }}>나의 고민</span>}</span>
+                  </li>
+                );
+              })}
             </ul>
-          </div>
+            <p className="mt-4 text-[0.88rem] font-bold">이런 분께 추천해요</p>
+            <ul className="mt-1.5 space-y-1 text-[0.9rem]" style={{ color: "var(--b-text-soft)" }}>
+              {product.concerns.map((c) => <li key={c} className="flex items-center gap-2"><Check size={15} style={{ color: "var(--b-ink)" }} aria-hidden /> {c} 고민을 선택한 분</li>)}
+              {product.texture && <li className="flex items-center gap-2"><Check size={15} style={{ color: "var(--b-ink)" }} aria-hidden /> {product.texture === "가벼움" ? "가벼운 사용감을 좋아하는 분" : product.texture === "리치" ? "촉촉하고 리치한 사용감을 좋아하는 분" : "부담 없는 중간 사용감을 좋아하는 분"}</li>}
+            </ul>
+          </section>
 
-          <div className="mt-4 rounded-2xl border-2 p-5" style={{ borderColor: "var(--b-gold)" }}>
-            <div className="flex items-center gap-1.5 text-[0.9rem] font-bold" style={{ color: "var(--b-navy)" }}><Sparkles size={16} aria-hidden /> 추천 이유</div>
-            <p className="mt-1.5 text-[0.92rem] leading-relaxed" style={{ color: "var(--b-text-soft)" }}>
-              {myReason ?? `${product.concerns.join(" · ")} 고민을 선택한 분께 추천되는 ${product.category} 제품입니다. AI 뷰티 파인더를 완료하면 나에게 맞춘 추천 이유를 볼 수 있어요.`}
-            </p>
-            {!myReason && <Link href="/beauty/finder" className="mt-2 inline-block text-[0.88rem] font-bold underline" style={{ color: "var(--b-navy)" }}>나에게 맞는지 확인하기 →</Link>}
-          </div>
+          {/* 내 루틴에서는 언제? */}
+          <section className="mt-8 border-t pt-6" style={{ borderColor: "var(--b-line)" }} aria-labelledby="h-when">
+            <h2 id="h-when" className="text-[1.05rem] font-bold">내 루틴에서는 언제 사용하나요?</h2>
+            <ol className="mt-5 grid grid-cols-4" aria-label="사용 순서">
+              {ROUTINE_ORDER.map((r, i) => {
+                const mine = i + 1 === product.routineStep;
+                return (
+                  <li key={r.k} className="relative pr-2" aria-current={mine ? "step" : undefined}>
+                    <span className="absolute left-0 right-0 top-[7px] h-px" style={{ background: "var(--b-line-strong)" }} aria-hidden />
+                    <span className="relative block h-[15px] w-[15px] rounded-full border-2" style={mine ? { background: "var(--b-ink)", borderColor: "var(--b-ink)" } : { background: "var(--b-bg)", borderColor: "var(--b-line-strong)" }} aria-hidden />
+                    <span className="mt-2 block text-[0.72rem] font-bold" style={{ color: mine ? "var(--b-gold-ink)" : "var(--b-text-soft)" }}>STEP {i + 1}</span>
+                    <span className="block text-[0.84rem] font-semibold leading-snug" style={{ color: mine ? "var(--b-ink)" : "var(--b-text-soft)" }}>{r.k}</span>
+                    <span className="b-caption block">{r.d}</span>
+                    {mine && <span className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-[0.68rem] font-bold text-white" style={{ background: "var(--b-ink)" }}>이 제품</span>}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
 
-          <div className="mt-5 hidden gap-2.5 @3xl:flex">
-            <a href="#channels" className="pressable inline-flex min-h-[54px] flex-1 items-center justify-center rounded-2xl text-[1rem] font-bold text-white" style={{ background: "var(--b-navy)" }}>구매 채널 보기</a>
-            <WishButton wished={wished} onToggle={() => { const next = toggleWishlist(product.id).includes(product.id); setWished(next); track(next ? "wishlist_add" : "wishlist_remove", product.id); }} />
+          {product.description && (
+            <section className="mt-8 border-t pt-6" style={{ borderColor: "var(--b-line)" }} aria-labelledby="h-desc">
+              <h2 id="h-desc" className="text-[1.05rem] font-bold">제품 설명</h2>
+              <p className="b-body mt-2">{product.description}</p>
+            </section>
+          )}
+
+          <div className="mt-8 hidden gap-2.5 @3xl:flex">
+            <a href="#channels" className="b-btn pressable flex-1">구매 채널 보기</a>
+            <WishButton wished={wished} onToggle={toggleWish} />
           </div>
         </div>
       </div>
 
-      <section className="mt-12 rounded-[28px] border bg-white p-7 @3xl:p-8" style={{ borderColor: "var(--b-border)" }}>
-        <h2 className="font-display text-[1.35rem] font-bold" style={{ color: "var(--b-navy)" }}>사용 순서</h2>
-        <ol className="mt-4 grid gap-3 @3xl:grid-cols-4">
-          {ROUTINE_ORDER.map((r, i) => {
-            const mine = i + 1 === product.routineStep;
-            return (
-              <li key={r} className="rounded-2xl p-4 text-[0.9rem] leading-relaxed" style={mine ? { background: "var(--b-navy)", color: "#fff", fontWeight: 700 } : { background: "var(--b-surface-warm)", color: "var(--b-text-soft)" }}>
-                <div className="text-[0.76rem] font-bold" style={{ color: mine ? "#fff" : "var(--b-gold-ink)" }}>STEP {i + 1}{mine ? " · 이 제품" : ""}</div>
-                {r}
-              </li>
-            );
-          })}
-        </ol>
-      </section>
-
-      <section id="channels" className="mt-8 scroll-mt-24 rounded-[28px] border bg-white p-7 @3xl:p-8" style={{ borderColor: "var(--b-border)" }}>
-        <h2 className="font-display text-[1.35rem] font-bold" style={{ color: "var(--b-navy)" }}>구매 채널</h2>
+      <section id="channels" className="mt-16 scroll-mt-24 border-t pt-8" style={{ borderColor: "var(--b-line)" }} aria-labelledby="h-channels">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <h2 id="h-channels" className="b-section text-[1.5rem]">구매 채널</h2>
+          <p className="b-caption">MIRYEO AI Beauty는 결제를 직접 처리하지 않습니다.</p>
+        </div>
         {product.purchaseLinks.length === 0 ? (
-          <p className="mt-2 text-[0.92rem]" style={{ color: "var(--b-text-soft)" }}>구매처 정보를 준비 중입니다.</p>
+          <p className="b-body mt-3">구매처 정보를 준비 중입니다.</p>
         ) : (
-          <div className="mt-4 grid gap-3 @3xl:grid-cols-3">
+          <ul className="mt-4 border-t" style={{ borderColor: "var(--b-line)" }}>
             {product.purchaseLinks.map((l) => (
-              <button key={l.label} onClick={() => goPurchase(l)} className="pressable flex items-center justify-between rounded-2xl border p-4 text-left transition-colors hover:bg-[var(--b-surface-warm)]" style={{ borderColor: "var(--b-border)" }}>
-                <span><span className="block font-bold">{l.label}</span><span className="text-[0.82rem]" style={{ color: "var(--b-text-soft)" }}>{l.url ? "외부 구매처로 이동" : "연결 예정"}</span></span>
-                <ExternalLink size={18} style={{ color: "var(--b-navy)" }} aria-hidden />
-              </button>
+              <li key={l.label}>
+                <button onClick={() => goPurchase(l)} className="flex min-h-[64px] w-full items-center justify-between gap-3 border-b px-1 text-left transition-colors hover:bg-white/60" style={{ borderColor: "var(--b-line)" }}>
+                  <span><span className="block font-bold">{l.label}</span><span className="b-caption">{l.url ? "외부 구매처로 이동" : "연결 예정"}</span></span>
+                  <ExternalLink size={18} style={{ color: "var(--b-ink)" }} aria-hidden />
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
         {notice && <p className="route-fade mt-3 rounded-xl p-3 text-[0.9rem]" style={{ background: "var(--b-surface-warm)" }} role="status">{notice}</p>}
-        <p className="mt-3 text-[0.8rem]" style={{ color: "var(--b-text-soft)" }}>MIRYEO AI Beauty는 결제를 직접 처리하지 않습니다.</p>
-      </section>
-
-      <section className="mt-8 rounded-[28px] border bg-white p-7 @3xl:p-8" style={{ borderColor: "var(--b-border)" }}>
-        <h2 className="font-display text-[1.35rem] font-bold" style={{ color: "var(--b-navy)" }}>사용자 리뷰</h2>
-        <div className="mt-4 rounded-2xl p-6 text-center text-[0.92rem]" style={{ background: "var(--b-surface-warm)", color: "var(--b-text-soft)" }}>리뷰는 준비 중입니다. 실제 구매 고객의 리뷰만 표시할 예정입니다.</div>
+        <p className="b-caption mt-6">사용자 리뷰는 준비 중입니다 · 실제 구매 고객의 리뷰만 표시할 예정입니다.</p>
       </section>
 
       {related.length > 0 && (
-        <section className="mt-12">
-          <h2 className="font-display mb-5 text-[1.35rem] font-bold" style={{ color: "var(--b-navy)" }}>함께 보면 좋은 제품</h2>
-          <div className="grid grid-cols-2 gap-4 @3xl:grid-cols-4">{related.map((p) => <BeautyProductCard key={p.id} product={p} />)}</div>
+        <section className="mt-16 border-t pt-8" style={{ borderColor: "var(--b-line)" }} aria-labelledby="h-related">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <h2 id="h-related" className="b-section text-[1.5rem]">함께 보면 좋은 제품</h2>
+            <Link href="/beauty/finder" className="b-link text-[0.9rem]">내 루틴으로 확인하기 <ArrowRight size={15} aria-hidden /></Link>
+          </div>
+          <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-8 @3xl:grid-cols-4 @3xl:gap-x-6">{related.map((p) => <BeautyProductCard key={p.id} product={p} />)}</div>
         </section>
       )}
 
-      {/* Mobile Sticky CTA */}
-      <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur @3xl:hidden" style={{ borderColor: "var(--b-border)" }}>
-        <WishButton wished={wished} onToggle={() => { const next = toggleWishlist(product.id).includes(product.id); setWished(next); track(next ? "wishlist_add" : "wishlist_remove", product.id); }} />
-        <a href="#channels" className="pressable inline-flex min-h-[52px] flex-1 items-center justify-center rounded-2xl font-bold text-white" style={{ background: "var(--b-navy)" }}>구매 채널 보기</a>
+      {/* 모바일 하단 고정 — 찜 + 구매 채널 (하단 탭 대신) */}
+      <div className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur @3xl:hidden" style={{ borderColor: "var(--b-line)", background: "rgba(250,248,244,0.96)" }}>
+        <WishButton wished={wished} onToggle={toggleWish} />
+        <a href="#channels" className="b-btn pressable flex-1">구매 채널 보기</a>
       </div>
     </div>
   );
@@ -149,8 +203,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
 function WishButton({ wished, onToggle }: { wished: boolean; onToggle: () => void }) {
   return (
-    <button onClick={onToggle} aria-pressed={wished} aria-label={wished ? "찜 해제" : "찜하기"} className="pressable flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-2xl border-2 bg-white" style={{ borderColor: wished ? "var(--b-navy)" : "var(--b-border)" }}>
-      <Heart size={22} fill={wished ? "var(--b-navy)" : "none"} style={{ color: "var(--b-navy)" }} />
+    <button onClick={onToggle} aria-pressed={wished} aria-label={wished ? "찜 해제" : "찜하기"} className="pressable flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full border" style={{ borderColor: wished ? "var(--b-ink)" : "var(--b-line-strong)", background: "#fff" }}>
+      <Heart size={21} fill={wished ? "var(--b-ink)" : "none"} style={{ color: "var(--b-ink)" }} aria-hidden />
     </button>
   );
 }

@@ -83,7 +83,7 @@ function ProductsTab({ onSelect }: { onSelect: (p: Product) => void }) {
             return (
               <li key={p.id}>
                 <button onClick={() => onSelect(p)} className="row-hover flex w-full items-start gap-3 rounded-xl border p-3 text-left" style={{ borderColor: "var(--border)" }} data-product-card={p.sku}>
-                  <span className="h-14 w-11 shrink-0 rounded-lg bg-surface-muted p-1" aria-hidden><ProductVisual category={p.category} variant={p.id.length} className="h-full" /></span>
+                  <span className="h-14 w-11 shrink-0 rounded-lg bg-surface-muted p-1" aria-hidden><ProductVisual category={p.category} variant={p.id.length} productId={p.id} className="h-full" /></span>
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-1.5"><span className="font-semibold leading-snug">{p.name}</span>{p.isDemo && <span className="badge" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>DEMO</span>}</span>
                     <span className="block text-[0.78rem] text-ink-soft">{p.sku} · {p.category}</span>
@@ -118,7 +118,7 @@ function ProductsTab({ onSelect }: { onSelect: (p: Product) => void }) {
                 <tr key={p.id} className="row-hover cursor-pointer border-b" style={{ borderColor: "var(--border)" }} onClick={() => onSelect(p)}>
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-9 shrink-0 rounded-lg bg-surface-muted p-1"><ProductVisual category={p.category} variant={p.id.length} className="h-full" /></div>
+                      <div className="h-11 w-9 shrink-0 rounded-lg bg-surface-muted p-1"><ProductVisual category={p.category} variant={p.id.length} productId={p.id} className="h-full" /></div>
                       <div><div className="font-semibold">{p.name} {p.isDemo && <span className="badge ml-1" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>DEMO</span>}</div><div className="text-[0.78rem] text-ink-soft">{p.sku}</div></div>
                     </div>
                   </td>
@@ -402,7 +402,7 @@ function ProductDrawer({ product, onClose }: { product: Product | null; onClose:
   return (
     <Drawer open onClose={onClose} title={product.name}>
       <div className="flex items-start gap-5">
-        <div className="h-32 w-24 shrink-0 rounded-2xl bg-surface-muted p-3"><ProductVisual category={product.category} variant={product.id.length} className="h-full" /></div>
+        <div className="h-32 w-24 shrink-0 rounded-2xl bg-surface-muted p-3"><ProductVisual category={product.category} variant={product.id.length} productId={product.id} className="h-full" /></div>
         <div className="space-y-1.5 text-[0.93rem]">
           <div className="flex flex-wrap gap-1.5"><StatusBadge tone={saleStatusTone(product.status)}>{product.status}</StatusBadge>{product.isDemo && <StatusBadge tone="warning">DEMO</StatusBadge>}</div>
           <div className="text-ink-soft">{product.sku} · {product.category}{product.line ? ` · ${product.line}` : ""}</div>

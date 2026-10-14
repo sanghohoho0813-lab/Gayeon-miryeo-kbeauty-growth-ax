@@ -1,4 +1,4 @@
-# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 18)
+# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 19)
 
 DATE: 2026-10-13 · Next.js 16.4.0 · MODE TESTED: DEMO + LIVE(로컬 Supabase 호환 스택) · BROWSER: Chromium (Playwright)
 
@@ -9,6 +9,8 @@ DATE: 2026-10-13 · Next.js 16.4.0 · MODE TESTED: DEMO + LIVE(로컬 Supabase �
 | `npm run build` (Next 16, Turbopack) | PASS |
 | `npm audit` | 0 vulnerabilities (2026-10-14, PASS 15) |
 | **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 96/96** (A 9 + B 87 — PASS 16: 심사 페이지 추가 후 재실행 동일 통과. PASS 15: 운영 기준값 저장 → organizations.planning(차이만)·생산 판단 반영·관리자 API 수정 0행(RLS)·기본값으로 null. PASS 14: 보고 모드가 Live 데이터로 9장 생성·LIVE 표시·DEMO 경고 없음. PASS 13: 알림 센터가 Live 데이터에서 계산·개수 일치·위험순·화면 연결. PASS 11: 상품·채널 0개인 첫날 판매 파일 가져오기 표시, Live에 샘플 연습 없음, 상품 파일 재고 열 → inventory(새 상품 UUID 연결·빈 칸은 재고 미생성), 샘플 자료 혼입 시 품질 점검 오류 포함) |
+| **PASS 19 고객 플랫폼 리디자인·사진·기본 테마** `qa-photos` (제품 사진 10장·카드 3장 200·webp, PC·390: 홈 첫 화면 실사 4병·제품 사진 모두 불러옴·추천 방식 이미지 3종·모든 img alt·'이미지 준비 중' 그림 없음·가로 넘침 0·axe 0, 제품 목록·상세(대체 문구 'Demo 앰플 B 제품 사진')·Passport 사진·넘침 0, Finder 결과 루틴 사진, **처음 방문 = 오닉스 골드(사이드바 #15171C)**·설정에 '오닉스 골드' 선택 표시·AX 상품 목록 사진·직접 고른 테마 유지) + 기존 고객 화면 회귀 `qa-pass15`(모바일 메뉴 4칸·진행 단계 6칸·'질문 1 / 5'·고민 설명 2줄 이하) · `qa-flow` 31 · `qa-stage2` 41 · `qa-pass3` 11 · `qa-pass12` 46 · `qa-boot` 5 · `qa-routes`(37 route × 8폭) · `qa-a11y` · `qa-contrast` | PASS 48/48 + 회귀 전부 통과 |
+| **PASS 19 소개 영상 V3** (ffmpeg·`qa-video`·`qa-video-play`) | 세로 1080×1920 · 가로 1920×1080 · 217.03초 · -14.1 LUFS · 피크 -3.4 dBFS · 끝 2초 -91 dB · 이음매 이상 없음 · `_v3` 200·Range 206·포스터 2개 · **V1·V2 파일 404(삭제)** · 영상 흐름 15개 · 대리 WebM 재생·탐색·비율 전환 | PASS 44/44 · 7/7 |
 | **PASS 18 소개 영상 V2 파일** (ffmpeg 검사) | 세로 1080×1920 · 가로 1920×1080 · H.264 High · 30fps · AAC 48kHz · **217.03초** · -14.1 LUFS · 표본 피크 -3.4 dBFS · 끝 2초 -91 dB(무음) · 병렬 렌더 이음매(1626/1627·3254/3255·4882/4883 프레임) 이상 없음 · 자막 2줄 초과 0 · 0.9초 미만 0 · 대본-음성 글자 일치 98.5%(자막 글자는 사용자 대본 그대로) |
 | **PASS 18 영상 페이지** `qa-video` (PASS 17 항목 + V2 파일 `_v2.mp4` 200·video/mp4·Range 206, 새 포스터 2개, **V1 mp4·포스터 404(삭제 확인)**, 영상 흐름 15개, '미리 판단' 103.85초, 길이 217.0초) · `qa-video-play` (WebM 대리 파일: 길이 217.0초, '고객 관심' 115.29초부터 1.25배 재생·현재 장면 표시, 비율 전환 위치·속도·멈춤 유지) · `qa-review` 80/80 · `qa-routes` CLEAN · `qa-a11y` CLEAN · typecheck·build PASS | PASS 43/43 · 7/7 |
 | **PASS 17 소개 영상 파일** (ffmpeg 검사) | 세로 1080×1920 · 가로 1920×1080 · H.264 High · 30fps · AAC 48kHz · 230.87초 · -14.1 LUFS · 표본 피크 -2.0 dBFS · 끝 2초 -91 dB(무음) · 병렬 렌더 이음매 프레임 동일 · 자막 2줄 초과 0 · 대본-음성 글자 일치 99.2% |

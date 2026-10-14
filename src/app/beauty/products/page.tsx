@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useBeautyData } from "@/components/beauty/BeautyDataProvider";
 import { Search } from "lucide-react";
@@ -49,17 +50,17 @@ function ProductsInner() {
   }, [products, concern, category, sort, q]);
 
   return (
-    <div className="pt-8">
-      <h1 className="font-display text-[1.7rem] font-bold @3xl:text-[2rem]" style={{ color: "var(--b-navy)" }}>
-        MIRYEO 제품
-      </h1>
-      <p className="mt-1.5 text-[0.95rem]" style={{ color: "var(--b-text-soft)" }}>
-        피부 고민과 제품 유형으로 나에게 맞는 제품을 찾아보세요.
+    <div className="pt-8 @3xl:pt-12">
+      <p className="b-eyebrow">MIRYEO COLLECTION</p>
+      <h1 className="b-display mt-3 text-[2rem] @3xl:text-[2.6rem]">MIRYEO 제품</h1>
+      <p className="b-body mt-2">
+        피부 고민과 제품 유형으로 나에게 맞는 제품을 찾아보세요.{" "}
+        <Link href="/beauty/finder" className="b-link">1분 상담으로 루틴 추천받기</Link>
       </p>
 
-      <label className="relative mt-5 flex items-center">
-        <Search size={18} className="absolute left-4" style={{ color: "var(--b-text-soft)" }} aria-hidden />
-        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="제품명, 고민(수분·진정…), 유형으로 검색" aria-label="제품 검색" className="h-[52px] w-full rounded-2xl border bg-white pl-11 pr-4 text-[0.97rem] outline-none focus:border-[var(--b-navy)]" style={{ borderColor: "var(--b-border)" }} />
+      <label className="relative mt-6 flex items-center">
+        <Search size={18} className="absolute left-1" style={{ color: "var(--b-text-soft)" }} aria-hidden />
+        <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="제품명, 고민(수분·진정…), 유형으로 검색" aria-label="제품 검색" className="h-[52px] w-full border-b bg-transparent pl-8 pr-2 text-[0.97rem] outline-none focus:border-[var(--b-ink)]" style={{ borderColor: "var(--b-line-strong)" }} />
       </label>
 
       {/* 피부 고민 필터 */}
@@ -82,8 +83,8 @@ function ProductsInner() {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as (typeof SORTS)[number])}
-            className="h-11 rounded-xl border bg-white px-3 text-[0.9rem] font-semibold"
-            style={{ borderColor: "var(--b-border)", color: "var(--b-text)" }}
+            className="h-11 rounded-full border bg-transparent px-3 text-[0.88rem] font-semibold"
+            style={{ borderColor: "var(--b-line-strong)", color: "var(--b-text)" }}
           >
             {SORTS.map((s) => (
               <option key={s}>{s}</option>
@@ -92,7 +93,7 @@ function ProductsInner() {
         </label>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 @3xl:grid-cols-4">
+      <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-9 @3xl:grid-cols-4 @3xl:gap-x-6">
         {list.map((p) => (
           <BeautyProductCard key={p.id} product={p} aiBadge={p.isBest ? "AI 추천" : undefined} />
         ))}
@@ -129,11 +130,11 @@ function FilterChip({
     <button
       onClick={onClick}
       aria-pressed={on}
-      className={`rounded-full border-2 font-bold transition-colors ${small ? "px-3.5 py-2 text-[0.82rem]" : "px-4 py-2.5 text-[0.9rem]"}`}
+      className={`min-h-[40px] rounded-full border font-semibold transition-colors ${small ? "px-3.5 text-[0.8rem]" : "px-4 text-[0.88rem]"}`}
       style={
         on
-          ? { background: "var(--b-navy)", borderColor: "var(--b-navy)", color: "#fff" }
-          : { borderColor: "var(--b-border)", color: "var(--b-text-soft)", background: "#fff" }
+          ? { background: "var(--b-ink)", borderColor: "var(--b-ink)", color: "#fff" }
+          : { borderColor: "var(--b-line-strong)", color: "var(--b-text-soft)", background: "transparent" }
       }
     >
       {label}

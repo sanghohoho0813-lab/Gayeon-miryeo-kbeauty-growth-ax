@@ -7,47 +7,46 @@ import type { Product } from "@/lib/types";
 import { ProductVisual } from "@/components/shared/ProductVisual";
 import { getWishlist, toggleWishlist } from "@/lib/beauty-store";
 import { track } from "@/lib/customer-events";
+import { STEP_LABEL } from "./useBeautyMemory";
 
-export function BeautyProductCard({ product, aiBadge }: { product: Product; aiBadge?: string }) {
+/* 제품 카드 (D-073) — 쇼핑몰 카드 느낌을 줄여 사진 타일 + 글자만.
+   우선순위: 사진 → 이름 → 맞는 고민(또는 추천 이유) → 사용 단계 → 가격(작게). 배지는 1개만. */
+export function BeautyProductCard({ product, aiBadge, reason }: { product: Product; aiBadge?: string; reason?: string }) {
   const [wished, setWished] = useState(false);
   useEffect(() => setWished(getWishlist().includes(product.id)), [product.id]);
+  const badge = aiBadge ?? (product.isNew ? "신제품" : undefined);
+  const match = reason ?? (product.concerns.length ? `${product.concerns.slice(0, 2).join(" · ")} 고민에 맞아요` : product.category);
 
   return (
-    <div className="group relative flex h-full flex-col overflow-hidden rounded-[var(--b-radius)] border bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_rgba(22,35,63,0.12)]" style={{ borderColor: "var(--b-border)" }}>
-      <Link href={`/beauty/products/${product.id}`} className="block">
-        <div className="relative flex h-[200px] items-center justify-center overflow-hidden" style={{ background: "linear-gradient(160deg, var(--b-surface-warm), #ece5d8)" }}>
-          <div className="h-[150px] transition-transform duration-300 group-hover:scale-[1.04]">
-            <ProductVisual category={product.category} variant={product.id.length} className="h-full" />
+    <div className="group relative flex h-full flex-col">
+      <Link href={`/beauty/products/${product.id}`} className="block" tabIndex={-1} aria-hidden>
+        <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden rounded-[22px]" style={{ background: "var(--b-surface-warm)" }}>
+          <div className="h-[74%] transition-transform duration-500 ease-out group-hover:scale-[1.03]">
+            <ProductVisual category={product.category} variant={product.id.length} productId={product.id} className="h-full" />
           </div>
-          <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
-            {product.isBest && <span className="rounded-full px-2.5 py-1 text-[0.7rem] font-bold text-white" style={{ background: "var(--b-navy)" }}>베스트</span>}
-            {product.isNew && <span className="rounded-full px-2.5 py-1 text-[0.7rem] font-bold text-white" style={{ background: "var(--b-gold-ink)" }}>신제품</span>}
-            {aiBadge && <span className="rounded-full border bg-white/90 px-2.5 py-1 text-[0.7rem] font-bold" style={{ borderColor: "var(--b-gold)", color: "var(--b-navy)" }}>{aiBadge}</span>}
-          </div>
+          {badge && <span className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[0.68rem] font-bold tracking-wide" style={{ background: "rgba(255,255,255,0.86)", color: "var(--b-ink)" }}>{badge}</span>}
         </div>
       </Link>
       <button
-        aria-label={wished ? "찜 해제" : "찜하기"}
+        aria-label={wished ? `${product.name} 찜 해제` : `${product.name} 찜하기`}
         aria-pressed={wished}
         onClick={() => {
           const next = toggleWishlist(product.id).includes(product.id);
           setWished(next);
           track(next ? "wishlist_add" : "wishlist_remove", product.id);
         }}
-        className="pressable absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 shadow-sm"
+        className="pressable absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full"
       >
-        <Heart size={19} fill={wished ? "var(--b-navy)" : "none"} style={{ color: "var(--b-navy)" }} />
+        <Heart size={19} fill={wished ? "var(--b-ink)" : "none"} style={{ color: "var(--b-ink)" }} aria-hidden />
       </button>
-      <Link href={`/beauty/products/${product.id}`} className="flex flex-1 flex-col p-4">
-        {product.line && <div className="text-[0.76rem] font-semibold tracking-wide" style={{ color: "var(--b-gold-ink)" }}>{product.line}</div>}
-        <h3 className="mt-0.5 text-[1rem] font-bold leading-snug" style={{ color: "var(--b-text)" }}>{product.name}</h3>
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {product.concerns.slice(0, 2).map((c) => <span key={c} className="rounded-full px-2 py-0.5 text-[0.72rem] font-semibold" style={{ background: "var(--b-surface-warm)", color: "var(--b-text-soft)" }}>#{c}</span>)}
+      <Link href={`/beauty/products/${product.id}`} className="flex flex-1 flex-col pt-3.5">
+        <h3 className="text-[1rem] font-bold leading-snug" style={{ color: "var(--b-text)" }}>{product.name}</h3>
+        <p className="mt-1 line-clamp-2 text-[0.84rem] leading-snug" style={{ color: "var(--b-text-soft)" }}>{match}</p>
+        <div className="mt-auto flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 pt-2.5">
+          <span className="b-caption">{product.routineStep ? `STEP ${product.routineStep} · ${STEP_LABEL[product.routineStep] ?? product.category}` : product.category}</span>
+          <span className="tabular whitespace-nowrap text-[0.86rem] font-semibold" style={{ color: "var(--b-text)" }}>₩{product.price.toLocaleString()}</span>
         </div>
-        <div className="mt-auto flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 pt-3">
-          <div className="tabular whitespace-nowrap text-[1.05rem] font-bold">₩{product.price.toLocaleString()}</div>
-          {product.isDemo && <span className="whitespace-nowrap text-[0.7rem]" style={{ color: "var(--b-text-soft)" }}>Demo 제품</span>}
-        </div>
+        {product.isDemo && <span className="mt-0.5 text-[0.68rem]" style={{ color: "var(--b-text-soft)" }}>Demo 제품</span>}
       </Link>
     </div>
   );

@@ -89,6 +89,19 @@
   #brand { position:absolute; z-index:40; font-size:22px; font-weight:700; letter-spacing:.14em; color:rgba(244,241,236,.55); }
   body.v #brand { display:none; } body.h #brand { left:120px; top:40px; }
   #brand.onlight { color:rgba(23,27,32,.5); }
+  /* AX 활용 예시 상단 고정 제목 · 단계 표시 (V3) */
+  .axbar { position:absolute; z-index:45; background:rgba(14,18,24,.92); border:1px solid rgba(232,201,149,.45); border-radius:22px; box-shadow:0 24px 50px -24px rgba(0,0,0,.7); color:#f4f1ec; }
+  .axbar .num { display:inline-block; padding:4px 16px; border-radius:10px; background:linear-gradient(180deg,#e8c995,#c9974f); color:#16110d; font-weight:800; letter-spacing:-.01em; margin-right:14px; }
+  .axbar .ttl { font-weight:800; letter-spacing:-.02em; }
+  .axbar .sub { color:rgba(244,241,236,.74); font-weight:600; }
+  .axbar .sub i { display:inline-block; width:10px; height:10px; border-radius:50%; background:#e07a5f; margin-right:10px; vertical-align:middle; }
+  .trk { position:absolute; z-index:45; display:flex; align-items:center; gap:0; }
+  .trk .pill { position:relative; border-radius:999px; white-space:nowrap; font-weight:800; letter-spacing:-.01em; }
+  .trk .pill > span { display:block; border-radius:999px; }
+  .trk .pill .l0 { background:rgba(14,18,24,.62); color:rgba(244,241,236,.62); border:1px solid rgba(255,255,255,.14); }
+  .trk .pill .l1 { position:absolute; inset:0; background:linear-gradient(180deg,#e8c995,#c9974f); color:#16110d; border:1px solid #e8c995; box-shadow:0 0 0 6px rgba(210,164,95,.22); }
+  .trk .pill .l2 { position:absolute; inset:0; background:rgba(14,18,24,.9); color:#e8c995; border:1px solid rgba(232,201,149,.55); }
+  .trk .ar { color:#c9974f; font-weight:900; text-shadow:0 1px 6px rgba(0,0,0,.35); }
   .guide { position:absolute; pointer-events:none; outline:2px dashed rgba(255,80,80,.7); display:none; z-index:99; }
   body.show-guide .guide { display:block; }
 </style></head>
@@ -102,6 +115,7 @@
   const SUBS = /*SUBS*/;
   const DUR = /*DUR*/;
   const LIGHT = /*LIGHT*/;
+  const HIDEBRAND = /*HIDEBRAND*/;
   if (new URLSearchParams(location.search).get('guide')) document.body.classList.add('show-guide');
   const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
   const eo = (x) => 1 - Math.pow(1 - x, 3);
@@ -182,6 +196,7 @@
     for (const f of focuses) { const [a, b] = f.dataset.focus.split(',').map(Number); f.style.opacity = Math.min(eo(clamp((t - a) / .4)), 1 - eo(clamp((t - b) / .4))); }
     const onLight = LIGHT.some(([a, b]) => t >= a + .3 && t < b - .2);
     brand.className = onLight ? 'onlight' : '';
+    brand.style.opacity = HIDEBRAND.some(([a, b]) => t >= a - .3 && t < b + .3) ? 0 : 1;
     const i = SUBS.findIndex(([a, b]) => t >= a - .12 && t < b + .12);
     if (i !== subIdx) { subIdx = i; if (i >= 0) subEl.innerHTML = esc(SUBS[i][2]).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
     if (i < 0) subEl.parentElement.style.opacity = 0;

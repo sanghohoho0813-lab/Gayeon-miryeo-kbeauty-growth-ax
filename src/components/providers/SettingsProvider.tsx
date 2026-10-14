@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 /* 화면 설정 — Theme(Canonical 7) / 글자 크기 / 모션 / 튜토리얼.
    localStorage 저장 + storage 이벤트로 PC 화면과 Mobile iframe 상태를 동일하게 유지한다. */
 
-import { AX_THEMES, SETTINGS_KEYS as K, normalizeTheme, type FontScale, type ThemeId } from "@/lib/themes";
+import { AX_THEMES, DEFAULT_THEME, SETTINGS_KEYS as K, normalizeTheme, type FontScale, type ThemeId } from "@/lib/themes";
 
 export { AX_THEMES, normalizeTheme };
 export type { FontScale, ThemeId };
@@ -32,7 +32,7 @@ function set(key: string, v: string | null) {
 }
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeId>("deep-navy");
+  const [theme, setThemeState] = useState<ThemeId>(DEFAULT_THEME);
   const [fontScale, setFontScaleState] = useState<FontScale>("default");
   const [reduceMotion, setReduceMotionState] = useState(false);
   const [tutorialSeen, setTutorialSeen] = useState(true); // SSR 중 비노출

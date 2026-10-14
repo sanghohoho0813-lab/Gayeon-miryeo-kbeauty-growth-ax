@@ -12,7 +12,7 @@ Customer Event → AX Decision(RULE) → Human Action → Result → Proof Event
 | MIRYEO AI Beauty | `/beauty` | 고객 (비회원: 익명 세션 / 회원: `/beauty/login`·`/beauty/me`, 동의 기반) |
 | 로그인 (Live) | `/login` | 구성원 |
 | AX Sprint II 심사 페이지 | `/review/ax-sprint2` | 심사위원 — 공개·읽기 전용·시연 데이터만 (D-068, `AX_SPRINT2_REVIEW_SOURCE.md`) |
-| AX Sprint II 소개 영상 | `/review/ax-sprint2/video` (+ 심사 페이지·홈 `/`에 같은 영상) | 담당자·심사위원 — V2 3분 37초, 세로 9:16·가로 16:9 원본 1080p, 자막 포함 (D-069 → V2 D-070, 제작 원본 `video/ax-sprint2/`) |
+| AX Sprint II 소개 영상 | `/review/ax-sprint2/video` (+ 심사 페이지·홈 `/`에 같은 영상) | 담당자·심사위원 — V3 3분 37초, 세로 9:16·가로 16:9 원본 1080p, 자막 포함 (D-069 → V2 D-070 → V3 D-072, 제작 원본 `video/ax-sprint2/`) |
 
 ## 실행
 ```bash
@@ -62,7 +62,9 @@ UI (src/app, src/components)
 - 구성원 관리 API(Live, 서버 전용 키): `src/app/api/org/members/route.ts`
 - Customer Event Bridge: `src/lib/customer-events.ts`
 - Device View (PC / Mobile / PC+Mobile): `src/components/device/DeviceView.tsx`
-- Canonical 7 Theme: `src/app/globals.css`, `src/components/providers/SettingsProvider.tsx`
+- Canonical 7 Theme: `src/app/globals.css`, `src/components/providers/SettingsProvider.tsx` — 기본 테마 = 오닉스 골드(`DEFAULT_THEME`, `src/lib/themes.ts`, D-071)
+- 고객 플랫폼 디자인: `CUSTOMER_UX_REDESIGN.md` (D-073) — 타이포 클래스 `.b-*`(`globals.css`), 개인화 근거 `useBeautyMemory`, 하단 시트 `BottomSheet`
+- 제품 사진: `public/images/products/*.webp`(Demo 제품 A~J, Drive「MIRYEO AI Beauty 이미지 작업물」) → `src/components/shared/ProductVisual.tsx`가 제품 ID로 연결, 사진 없는 제품은 SVG. 고객 홈 카드 이미지 `public/images/beauty/` (D-071)
 
 ## Project Memory
 `PROJECT_SPEC.md` · `PROJECT_STATE.md` · `STAGE2_DELIVERY_REPORT.md` · `STAGE3_DELIVERY_REPORT.md` · `DECISIONS.md` · `QA_REPORT.md` · `RECOMMENDATIONS.md` · `EVIDENCE_PLAN.md` · `AX_COACH_PLAN.md` · `PROOF_EVENT_SCHEMA.md` · `SETUP.md`

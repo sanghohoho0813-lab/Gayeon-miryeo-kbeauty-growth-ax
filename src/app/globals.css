@@ -6,7 +6,11 @@
    ========================================================================== */
 
 /* ---------- Canonical 7 Theme — v4.1 Hex ---------- */
-:root,
+/* 기본(속성 없음) = 오닉스 골드 (D-071). 아래 테마 규칙보다 먼저 두어야 같은 우선순위에서 선택한 테마가 이긴다 */
+:root {
+  --theme-shell: #15171C; --theme-primary: #343942; --theme-secondary: #6A717C;
+  --theme-accent: #B89032; --theme-highlight: #E0C76F; --theme-soft: #E6E8EC;
+}
 [data-ax-theme="deep-navy"] {
   --theme-shell: #0B1830; --theme-primary: #2457D6; --theme-secondary: #1687A7;
   --theme-accent: #17A889; --theme-highlight: #E7C873; --theme-soft: #DCE8F7;
@@ -116,9 +120,30 @@
   /* 글자·작은 배지용 금색 — 7개 테마 모두 흰색/웜 배경 대비 4.5:1 이상 (b-gold는 장식·테두리용) */
   --b-gold-ink: color-mix(in srgb, var(--theme-highlight) 40%, #2A1D03);
   --b-radius: 20px;
+  /* 리디자인 (D-073) — 색 추가 없이 본문색 기반 구분선 · 잉크 별칭 */
+  --b-line: color-mix(in srgb, var(--b-text) 12%, transparent);
+  --b-line-strong: color-mix(in srgb, var(--b-text) 22%, transparent);
+  --b-ink: var(--b-navy);
   background: var(--b-bg);
   color: var(--b-text);
 }
+/* 고객 앱 타이포그래피 위계: Display · Section · Product · Body · Caption */
+.beauty-scope .b-serif { font-family: Georgia, "Times New Roman", "Noto Serif KR", serif; }
+.beauty-scope .b-display { font-family: Georgia, "Times New Roman", "Noto Serif KR", serif; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; color: var(--b-ink); }
+.beauty-scope .b-section { font-family: Georgia, "Times New Roman", "Noto Serif KR", serif; font-weight: 600; line-height: 1.3; color: var(--b-ink); }
+.beauty-scope .b-eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--b-gold-ink); }
+.beauty-scope .b-body { font-size: 0.95rem; line-height: 1.7; color: var(--b-text-soft); }
+.beauty-scope .b-caption { font-size: 0.78rem; line-height: 1.5; color: var(--b-text-soft); }
+.beauty-scope .b-rule { border-top: 1px solid var(--b-line); }
+.beauty-scope .b-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 52px; padding: 0 1.6rem; border-radius: 999px; font-weight: 700; background: var(--b-ink); color: #fff; transition: transform 0.1s ease-out, background 0.15s ease-out; }
+.beauty-scope .b-btn:hover { background: var(--b-navy-hover); }
+.beauty-scope .b-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.beauty-scope .b-link { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 44px; font-weight: 700; color: var(--b-ink); text-decoration: underline; text-decoration-color: var(--b-gold); text-decoration-thickness: 1.5px; text-underline-offset: 6px; }
+.beauty-scope .b-link:hover { text-decoration-color: var(--b-ink); }
+@keyframes b-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes b-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.beauty-scope .b-step-in { animation: b-fade-in 0.32s ease-out both; }
+.b-sheet-up { animation: b-sheet-up 0.26s cubic-bezier(.2,.8,.2,1) both; }
 [data-ax-theme="pure-white"] .beauty-scope {
   --b-navy: #171B20;
   --b-navy-hover: #000000;

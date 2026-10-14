@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" data-ax-theme="deep-navy" suppressHydrationWarning>
+    <html lang="ko" data-ax-theme="onyx-gold" suppressHydrationWarning>
       <head>
         {/* 저장된 화면 설정을 첫 화면 전에 적용 (DECISIONS D-041) */}
         <script dangerouslySetInnerHTML={{ __html: SETTINGS_BOOT_SCRIPT }} />

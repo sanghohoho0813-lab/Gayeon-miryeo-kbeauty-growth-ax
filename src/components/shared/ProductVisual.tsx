@@ -1,7 +1,8 @@
 import type { ProductCategory } from "@/lib/types";
 
-/* 실제 제품 이미지가 없는 동안 사용하는 Premium Cosmetic Placeholder.
-   실제 이미지 수령 시 이 컴포넌트만 <Image>로 교체하면 된다. */
+/* 제품 이미지 — 제품별 실사 사진(public/images/products, 사용자 제공 MIRYEO 제품 이미지 작업물)이 있으면 사진,
+   없으면(새로 등록한 제품 등) Premium Cosmetic Placeholder(SVG)를 보여 준다.
+   사진은 모두 같은 틀(600×824, 같은 축척)로 잘라 두어 제품 크기 차이가 실제처럼 보인다. */
 
 const NAVY = "#1d2a44";
 const NAVY_DARK = "#141d31";
@@ -115,16 +116,43 @@ const visualByCategory: Record<ProductCategory, () => React.ReactNode> = {
   마스크: Mask,
 };
 
-/** 라인별로 앰플/에센스 형태를 다르게 보여 시각적 다양성 확보 */
+/** Demo 제품 ID → 실사 사진 파일 (public/images/products/{name}.webp) */
+const PRODUCT_PHOTOS: Record<string, string> = {
+  "p-ess-01": "essence-a", "p-amp-50": "ampoule-b", "p-crm-01": "cream-c", "p-cln-01": "cleanser-d", "p-ton-01": "toner-e",
+  "p-sun-01": "suncare-f", "p-msk-01": "mask-g", "p-amp-30": "ampoule-h", "p-crm-02": "cream-i", "p-mst-01": "mist-j",
+};
+export const PRODUCT_PHOTO_SIZE = { width: 600, height: 824 } as const;
+export function productPhotoSrc(productId?: string | null) {
+  const f = productId ? PRODUCT_PHOTOS[productId] : undefined;
+  return f ? `/images/products/${f}.webp` : null;
+}
+
+/** 실사 사진이 있으면 사진, 없으면 카테고리별 SVG (라인별로 앰플/에센스 형태를 다르게 보여 시각적 다양성 확보) */
 export function ProductVisual({
   category,
   variant = 0,
   className = "",
+  productId,
+  alt = "",
 }: {
   category: ProductCategory;
   variant?: number;
   className?: string;
+  /** 제품 ID — 실사 사진 연결 */
+  productId?: string;
+  /** 사진 대체 문구 — 옆에 제품 이름이 있으면 비워 둔다(장식) */
+  alt?: string;
 }) {
+  const photo = productPhotoSrc(productId);
+  if (photo) {
+    return (
+      <div className={`flex items-center justify-center ${className}`}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- 투명 배경 WebP 정적 파일, 크기 고정 */}
+        <img src={photo} alt={alt} width={PRODUCT_PHOTO_SIZE.width} height={PRODUCT_PHOTO_SIZE.height} loading="lazy" decoding="async"
+          className="h-full w-auto max-w-full object-contain drop-shadow-[0_14px_18px_rgba(40,30,15,0.18)]" />
+      </div>
+    );
+  }
   let node: React.ReactNode;
   if (category === "에센스/앰플" && variant % 2 === 1) node = <Essence />;
   else node = visualByCategory[category]();

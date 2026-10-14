@@ -20,14 +20,17 @@ export const LEGACY_THEME: Record<string, ThemeId> = {
   "steel-platinum": "pure-white",
 };
 
+/** 처음 쓰는 사람(저장된 선택 없음)의 기본 테마 — 오닉스 골드 (사용자 지시 2026-10-14, D-071) */
+export const DEFAULT_THEME: ThemeId = "onyx-gold";
+
 export function normalizeTheme(raw: string | null | undefined): ThemeId {
-  if (!raw) return "deep-navy";
+  if (!raw) return DEFAULT_THEME;
   if (AX_THEMES.some((t) => t.id === raw)) return raw as ThemeId;
-  return LEGACY_THEME[raw] ?? "deep-navy";
+  return LEGACY_THEME[raw] ?? DEFAULT_THEME;
 }
 
 export const SETTINGS_KEYS = { theme: "miryeo-ax-theme", font: "miryeo-ax-fontscale", motion: "miryeo-ax-motion", tutorial: "miryeo-ax-tutorial-v2" } as const;
 
 
 /** 첫 화면 그리기 전에 저장된 테마·글자 크기·모션 줄이기를 <html>에 적용 (hydration 후 적용하면 기본 테마가 잠깐 보이고, 모션 줄이기 사용자에게 첫 애니메이션이 재생됨) */
-export const SETTINGS_BOOT_SCRIPT = `(function(){try{var d=document.documentElement,s=localStorage,ids=${JSON.stringify(AX_THEMES.map((t) => t.id))},leg=${JSON.stringify(LEGACY_THEME)};var t=s.getItem(${JSON.stringify(SETTINGS_KEYS.theme)});t=ids.indexOf(t)>=0?t:(leg[t]||"deep-navy");d.setAttribute("data-ax-theme",t);var f=s.getItem(${JSON.stringify(SETTINGS_KEYS.font)});if(f==="small"||f==="large")d.setAttribute("data-fontscale",f);if(s.getItem(${JSON.stringify(SETTINGS_KEYS.motion)})==="reduce")d.setAttribute("data-motion","reduce");}catch(e){}})();`;
+export const SETTINGS_BOOT_SCRIPT = `(function(){try{var d=document.documentElement,s=localStorage,ids=${JSON.stringify(AX_THEMES.map((t) => t.id))},leg=${JSON.stringify(LEGACY_THEME)};var t=s.getItem(${JSON.stringify(SETTINGS_KEYS.theme)});t=ids.indexOf(t)>=0?t:(leg[t]||${JSON.stringify(DEFAULT_THEME)});d.setAttribute("data-ax-theme",t);var f=s.getItem(${JSON.stringify(SETTINGS_KEYS.font)});if(f==="small"||f==="large")d.setAttribute("data-fontscale",f);if(s.getItem(${JSON.stringify(SETTINGS_KEYS.motion)})==="reduce")d.setAttribute("data-motion","reduce");}catch(e){}})();`;

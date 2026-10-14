@@ -1,8 +1,8 @@
-/* AX Sprint II 담당자·심사위원용 소개 영상 — V2 (PASS 18, D-070 · V1은 PASS 17, D-069)
+/* AX Sprint II 담당자·심사위원용 소개 영상 — V3 (PASS 19, D-072 · V2 PASS 18 D-070 · V1 PASS 17 D-069)
    - 원본 1080p 두 가지 비율: 세로 9:16(1080×1920) · 가로 16:9(1920×1080), 자막은 영상 안에 들어 있다.
    - 파일은 public/media/ax-sprint2/ 에 둔다 (같은 주소에서 재생·내려받기, 외부 서비스 없음).
    - 제품 사진은 실제 MIRYEO 제품, 영상 속 재고·판매·생산 수치는 시연용(Demo·샘플) 자료다.
-   - 파일 이름의 _v2 는 브라우저·CDN 캐시가 옛 영상을 보여 주지 않게 하려는 것 (바꿀 때 _v3 …). */
+   - 파일 이름의 _v3 는 브라우저·CDN 캐시가 옛 영상을 보여 주지 않게 하려는 것 (바꿀 때 _v4 …). */
 
 export type VideoFormat = "v" | "h";
 
@@ -21,8 +21,8 @@ export const REVIEW_VIDEO = {
   company: "주식회사 가연인터내셔널",
   durationSec: 217.03,
   files: {
-    v: { src: "/media/ax-sprint2/gayeon-miryeo-ax-sprint2_9x16_v2.mp4", poster: "/media/ax-sprint2/poster_9x16_v2.jpg", downloadName: "가연인터내셔널_MIRYEO_AX소개_세로9x16.mp4", sizeMB: 35, width: 1080, height: 1920 },
-    h: { src: "/media/ax-sprint2/gayeon-miryeo-ax-sprint2_16x9_v2.mp4", poster: "/media/ax-sprint2/poster_16x9_v2.jpg", downloadName: "가연인터내셔널_MIRYEO_AX소개_가로16x9.mp4", sizeMB: 37, width: 1920, height: 1080 },
+    v: { src: "/media/ax-sprint2/gayeon-miryeo-ax-sprint2_9x16_v3.mp4", poster: "/media/ax-sprint2/poster_9x16_v3.jpg", downloadName: "가연인터내셔널_MIRYEO_AX소개_세로9x16.mp4", sizeMB: 35, width: 1080, height: 1920 },
+    h: { src: "/media/ax-sprint2/gayeon-miryeo-ax-sprint2_16x9_v3.mp4", poster: "/media/ax-sprint2/poster_16x9_v3.jpg", downloadName: "가연인터내셔널_MIRYEO_AX소개_가로16x9.mp4", sizeMB: 38, width: 1920, height: 1080 },
   } as Record<VideoFormat, ReviewVideoFile>,
   /** 영상 흐름 — 누르면 그 장면부터 재생 (초, 장면 경계) */
   chapters: [
@@ -30,10 +30,10 @@ export const REVIEW_VIDEO = {
     { t: 20.82, label: "회사 소개 · 매장·해외 판매" },
     { t: 35.25, label: "성장하며 생긴 고민" },
     { t: 53.19, label: "데이터를 한곳에 연결" },
-    { t: 64.11, label: "실제 개발 화면 (시연용 수치)" },
+    { t: 64.11, label: "실제 개발 화면 · AX 활용 예시 ①" },
     { t: 74.53, label: "재고만 보면 95일, 함께 계산하면" },
     { t: 87.89, label: "생산 검토 D-4 · 추천 생산량" },
-    { t: 94.69, label: "상황이 바뀌면 판단도 바뀝니다" },
+    { t: 94.69, label: "AX 활용 예시 ② · 조건이 바뀌면 다시 계산" },
     { t: 103.85, label: "핵심 — 미리 판단" },
     { t: 115.29, label: "고객 관심도 함께 판단" },
     { t: 134.03, label: "제안 → 확인·실행 → 다음 판단" },
