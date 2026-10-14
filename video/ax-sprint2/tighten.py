@@ -11,10 +11,10 @@ while i < n:
         j = i
         while j < n and sil[j]: j += 1
         a, b = i * .01, j * .01
-        if b - a >= .35 and a > .05 and b < n * .01 - .05: runs.append((a, b))
+        if b - a >= .30 and a > .05 and b < n * .01 - .05: runs.append((a, b))
         i = j
     else: i += 1
-KEEP, RATIO = .35, .55
+KEEP, RATIO = .30, .40
 cuts = []
 for a, b in runs:
     L = b - a; newL = KEEP + (L - KEEP) * RATIO; cut = L - newL

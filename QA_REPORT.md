@@ -1,4 +1,4 @@
-# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 17)
+# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 18)
 
 DATE: 2026-10-13 · Next.js 16.4.0 · MODE TESTED: DEMO + LIVE(로컬 Supabase 호환 스택) · BROWSER: Chromium (Playwright)
 
@@ -9,6 +9,8 @@ DATE: 2026-10-13 · Next.js 16.4.0 · MODE TESTED: DEMO + LIVE(로컬 Supabase �
 | `npm run build` (Next 16, Turbopack) | PASS |
 | `npm audit` | 0 vulnerabilities (2026-10-14, PASS 15) |
 | **Live E2E** `supabase/tests/live-e2e/run.sh` (Supabase Auth 실서버 + 호환 게이트웨이 + 실제 RLS) | **PASS 96/96** (A 9 + B 87 — PASS 16: 심사 페이지 추가 후 재실행 동일 통과. PASS 15: 운영 기준값 저장 → organizations.planning(차이만)·생산 판단 반영·관리자 API 수정 0행(RLS)·기본값으로 null. PASS 14: 보고 모드가 Live 데이터로 9장 생성·LIVE 표시·DEMO 경고 없음. PASS 13: 알림 센터가 Live 데이터에서 계산·개수 일치·위험순·화면 연결. PASS 11: 상품·채널 0개인 첫날 판매 파일 가져오기 표시, Live에 샘플 연습 없음, 상품 파일 재고 열 → inventory(새 상품 UUID 연결·빈 칸은 재고 미생성), 샘플 자료 혼입 시 품질 점검 오류 포함) |
+| **PASS 18 소개 영상 V2 파일** (ffmpeg 검사) | 세로 1080×1920 · 가로 1920×1080 · H.264 High · 30fps · AAC 48kHz · **217.03초** · -14.1 LUFS · 표본 피크 -3.4 dBFS · 끝 2초 -91 dB(무음) · 병렬 렌더 이음매(1626/1627·3254/3255·4882/4883 프레임) 이상 없음 · 자막 2줄 초과 0 · 0.9초 미만 0 · 대본-음성 글자 일치 98.5%(자막 글자는 사용자 대본 그대로) |
+| **PASS 18 영상 페이지** `qa-video` (PASS 17 항목 + V2 파일 `_v2.mp4` 200·video/mp4·Range 206, 새 포스터 2개, **V1 mp4·포스터 404(삭제 확인)**, 영상 흐름 15개, '미리 판단' 103.85초, 길이 217.0초) · `qa-video-play` (WebM 대리 파일: 길이 217.0초, '고객 관심' 115.29초부터 1.25배 재생·현재 장면 표시, 비율 전환 위치·속도·멈춤 유지) · `qa-review` 80/80 · `qa-routes` CLEAN · `qa-a11y` CLEAN · typecheck·build PASS | PASS 43/43 · 7/7 |
 | **PASS 17 소개 영상 파일** (ffmpeg 검사) | 세로 1080×1920 · 가로 1920×1080 · H.264 High · 30fps · AAC 48kHz · 230.87초 · -14.1 LUFS · 표본 피크 -2.0 dBFS · 끝 2초 -91 dB(무음) · 병렬 렌더 이음매 프레임 동일 · 자막 2줄 초과 0 · 대본-음성 글자 일치 99.2% |
 | **PASS 17 소개 영상 페이지** `qa-video` (`/review/ax-sprint2/video` 200·noindex·제목·회사명, 영상 2개 200·video/mp4·**Range 206**, 포스터 2개, PC는 가로로 시작·모바일 3화면은 세로로 시작, 1.5배 속도, 영상 흐름 14개, 세로 전환 → 세로 파일, 내려받기 2개(파일 이름·35MB/37MB), 내부 용어 없음, axe 0(PC·390 × 3화면), 가로 넘침 0, 버튼 ≥ 44px, 콘솔·페이지 오류 0, 심사 페이지 영상 섹션·상단 이동·HERO 버튼 이동, 홈 영상 섹션·기존 진입 카드 유지) | PASS 40/40 |
 | **PASS 17 재생 동작** `qa-video-play` (시험 Chromium은 H.264 미지원 → 같은 길이 WebM 대리 파일을 Range 서버로 바꿔 끼움: 길이 230.9초, 장면 누르면 131.6초부터 재생·1.25배·현재 장면 표시, 세로로 바꿔도 위치·속도 이어서 재생, 멈춘 상태 전환 시 위치·멈춤 유지, 처음으로) | PASS 7/7 |
