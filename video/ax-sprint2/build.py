@@ -112,6 +112,11 @@ def ui_rect(bx, by, vw, crop, r):
     """앱 화면 안 요소(r=x,y,w,h CSS) → 영상 좌표 (브라우저 bx,by,폭 vw / 보기 영역 위 40px 막대)"""
     k = vw / crop[2]
     return (round(bx + (r[0] - crop[0]) * k), round(by + 40 + (r[1] - crop[1]) * k), round(r[2] * k), round(r[3] * k))
+# V7: 특허 출원번호 (사용자 제공 2026-10-15) — 영상 처음 5초 + 장면 10 'AX 시스템 개발 중' 옆
+PATENT_NO = "10-2026-0198281"
+def patent(tin, tout, size, style="", cls="patent abs", a="up"):
+    return (f'<div class="{cls}" style="font-size:{size}px;{style}" {A(tin, tout, a)}>'
+            f'<span class="pl">특허출원</span><span class="pn">{PATENT_NO}</span></div>')
 def stagepill(txt, c, tin, tout, style, a="up", extra=""):
     """[현재 구현] [도입·검증 중] [향후 고도화] 표시"""
     return el("stage abs", txt, tin, tout, f"{style};--c:{c}", a, extra)
@@ -157,6 +162,7 @@ scene(a, b, "\n".join([
     el("h3 abs dim", "주식회사", a + .25, b, f"left:{BX}px;top:{pv(940, 310)}px"),
     el("h1 abs", "가연인터내셔널", a + .35, b, f"left:{BX}px;top:{pv(1010, 380)}px;font-size:{pv(118, 124)}px"),
     chip("중진공 **AX 스프린트 II** 신청", I("이 영상은"), b, f"left:{BX}px;top:{pv(1170, 560)}px", a="up"),
+    patent(a + .5, 5.0, pv(52, 46), f"left:{BX}px;top:{pv(150, 648)}px"),
 ]))
 
 # ───────── 2. 이 영상의 목적 — 두 가지 질문 + 보조자료 ─────────
@@ -328,7 +334,12 @@ if v:
 else:
     parts.append(svg(arrow(hx + 115, hy, 1330, hy, k4, k4 + .8, 7), k4, b))
     parts.append(el("node abs hi", "다음 할 일을\n**미리 판단**", k4 + .5, b, f"left:1350px;top:{hy - 90}px;width:440px", "scale"))
-parts.append(el("h1 abs", "**AX 시스템** 개발 중", k5, b, f"left:{BX}px;top:{pv(250, 96)}px;font-size:{pv(88, 80)}px", "up"))
+# V7: 'AX 시스템 개발 중' 옆(세로형은 아래)에 특허 출원번호 크게 + 효과음(mix_music.sh PAT_AT) — 다음 장면으로 넘어가며 같이 사라짐
+PAT_IN = k5 + .35
+parts.append(f'<div class="abs" style="left:{BX}px;top:{pv(250, 96)}px;display:flex;{"flex-direction:column;align-items:flex-start;gap:14px" if v else "align-items:center;gap:40px"}">'
+             + el("h1", "**AX 시스템** 개발 중", k5, b, f"font-size:{pv(88, 80)}px;white-space:nowrap", "up")
+             + patent(PAT_IN, b, pv(56, 58), cls="patent", a="scale") + '</div>')
+open("out/patent_at.txt", "w").write(f"{PAT_IN:.2f}")
 scene(a, b, "\n".join(parts))
 
 # ───────── 11. 실제 화면 — 개발·검증 중인 시험버전 (PC 대시보드 + 모바일 상품 목록 · 오닉스 골드 · 실사 제품 사진) ─────────

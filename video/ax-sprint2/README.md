@@ -1,4 +1,12 @@
-# AX 스프린트 II 담당자용 소개 영상 — 제작 원본 (V6, D-078 · V5 D-077 · V4 D-074 · V3 D-072 · V2 D-070 · V1 D-069)
+# AX 스프린트 II 담당자용 소개 영상 — 제작 원본 (V7, D-079 · V6 D-078 · V5 D-077 · V4 D-074 · V3 D-072 · V2 D-070 · V1 D-069)
+
+## V7 (PASS 24, D-079) — 특허 출원번호 표시 (V6에서 두 구간만)
+- `build.py` `patent()` · `PATENT_NO` — 장면 1(0.5~5.0초) + 장면 10('AX 시스템 개발 중' 옆, 세로형은 아래, `out/patent_at.txt` 시각), CSS `.patent`(`comp.tpl.html`)
+- 효과음: `mix_music.sh` `PAT_AT`(= patent_at − 0.3초)에 V6와 같은 `sfx_raw.wav`
+- 빠른 렌더: 바뀐 구간만 `render.mjs`로 렌더(0~191, 1642~2075/2076 프레임 — 기존 영상 키프레임 경계) → 기존 영상은 `-f segment -segment_frames`로 잘라 → concat `-c copy` → 음성 교체. 다시 처음부터 만들 때는 `render_all.sh` 그대로 써도 같은 결과
+- 결과: `public/media/ax-sprint2/*_v7.mp4` · `poster_*_v7.jpg` (V6 mp4 삭제)
+
+---
 
 ## V6 (PASS 23, D-078) — 'AX 활용 예시' 2초 안내 카드 + 상단 바 위치 이동
 - 69.0초('…시험버전입니다.' 끝 ↔ '제품 이미지는…' 시작 사이)에 2초 쉼 삽입: `shift_v6.py` (나레이션·자막·글자 시각을 그 뒤로 +2초, 원본 `*_v5` 보관) → 길이 217.03 → 219.03초

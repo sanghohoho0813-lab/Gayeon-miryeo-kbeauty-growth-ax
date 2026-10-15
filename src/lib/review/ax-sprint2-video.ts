@@ -1,8 +1,8 @@
-/* AX Sprint II 담당자·심사위원용 소개 영상 — V6 (PASS 23, D-078 'AX 활용 예시' 2초 안내 카드 · V5 PASS 22 D-077 배경음악 · V4 PASS 20 D-074 · V3 PASS 19 D-072 · V2 PASS 18 D-070 · V1 PASS 17 D-069)
+/* AX Sprint II 담당자·심사위원용 소개 영상 — V7 (PASS 24, D-079 특허 출원번호 표시 · V6 PASS 23 D-078 'AX 활용 예시' 2초 안내 카드 · V5 PASS 22 D-077 배경음악 · V4 PASS 20 D-074 · V3 PASS 19 D-072 · V2 PASS 18 D-070 · V1 PASS 17 D-069)
    - 원본 1080p 두 가지 비율: 세로 9:16(1080×1920) · 가로 16:9(1920×1080), 자막은 영상 안에 들어 있다.
    - 파일은 public/media/ax-sprint2/ 에 둔다 (같은 주소에서 재생·내려받기, 외부 서비스 없음).
    - 제품 사진은 실제 MIRYEO 제품, 영상 속 재고·판매·생산 수치는 시연용(Demo·샘플) 자료다.
-   - 파일 이름의 _v6 는 브라우저·CDN 캐시가 옛 영상을 보여 주지 않게 하려는 것 (바꿀 때 _v7 …). */
+   - 파일 이름의 _v7 는 브라우저·CDN 캐시가 옛 영상을 보여 주지 않게 하려는 것 (바꿀 때 _v8 …). */
 
 export type VideoFormat = "v" | "h";
 
@@ -21,8 +21,8 @@ export const REVIEW_VIDEO = {
   company: "주식회사 가연인터내셔널",
   durationSec: 219.03,
   files: {
-    v: { src: "/media/ax-sprint2/gayeon-miryeo-ax-sprint2_9x16_v6.mp4", poster: "/media/ax-sprint2/poster_9x16_v6.jpg", downloadName: "가연인터내셔널_MIRYEO_AX소개_세로9x16.mp4", sizeMB: 36, width: 1080, height: 1920 },
-    h: { src: "/media/ax-sprint2/gayeon-miryeo-ax-sprint2_16x9_v6.mp4", poster: "/media/ax-sprint2/poster_16x9_v6.jpg", downloadName: "가연인터내셔널_MIRYEO_AX소개_가로16x9.mp4", sizeMB: 39, width: 1920, height: 1080 },
+    v: { src: "/media/ax-sprint2/gayeon-miryeo-ax-sprint2_9x16_v7.mp4", poster: "/media/ax-sprint2/poster_9x16_v7.jpg", downloadName: "가연인터내셔널_MIRYEO_AX소개_세로9x16.mp4", sizeMB: 37, width: 1080, height: 1920 },
+    h: { src: "/media/ax-sprint2/gayeon-miryeo-ax-sprint2_16x9_v7.mp4", poster: "/media/ax-sprint2/poster_16x9_v7.jpg", downloadName: "가연인터내셔널_MIRYEO_AX소개_가로16x9.mp4", sizeMB: 39, width: 1920, height: 1080 },
   } as Record<VideoFormat, ReviewVideoFile>,
   /** 영상 흐름 — 누르면 그 장면부터 재생 (초, 장면 경계) */
   chapters: [
