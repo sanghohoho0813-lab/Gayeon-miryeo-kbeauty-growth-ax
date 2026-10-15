@@ -127,7 +127,11 @@ starts = ["담당자님께서", "약 3분", "저희 가연인터내셔널은", "
           "저희가 만들고", "이미 일어난 일을", "향후 내부에서", "바쁘신 가운데"]
 B = [0.0] + [S[si(p)] for p in starts] + [DUR]
 X = 0.25
-def T(i): return B[i], (B[i + 1] + X if i + 1 < len(B) - 1 else DUR)
+# V6: 장면 11('지금 보시는 화면은')과 12('제품 이미지는') 사이 69.0초에 2초 쉼 (shift_v6.py) — 가운데 글자 'AX 활용 예시를 보여드리겠습니다'
+INS, INS_D = 69.0, 2.0
+def T(i):
+    if i == 10: return B[10], INS + X      # 장면 11은 쉼 직전까지
+    return B[i], (B[i + 1] + X if i + 1 < len(B) - 1 else DUR)
 I = lambda p: S[si(p)]
 
 def png_css(name):   # @2x 캡처의 CSS 크기
@@ -339,6 +343,16 @@ parts.append(chip("실제 회사 업무 적용 목표", I("지금 보시는") + 
 parts.append(note(a + .5, b))
 scene(a, b, "\n".join(parts), "L")
 
+# ───────── 11-2. 쉼 2초 — 가운데 글자만: AX 활용 예시를 보여드리겠습니다 (나레이션 멈춤 · 배경음악 계속 · 효과음 살짝) ─────────
+a, b = INS - .05, B[11] + X
+cy = pv(H // 2, H // 2)
+parts = [f'<div class="abs" style="left:{pv(-260, 360)}px;top:{pv(560, 40)}px;width:{pv(1600, 1200)}px;height:{pv(800, 1000)}px;border-radius:50%;background:radial-gradient(closest-side, rgba(210,164,95,.20), transparent)" {A(a, b, "fade")}></div>',
+         el("abs", "AX 활용 예시", a + .1, b, f"left:0;right:0;top:{cy - pv(150, 128)}px;text-align:center", "fade", raw=True).replace('>AX 활용 예시<', '><span style="display:inline-block;padding:6px 20px;border-radius:12px;background:linear-gradient(180deg,#e8c995,#c9974f);color:#16110d;font-size:' + str(pv(30, 28)) + 'px;font-weight:800;letter-spacing:-.01em">AX 활용 예시</span><'),
+         el("h2 abs", pv("AX 활용 예시를\n보여드리겠습니다", "AX 활용 예시를 보여드리겠습니다"), a + .2, b, f"left:0;right:0;top:{cy - pv(70, 52)}px;text-align:center;font-size:{pv(72, 76)}px;color:#f4f1ec", "up"),
+         f'<div class="abs" style="left:{W // 2 - 60}px;top:{cy + pv(130, 60)}px;width:120px;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,#d2a45f,transparent)" {A(a + .35, b, "fade")}></div>',
+         el("abs", "재고와 생산시점 판단", a + .45, b, f"left:0;right:0;top:{cy + pv(156, 86)}px;text-align:center;font-size:{pv(34, 32)}px;font-weight:700;color:var(--gold-soft);letter-spacing:.02em", "fade")]
+scene(a, b, "\n".join(parts))
+
 # ───────── 12. 제품 이미지 = 실제 제품 · 분석 숫자 = 시연용 ─────────
 a, b = T(11)
 kp1, kn1, kn2 = K("실제 제품"), K("분석 숫자"), K("시연용 자료")
@@ -515,8 +529,8 @@ parts = [browser(bx_, by_, bw, bh, shots, a, b, "MIRYEO · AX SPRINT II 심사 �
 scene(a, b, "\n".join(parts), "L")
 
 # ───────── AX 활용 예시 상단 고정 제목 (장면 11~16) + ① 단계 표시 (장면 13~15) ─────────
-s1a, s1b, s2b = B[10], B[15] + X, B[16] + X       # ①: '지금 보시는 화면은' ~ '최근 판매속도가' 직전 · ②: ~ '즉, 단순히 지금' 직전
-HIDE = [[s1a, s2b]]
+s1a, s1b, s2b = B[11] - .1, B[15] + X, B[16] + X   # V6 ①: '제품 이미지는'(쉼 뒤)부터 ~ '최근 판매속도가' 직전 · ②: ~ '즉, 단순히 지금' 직전
+HIDE = [[INS - .1, s2b]]                            # 가로형 상단 회사명 줄: 쉼 카드부터 예시 끝까지 숨김
 def axbar(n, ttl, sub, tin, tout):
     if v:
         st = f"left:{BX}px;top:48px;width:{BW}px;padding:18px 28px 16px"

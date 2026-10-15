@@ -12,7 +12,7 @@ Customer Event → AX Decision(RULE) → Human Action → Result → Proof Event
 | MIRYEO AI Beauty | `/beauty` | 고객 (비회원: 익명 세션 / 회원: `/beauty/login`·`/beauty/me`, 동의 기반) |
 | 로그인 (Live) | `/login` | 구성원 |
 | AX Sprint II 심사 페이지 | `/review/ax-sprint2` | 심사위원 — 공개·읽기 전용·시연 데이터만 (D-068, `AX_SPRINT2_REVIEW_SOURCE.md`) |
-| AX Sprint II 소개 영상 | `/review/ax-sprint2/video` (+ 심사 페이지·홈 `/`에 같은 영상) | 담당자·심사위원 — V3 3분 37초, 세로 9:16·가로 16:9 원본 1080p, 자막 포함 (D-069 → V2 D-070 → V3 D-072, 제작 원본 `video/ax-sprint2/`) |
+| AX Sprint II 소개 영상 | `/review/ax-sprint2/video` (+ 심사 페이지·홈 `/`에 같은 영상) | 담당자·심사위원 — V6 3분 39초, 세로 9:16·가로 16:9 원본 1080p, 자막·배경음악 포함 (D-069 → V2 D-070 → V3 D-072 → V4 D-074 → V5 D-077 → V6 D-078, 제작 원본 `video/ax-sprint2/`) |
 
 ## 실행
 ```bash
