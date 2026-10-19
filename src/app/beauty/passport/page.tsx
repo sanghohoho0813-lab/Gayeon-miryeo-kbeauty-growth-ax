@@ -11,6 +11,7 @@ import { ProductVisual } from "@/components/shared/ProductVisual";
 import { useCustomerSession } from "@/components/beauty/CustomerSession";
 import { customerApi } from "@/lib/customer-account";
 import type { SavedRecommendation } from "@/lib/types";
+import { RepurchaseList, useMyRepurchase } from "@/components/beauty/Repurchase";
 
 /** 비회원 Passport는 이 브라우저에만 저장 — 회원 전환 안내 (한 줄, 상자 없이) */
 function MemberBanner() {
@@ -31,6 +32,7 @@ function MemberBanner() {
 export default function PassportPage() {
   const mem = useBeautyMemory();
   const { products } = useBeautyData();
+  const rep = useMyRepurchase();
   const [history, setHistory] = useState<SavedRecommendation[] | null>(null);
   useEffect(() => {
     if (!mem.member) return;
@@ -42,7 +44,7 @@ export default function PassportPage() {
   const viewedProducts = mem.viewed.map(find).filter((p): p is NonNullable<typeof p> => Boolean(p));
   const routineProducts = mem.result ? mem.result.productIds.map(find).filter((p): p is NonNullable<typeof p> => Boolean(p)) : [];
   const result = mem.result;
-  const hasData = mem.concerns.length > 0 || mem.wishlist.length > 0 || !!result || mem.viewed.length > 0;
+  const hasData = mem.concerns.length > 0 || mem.wishlist.length > 0 || !!result || mem.viewed.length > 0 || rep.items.length > 0;
   const count = history?.length ?? (result ? 1 : 0);
 
   return (
@@ -148,8 +150,16 @@ export default function PassportPage() {
         </Section>
       )}
 
+      {/* 다시 구매할 시점 — 회원 구매 기록이 있으면 실제 기록 기준(D-081), 없으면 아래 루틴 기반 제안 */}
+      {rep.items.length > 0 && (
+        <Section id="repurchase" eyebrow="REPURCHASE" title="다시 구매할 시점" sub="구매일과 제품 사용기간으로 계산한 예상 시점이에요">
+          <div data-testid="passport-repurchase"><RepurchaseList items={rep.items} limit={4} /></div>
+          <Link href="/beauty/me" className="b-link mt-3">마이페이지에서 구매 기록 관리 <ArrowRight size={15} aria-hidden /></Link>
+        </Section>
+      )}
+
       {/* 다시 구매할 제품 (루틴 기반 제안) */}
-      {routineProducts.length > 0 && (
+      {rep.items.length === 0 && routineProducts.length > 0 && (
         <Section eyebrow="REPURCHASE" title="다시 구매할 제품" sub="추천 루틴에 담긴 제품을 다시 찾기 쉽게 모아두었어요">
           <Grid>{routineProducts.slice(0, 4).map((p) => <BeautyProductCard key={p.id} product={p} aiBadge="재구매 추천" />)}</Grid>
         </Section>

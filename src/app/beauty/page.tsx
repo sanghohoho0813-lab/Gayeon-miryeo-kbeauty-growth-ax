@@ -7,6 +7,7 @@ import { CONCERNS } from "@/components/beauty/concerns";
 import { isFeatured, useBeautyData } from "@/components/beauty/BeautyDataProvider";
 import { ProductVisual } from "@/components/shared/ProductVisual";
 import { formatDay, STEP_LABEL, useBeautyMemory } from "@/components/beauty/useBeautyMemory";
+import { RepurchaseNotice } from "@/components/beauty/Repurchase";
 
 /* 고객 홈 — "오늘의 나를 위한 개인화 뷰티 홈" (D-073)
    ① 오늘의 메시지 ② 1분 피부 상담(Finder) ③ 최근 추천 루틴 ④ 나의 피부 고민 ⑤ 추천 제품 ⑥ 뷰티 패스포트
@@ -22,6 +23,8 @@ export default function BeautyHome() {
 
   return (
     <div>
+      {/* 회원 재구매 시점 (D-081) — 본인 구매 기록이 있고 시점이 가까울 때만 */}
+      <RepurchaseNotice />
       {/* ① 오늘의 메시지 — 큰 제목 · 짧은 설명 · CTA 2개 · 큰 사진 */}
       <section className="grid items-center gap-8 pt-8 @3xl:grid-cols-[1.05fr_1fr] @3xl:gap-12 @3xl:pt-14">
         <div className="order-2 @3xl:order-1">
