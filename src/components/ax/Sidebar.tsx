@@ -31,9 +31,15 @@ export function NavList({ onNavigate, dense = false }: { onNavigate?: () => void
                     className={`group relative flex items-center gap-3 rounded-[10px] px-3 transition-colors duration-150 hover:bg-[var(--sidebar-hover-bg)] ${active ? "font-semibold" : "font-medium"} ${dense ? "min-h-[38px] text-[0.92rem]" : "min-h-[44px] text-[0.98rem]"}`}
                     style={active ? { background: "var(--sidebar-active-bg)", color: "var(--sidebar-active-text)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.04)" } : { color: "var(--sidebar-text)" }}
                   >
-                    {active && <span className="absolute -left-1 top-2.5 bottom-2.5 w-[3px] rounded-full" style={{ background: "var(--wordmark)" }} aria-hidden />}
-                    {/* 아이콘은 한 가지 색 (PASS 26, D-083) — 선택된 메뉴만 강조색 */}
-                    <item.icon size={dense ? 17 : 19} strokeWidth={active ? 2.2 : 1.8} className="shrink-0 transition-opacity" style={{ color: active ? "var(--wordmark)" : "currentColor", opacity: active ? 1 : 0.72 }} aria-hidden />
+                    {active && <span className="absolute -left-1 top-2.5 bottom-2.5 w-[3px] rounded-full" style={{ background: group.hue }} aria-hidden />}
+                    {/* 목차(그룹)별 색 아이콘 칸 (PASS 26b, 사용자 요청) — 옅은 색 바탕 + 같은 색 테두리 + 색 아이콘, 선택된 메뉴는 조금 진하게 */}
+                    <span
+                      className={`flex shrink-0 items-center justify-center rounded-[8px] border transition-colors ${dense ? "h-7 w-7" : "h-8 w-8"}`}
+                      style={{ background: `color-mix(in srgb, ${group.hue} ${active ? 30 : 15}%, transparent)`, borderColor: `color-mix(in srgb, ${group.hue} ${active ? 55 : 32}%, transparent)`, color: `color-mix(in srgb, ${group.hue} 80%, var(--sidebar-icon-tint))` }}
+                      aria-hidden
+                    >
+                      <item.icon size={dense ? 15 : 17} strokeWidth={2} />
+                    </span>
                     {item.label}
                   </Link>
                 </li>

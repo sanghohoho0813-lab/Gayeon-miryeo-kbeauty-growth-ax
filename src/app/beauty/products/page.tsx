@@ -18,10 +18,12 @@ function ProductsInner() {
   const initialConcern = searchParams.get("concern") as SkinConcern | null;
   const initialCategory = searchParams.get("category");
   const focusSearch = searchParams.get("focus") === "search";
+  const initialSort = searchParams.get("sort") === "new" ? "신제품순" : "추천순";
+  const [bestOnly, setBestOnly] = useState(searchParams.get("best") === "1");
 
   const [concern, setConcern] = useState<SkinConcern | "전체">(initialConcern ?? "전체");
   const [category, setCategory] = useState(initialCategory ?? "전체");
-  const [sort, setSort] = useState<(typeof SORTS)[number]>("추천순");
+  const [sort, setSort] = useState<(typeof SORTS)[number]>(initialSort);
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (focusSearch) searchRef.current?.focus(); }, [focusSearch]);
 
@@ -35,6 +37,7 @@ function ProductsInner() {
       (p) =>
         (concern === "전체" || p.concerns.includes(concern)) &&
         (category === "전체" || p.category === category) &&
+        (!bestOnly || !!p.isBest) &&
         (!query || `${p.name} ${p.category} ${p.line ?? ""} ${p.concerns.join(" ")}`.toLowerCase().includes(query))
     );
     switch (sort) {
@@ -53,8 +56,8 @@ function ProductsInner() {
         );
     }
     return result;
-  }, [products, concern, category, sort, q]);
-  const filtered = concern !== "전체" || category !== "전체" || q.trim() !== "";
+  }, [products, concern, category, sort, q, bestOnly]);
+  const filtered = concern !== "전체" || category !== "전체" || q.trim() !== "" || bestOnly;
 
   return (
     <div className="pt-4 @3xl:pt-8">
@@ -79,6 +82,7 @@ function ProductsInner() {
         </div>
         {/* 제품 종류 */}
         <div className="b-rail mt-1 !gap-2 !pb-1" role="group" aria-label="제품 종류 필터">
+          <FilterChip label="BEST만" small on={bestOnly} onClick={() => setBestOnly((v) => !v)} />
           {categories.map((c) => (
             <FilterChip key={c} label={c === "전체" ? "전체 종류" : c} small on={category === c} onClick={() => setCategory(c)} />
           ))}
@@ -88,7 +92,7 @@ function ProductsInner() {
       <div className="mt-3 flex items-center justify-between gap-3">
         <p className="text-[0.9rem] font-bold">
           총 <span className="tabular" style={{ color: "var(--b-rose-ink)" }}>{list.length}</span>개
-          {filtered && <button onClick={() => { setConcern("전체"); setCategory("전체"); setQ(""); }} className="ml-2 inline-flex min-h-[36px] items-center gap-0.5 text-[0.8rem] font-semibold" style={{ color: "var(--b-text-soft)" }}><X size={14} aria-hidden /> 필터 해제</button>}
+          {filtered && <button onClick={() => { setConcern("전체"); setCategory("전체"); setQ(""); setBestOnly(false); }} className="ml-2 inline-flex min-h-[36px] items-center gap-0.5 text-[0.8rem] font-semibold" style={{ color: "var(--b-text-soft)" }}><X size={14} aria-hidden /> 필터 해제</button>}
         </p>
         <label className="flex items-center gap-2 text-[0.84rem] font-semibold" style={{ color: "var(--b-text-soft)" }}>
           <span className="sr-only">정렬</span>
@@ -99,7 +103,7 @@ function ProductsInner() {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-7 @xl:grid-cols-3 @3xl:grid-cols-4 @3xl:gap-x-5 @3xl:gap-y-9">
-        {list.map((p) => <BeautyProductCard key={p.id} product={p} aiBadge={p.isBest ? "AI 추천" : undefined} />)}
+        {list.map((p) => <BeautyProductCard key={p.id} product={p} />)}
       </div>
       {list.length === 0 && (
         <div className="py-16 text-center">

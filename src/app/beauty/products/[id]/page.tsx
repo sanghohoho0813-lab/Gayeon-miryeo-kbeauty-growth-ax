@@ -10,6 +10,7 @@ import { CONCERNS } from "@/components/beauty/concerns";
 import { formatDay, useBeautyMemory } from "@/components/beauty/useBeautyMemory";
 import { ProductVisual } from "@/components/shared/ProductVisual";
 import { CONCERN_TINT, SectionHead } from "@/components/beauty/ui";
+import { snack } from "@/components/beauty/Snackbar";
 import { getLastResult, getWishlist, pushRecentlyViewed, toggleWishlist } from "@/lib/beauty-store";
 import { track } from "@/lib/customer-events";
 import type { PurchaseLink } from "@/lib/types";
@@ -56,7 +57,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const related = products.filter((p) => p.id !== product.id && p.concerns.some((c) => product.concerns.includes(c))).slice(0, 4);
   const matched = mem.result ? mem.result.profile.concerns.filter((c) => product.concerns.includes(c)) : [];
   const who = mem.name ? `${mem.name}님이` : "최근 상담에서";
-  const toggleWish = () => { const next = toggleWishlist(product.id).includes(product.id); setWished(next); track(next ? "wishlist_add" : "wishlist_remove", product.id); };
+  const toggleWish = () => {
+    const next = toggleWishlist(product.id).includes(product.id);
+    setWished(next);
+    track(next ? "wishlist_add" : "wishlist_remove", product.id);
+    snack(next ? { text: "찜 목록에 담았어요", href: "/beauty/passport#saved", cta: "찜 목록" } : { text: "찜을 해제했어요" });
+  };
 
   const goPurchase = (l: PurchaseLink) => {
     track("outbound_purchase_click", product.id, { channel: l.label, hasUrl: !!l.url });

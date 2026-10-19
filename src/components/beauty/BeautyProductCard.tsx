@@ -8,6 +8,7 @@ import { ProductVisual } from "@/components/shared/ProductVisual";
 import { getWishlist, toggleWishlist } from "@/lib/beauty-store";
 import { track } from "@/lib/customer-events";
 import { STEP_LABEL } from "./useBeautyMemory";
+import { snack } from "./Snackbar";
 
 /* 제품 카드 — 커머스형 (PASS 26, D-082): 사진 타일(배지 1개 · 찜 동그라미) → 브랜드·종류 → 이름 2줄 → 맞는 고민 태그 → 가격.
    배지는 실제 값만(베스트·신제품·AI 추천·주목). 할인·별점·후기 표시는 없음(실제 데이터 없음). */
@@ -40,6 +41,7 @@ export function BeautyProductCard({ product, aiBadge, reason, compact = false }:
           const next = toggleWishlist(product.id).includes(product.id);
           setWished(next);
           track(next ? "wishlist_add" : "wishlist_remove", product.id);
+          snack(next ? { text: "찜 목록에 담았어요", href: "/beauty/passport#saved", cta: "찜 목록" } : { text: "찜을 해제했어요" });
         }}
         className="pressable absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full"
       >

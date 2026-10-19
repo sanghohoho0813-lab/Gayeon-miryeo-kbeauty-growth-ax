@@ -8,6 +8,7 @@ import { useData } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can, type Permission } from "@/lib/permissions";
 import { OPEN_STATUSES } from "@/lib/analytics";
+import { Layer } from "./Modal";
 
 /* 빠른 이동 (Ctrl/⌘+K, /) — 화면·상품·열린 Action을 이름·SKU·초성으로 찾아 바로 연다.
    메뉴 13개 + 탭 20여 개를 기억하지 않아도 되게. 역할에 없는 화면은 보이지 않는다(메뉴와 같은 규칙). */
@@ -145,7 +146,9 @@ export function QuickJump() {
   const icon = (g: Group) => (g === "상품" ? <Package size={16} aria-hidden /> : g === "Action" ? <Sparkles size={16} aria-hidden /> : <FileText size={16} aria-hidden />);
   let idx = -1;
 
+  // 헤더(@container) 안에 그려지므로 body 바로 아래(portal)로 — 그래야 화면 전체를 덮는다
   return (
+    <Layer>
     <div className="fixed inset-0 z-[60] flex items-start justify-center px-3 pt-[10vh]" role="dialog" aria-modal="true" aria-label="빠른 이동" data-print="hide">
       <button className="route-fade absolute inset-0 bg-black/45" aria-label="닫기" tabIndex={-1} onClick={close} />
       <div className="ax-card modal-in relative flex max-h-[76vh] w-full max-w-[640px] flex-col overflow-hidden !p-0" data-testid="quick-jump">
@@ -209,5 +212,6 @@ export function QuickJump() {
         </div>
       </div>
     </div>
+    </Layer>
   );
 }

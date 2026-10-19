@@ -94,9 +94,9 @@ export function BeautyHeader() {
             const on = active(n.href);
             return (
               <Link key={n.href} href={n.href} aria-current={on ? "page" : undefined}
-                className="pressable flex min-h-[60px] flex-col items-center justify-center gap-1 whitespace-nowrap text-[0.72rem] font-bold"
+                className="pressable flex min-h-[62px] flex-col items-center justify-center gap-0.5 whitespace-nowrap text-[0.72rem] font-bold"
                 style={{ color: on ? "var(--b-rose-ink)" : "var(--b-text-soft)" }}>
-                <n.icon size={22} strokeWidth={on ? 2.3 : 1.8} aria-hidden />
+                <span className="flex h-7 w-12 items-center justify-center rounded-full transition-colors" style={on ? { background: "var(--b-rose-soft)" } : undefined}><n.icon size={21} strokeWidth={on ? 2.3 : 1.8} aria-hidden /></span>
                 <span>{n.short}</span>
               </Link>
             );

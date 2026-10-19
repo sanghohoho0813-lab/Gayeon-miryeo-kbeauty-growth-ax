@@ -18,22 +18,23 @@ const ITEMS = [
 export function MobileBottomNav() {
   const pathname = usePathname();
   return (
-    <nav data-print="hide" className="fixed inset-x-0 bottom-0 z-30 border-t bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden" style={{ borderColor: "var(--border)" }} aria-label="하단 메뉴">
+    <nav data-print="hide" className="fixed inset-x-0 bottom-0 z-30 border-t bg-surface/97 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" style={{ borderColor: "var(--border)", boxShadow: "0 -6px 20px -14px rgba(16,24,40,.25)" }} aria-label="하단 메뉴">
       <ul className="flex">
         {ITEMS.map((item) => {
           const active = isActivePath(pathname, item.href);
           return (
             <li key={item.href} className="flex-1">
-              <Link href={item.href} aria-current={active ? "page" : undefined} className="pressable flex min-h-[58px] flex-col items-center justify-center gap-0.5 text-[0.72rem] font-semibold" style={{ color: active ? "var(--primary)" : "var(--text-secondary)" }}>
-                <item.icon size={21} aria-hidden />
+              <Link href={item.href} aria-current={active ? "page" : undefined} className="pressable flex min-h-[60px] flex-col items-center justify-center gap-0.5 text-[0.72rem] font-semibold" style={{ color: active ? "var(--text-primary)" : "var(--text-secondary)", fontWeight: active ? 700 : 600 }}>
+                {/* 선택된 메뉴: 아이콘 뒤 알약 (PASS 26b, D-083) */}
+                <span className="flex h-7 w-12 items-center justify-center rounded-full" style={active ? { background: "var(--primary-soft)", color: "var(--primary)" } : undefined}><item.icon size={20} strokeWidth={active ? 2.3 : 1.8} aria-hidden /></span>
                 {item.label}
               </Link>
             </li>
           );
         })}
         <li className="flex-1">
-          <button onClick={() => window.dispatchEvent(new Event(OPEN_DRAWER_EVENT))} className="pressable flex min-h-[58px] w-full flex-col items-center justify-center gap-0.5 text-[0.72rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
-            <Menu size={21} aria-hidden />
+          <button onClick={() => window.dispatchEvent(new Event(OPEN_DRAWER_EVENT))} className="pressable flex min-h-[60px] w-full flex-col items-center justify-center gap-0.5 text-[0.72rem] font-semibold" style={{ color: "var(--text-secondary)" }}>
+            <span className="flex h-7 w-12 items-center justify-center"><Menu size={20} strokeWidth={1.8} aria-hidden /></span>
             더보기
           </button>
         </li>

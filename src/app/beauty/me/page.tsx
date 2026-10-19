@@ -78,13 +78,13 @@ export default function MyPage() {
   return (
     <div className="pt-6 @3xl:pt-10">
       {/* 회원 카드형 머리 — 이름 · 피부 고민 · 다음 재구매 · 기록 수 */}
-      <section className="relative overflow-hidden rounded-[28px] px-6 py-8 @3xl:px-12 @3xl:py-10" style={{ background: "linear-gradient(135deg, #1C1D24 0%, #3A2631 100%)" }} aria-labelledby="h-me">
+      <section className="relative overflow-hidden rounded-[28px] px-5 py-6 @3xl:px-12 @3xl:py-10" style={{ background: "linear-gradient(135deg, #1C1D24 0%, #3A2631 100%)" }} aria-labelledby="h-me">
         {/* eslint-disable-next-line @next/next/no-img-element -- 투명 배경 WebP 정적 파일 */}
         <img src="/images/beauty/card-recommendation.webp" alt="" width={512} height={512} decoding="async" className="pointer-events-none absolute bottom-8 right-12 hidden h-[200px] w-auto opacity-95 @4xl:block" />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <span className="b-pill" style={{ background: "rgba(255,255,255,.14)", color: "#F7B6C8" }}>MY BEAUTY</span>
-            <h1 id="h-me" className="mt-3 text-[1.6rem] font-extrabold leading-tight tracking-[-0.03em] text-white @3xl:text-[2.2rem]">{acc.displayName || "회원"}님의 뷰티 기록</h1>
+            <h1 id="h-me" className="mt-2.5 text-[1.45rem] font-extrabold leading-tight tracking-[-0.03em] text-white @3xl:text-[2.2rem]">{acc.displayName || "회원"}님의 뷰티 기록</h1>
             <p className="mt-2 text-[0.9rem] text-white/65">가입 {formatDateKR(acc.createdAt)}</p>
           </div>
           <button className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-white/25 px-4 text-[0.9rem] font-semibold text-white hover:bg-white/10" onClick={async () => { await customerApi().signOut(); await refresh(); router.push("/beauty"); }}>
@@ -96,12 +96,12 @@ export default function MyPage() {
             {acc.skinConcerns.map((c) => <span key={c} className="rounded-full border border-white/25 px-3.5 py-1.5 text-[0.84rem] font-semibold text-white">{CONCERNS.find((x) => x.id === c)?.label ?? c}</span>)}
           </div>
         )}
-        <dl className="relative mt-7 grid max-w-[34rem] grid-cols-3 border-t border-white/15 pt-5 text-white" data-testid="me-stats">
+        <dl className="relative mt-5 grid max-w-[34rem] grid-cols-3 border-t border-white/15 pt-5 text-white" data-testid="me-stats">
           <div className="min-w-0"><dt className="text-[0.74rem] text-white/60">다음 재구매</dt><dd className="mt-1 text-[1.15rem] font-bold tabular">{next ? dDayLabel(next.daysLeft) : "—"}</dd>{next && <dd className="truncate text-[0.74rem] text-white/60">{next.product.name}</dd>}</div>
           <div><dt className="text-[0.74rem] text-white/60">구매 기록</dt><dd className="mt-1 text-[1.15rem] font-bold tabular">{purchases.length}건</dd></div>
           <div><dt className="text-[0.74rem] text-white/60">AI 추천 기록</dt><dd className="mt-1 text-[1.15rem] font-bold tabular">{recs.length}회</dd></div>
         </dl>
-        <div className="relative mt-7 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div className="relative mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
           <Link href="/beauty/finder" className="pressable inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-white px-5 text-[0.95rem] font-extrabold" style={{ color: "var(--b-rose-ink)" }}><Sparkles size={16} aria-hidden /> 새로 추천받기</Link>
           <Link href="/beauty/passport" className="inline-flex min-h-[44px] items-center gap-1 text-[0.92rem] font-semibold text-white/85 underline decoration-white/30 underline-offset-4 hover:text-white">뷰티 패스포트 <ArrowRight size={15} aria-hidden /></Link>
         </div>
@@ -255,10 +255,10 @@ function DeleteAccount({ onDone }: { onDone: (full: boolean) => void }) {
 
 function Section({ eyebrow, title, sub, children, testId }: { eyebrow: string; title: string; sub?: string; children: React.ReactNode; testId: string }) {
   return (
-    <section data-testid={testId} data-eyebrow={eyebrow} className="b-card mt-4 p-5 @3xl:mt-5 @3xl:p-7">
+    <section data-testid={testId} data-eyebrow={eyebrow} className="b-card mt-3 p-4 @3xl:mt-5 @3xl:p-7">
       <h2 className="b-section text-[1.12rem] @3xl:text-[1.3rem]">{title}</h2>
       {sub && <p className="b-caption mt-0.5 text-[0.84rem]">{sub}</p>}
-      <div className="mt-4">{children}</div>
+      <div className="mt-3 @3xl:mt-4">{children}</div>
     </section>
   );
 }

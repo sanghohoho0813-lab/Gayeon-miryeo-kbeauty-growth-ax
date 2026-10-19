@@ -7,7 +7,7 @@ import { isFeatured, useBeautyData } from "@/components/beauty/BeautyDataProvide
 import { ProductVisual } from "@/components/shared/ProductVisual";
 import { formatDay, STEP_LABEL, useBeautyMemory } from "@/components/beauty/useBeautyMemory";
 import { RepurchaseNotice } from "@/components/beauty/Repurchase";
-import { CategoryRail, ConcernTiles, PromoCarousel, SearchLink, SectionHead, type Banner } from "@/components/beauty/ui";
+import { CategoryRail, ConcernTiles, PromoCarousel, QuickMenu, SearchLink, SectionHead, type Banner } from "@/components/beauty/ui";
 
 /* 고객 홈 — 커머스형 (PASS 26, D-082): 인사 · 검색 → 배너 → 피부 고민 타일 → 제품 종류 → 주목·추천 상품 줄 → 1분 상담 → 내 루틴 → 추천 방식 → 패스포트
    개인화 문구는 저장된 실제 기록이 있을 때만 (D-073 원칙 유지). 배너·문구는 실제 기능만 — 할인·별점·배송 문구 없음 */
@@ -58,6 +58,7 @@ export default function BeautyHome() {
       <RepurchaseNotice />
 
       <div className="mt-6"><PromoCarousel banners={banners} /></div>
+      <div className="mt-6 @3xl:mt-8"><QuickMenu member={mem.member} /></div>
 
       <section className="mt-9 @3xl:mt-12" aria-labelledby="h-concern">
         <SectionHead id="h-concern" title={mem.concerns.length ? "나의 피부 고민으로 찾기" : "피부 고민으로 찾기"} sub={mem.concerns.length ? "최근 상담에서 고른 고민에 표시했어요" : "지금 필요한 케어를 골라보세요"} href="/beauty/products" />

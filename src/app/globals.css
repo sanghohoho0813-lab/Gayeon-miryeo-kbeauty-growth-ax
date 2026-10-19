@@ -83,7 +83,9 @@
   --info: #1D4ED8;    --info-soft: #E2EAFC;
 
   /* Sidebar Group Icon Hue (v4.1 B-2) */
-  --grp-ops: #5B8DEF; --grp-growth: #D79A43; --grp-ax: #3C9A75; --grp-sys: #718096;
+  /* PASS 26b: 목차(그룹)마다 다른 색 — 진한 셸 위에서 구분되게 조금 더 맑게, 관리는 회색 대신 보라 */
+  --grp-ops: #5B9BF0; --grp-growth: #E2A54B; --grp-ax: #3FBF8F; --grp-sys: #9B8AF0;
+  --sidebar-icon-tint: #FFFFFF; /* 아이콘 색을 셸 밝기 쪽으로 섞는 값 (밝은 셸은 검정) */
 
   /* PASS 26 (D-083): 더 가볍고 정돈된 표면 — 둥근 18px · 얇은 테두리 · 낮은 그림자 */
   --radius-card: 18px;
@@ -94,6 +96,7 @@
 
 /* Pure White — Light Shell: Dark Neutral Text */
 [data-ax-theme="pure-white"] {
+  --sidebar-icon-tint: #000000;
   --bg: #FFFFFF;
   --surface-muted: #F5F6F7;
   --primary-soft: #F2F3F5;
@@ -166,6 +169,9 @@
 .beauty-scope .b-rail::-webkit-scrollbar { display: none; }
 .beauty-scope .b-rail > * { scroll-snap-align: start; flex: none; }
 @media (min-width: 768px) { .beauty-scope .b-rail { margin: 0 -1.5rem; padding-inline: 1.5rem; scroll-padding-inline: 1.5rem; } }
+/* 불러오는 중 빛 지나가는 자리 (PASS 26b) — 움직임 줄이기 설정이면 멈춤(아래 reduce 규칙) */
+.beauty-scope .b-skel { background: linear-gradient(90deg, #F1F1F4 25%, #FAFAFB 40%, #F1F1F4 60%); background-size: 300% 100%; animation: b-shimmer 1.3s ease-in-out infinite; }
+@keyframes b-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
 @keyframes b-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes b-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .beauty-scope .b-step-in { animation: b-fade-in 0.32s ease-out both; }

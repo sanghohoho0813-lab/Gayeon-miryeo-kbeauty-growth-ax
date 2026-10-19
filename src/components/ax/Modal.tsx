@@ -7,7 +7,7 @@ import { X } from "lucide-react";
 /* Modal / Drawer — ESC 닫기, 닫힌 뒤 Trigger로 포커스 복원, Backdrop 잔존 0.
    PASS 15: body 바로 아래(portal)에 그린다 — 본문 안에 그리면 헤더(z-20)·하단 메뉴(z-30)보다 아래 층이 되어
    처리 창 제목·닫기 버튼이 헤더에, 모바일 하단 버튼이 하단 메뉴에 가려졌다. 컨테이너 쿼리(@xl 등)는 오버레이가 기준. */
-function Layer({ children }: { children: ReactNode }) {
+export function Layer({ children }: { children: ReactNode }) {
   return typeof document === "undefined" ? null : createPortal(children, document.body);
 }
 /* 겹쳐 열린 창(상세 위 '조건 바꿔 보기' 등)은 맨 위 창만 Esc로 닫는다 (PASS 21) */

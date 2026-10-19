@@ -4,6 +4,7 @@ import { BeautyFooter } from "@/components/beauty/BeautyFooter";
 import { BeautyDataProvider } from "@/components/beauty/BeautyDataProvider";
 import { BeautyGate } from "@/components/beauty/BeautyGate";
 import { CustomerSessionProvider } from "@/components/beauty/CustomerSession";
+import { BeautySnackbar } from "@/components/beauty/Snackbar";
 
 export const metadata: Metadata = {
   title: "MIRYEO AI Beauty",
@@ -21,6 +22,7 @@ export default function BeautyLayout({ children }: { children: React.ReactNode }
           <BeautyGate>{children}</BeautyGate>
         </main>
         <BeautyFooter />
+        <BeautySnackbar />
        </CustomerSessionProvider>
       </BeautyDataProvider>
     </div>

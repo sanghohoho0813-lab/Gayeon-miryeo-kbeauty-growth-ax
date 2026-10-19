@@ -153,7 +153,8 @@ export default function FinderPage() {
             {step === 4 && <StepChoices options={BUDGETS} value={budget} onChange={setBudget} />}
           </div>
 
-          <div className="mt-10 flex items-center justify-between gap-3">
+          {/* 모바일: 엄지가 닿는 아래쪽에 고정 (하단 탭 바로 위) */}
+          <div className="sticky bottom-[calc(62px+env(safe-area-inset-bottom))] z-10 -mx-4 mt-8 flex items-center justify-between gap-3 border-t bg-white/95 px-4 py-3 backdrop-blur md:static md:mx-0 md:mt-10 md:border-0 md:bg-transparent md:px-0 md:py-0" style={{ borderColor: "var(--b-border)" }}>
             <button
               onClick={() => setStep((s) => Math.max(0, s - 1))}
               disabled={step === 0}

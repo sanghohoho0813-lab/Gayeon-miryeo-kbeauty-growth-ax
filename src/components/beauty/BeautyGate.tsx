@@ -7,8 +7,12 @@ export function BeautyGate({ children }: { children: ReactNode }) {
   const { status, error, reload } = useBeautyData();
   if (status === "loading") {
     return (
-      <div className="grid grid-cols-2 gap-4 pt-8 @3xl:grid-cols-4" aria-busy="true" aria-label="불러오는 중">
-        {Array.from({ length: 8 }, (_, i) => <div key={i} className="h-72 animate-pulse rounded-[20px]" style={{ background: "var(--b-surface-warm)" }} />)}
+      <div className="pt-6" aria-busy="true" aria-label="불러오는 중">
+        <div className="b-skel h-[50px] rounded-2xl" />
+        <div className="b-skel mt-5 h-[200px] rounded-[24px] @3xl:h-[248px]" />
+        <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-6 @3xl:grid-cols-4">
+          {Array.from({ length: 4 }, (_, i) => <div key={i}><div className="b-skel aspect-square rounded-[18px]" /><div className="b-skel mt-2.5 h-3.5 w-2/3 rounded-full" /><div className="b-skel mt-2 h-3.5 w-1/3 rounded-full" /></div>)}
+        </div>
       </div>
     );
   }

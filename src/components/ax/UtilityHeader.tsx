@@ -10,6 +10,7 @@ import { LiveClock } from "./LiveClock";
 import { OPEN_DRAWER_EVENT } from "./MobileBottomNav";
 import { QuickJump, QuickJumpButton } from "./QuickJump";
 import { NotificationCenter } from "./NotificationCenter";
+import { Layer } from "./Modal";
 import { DeviceSwitch } from "@/components/device/DeviceView";
 import { useSession } from "@/components/providers/SessionProvider";
 import { useData } from "@/components/providers/DataProvider";
@@ -147,7 +148,7 @@ export function UtilityHeader() {
           )}
         </div>
 
-        <Link href="/beauty" className="btn-primary hidden !min-h-[42px] !px-3.5 text-[0.88rem] @4xl:inline-flex" data-tour="surface">
+        <Link href="/beauty" className="btn-secondary hidden !min-h-[40px] !px-3.5 text-[0.88rem] @4xl:inline-flex" data-tour="surface">
           <MonitorSmartphone size={16} aria-hidden /> 고객 화면
         </Link>
         <Link href="/ax/settings" className="hidden h-11 w-11 items-center justify-center rounded-lg hover:bg-surface-muted @2xl:flex" aria-label="설정">
@@ -157,14 +158,21 @@ export function UtilityHeader() {
       </div>
 
       <QuickJump />
+      {/* ☰ 전체 메뉴는 body 바로 아래(portal)에 그린다 — 헤더가 @container(컨테이너 쿼리)라서 안에 두면
+          fixed 위치의 기준이 화면이 아니라 헤더(높이 64px)가 되어 메뉴가 헤더 띠 안에 갇히고 본문에 가려졌다 (2026-10-19 사용자 신고) */}
       {drawerOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="전체 메뉴">
+        <Layer>
+        <div className="fixed inset-0 z-[55] lg:hidden" role="dialog" aria-modal="true" aria-label="전체 메뉴">
           <button className="route-fade absolute inset-0 bg-black/45" aria-label="메뉴 닫기" tabIndex={-1} onClick={() => setDrawerOpen(false)} />
           <div className="route-fade absolute inset-y-0 left-0 w-[300px] max-w-[86vw] overflow-y-auto p-5" style={{ background: "var(--sidebar-bg)" }}>
             <div className="mb-4 flex items-center justify-between">
-              <div>
-                <div className="font-display text-[1.3rem] font-bold" style={{ color: "var(--sidebar-active-text)" }}>MIRYEO</div>
-                <div className="text-[0.9rem] font-semibold" style={{ color: "var(--wordmark)" }}>Business AX</div>
+              {/* PC 사이드바 로고와 같은 모양 (M 표시 + MIRYEO / BUSINESS AX) */}
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 items-center justify-center rounded-[10px] font-display text-[1.1rem] font-bold" style={{ background: "var(--wordmark)", color: "var(--sidebar-bg)" }} aria-hidden>M</span>
+                <span>
+                  <span className="block font-display text-[1.2rem] font-bold leading-none tracking-[0.06em]" style={{ color: "var(--sidebar-active-text)" }}>MIRYEO</span>
+                  <span className="mt-1 block text-[0.66rem] font-bold uppercase leading-none tracking-[0.2em]" style={{ color: "var(--wordmark)" }}>Business AX</span>
+                </span>
               </div>
               <button onClick={() => setDrawerOpen(false)} aria-label="닫기" className="flex h-11 w-11 items-center justify-center rounded-lg" style={{ color: "var(--sidebar-text)" }}>
                 <X size={22} />
@@ -179,6 +187,7 @@ export function UtilityHeader() {
             </Link>
           </div>
         </div>
+        </Layer>
       )}
     </header>
   );

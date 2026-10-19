@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Crown, Gift, Heart, Search, Sparkles, Star, User } from "lucide-react";
 import { CONCERNS } from "./concerns";
 import { ProductVisual } from "@/components/shared/ProductVisual";
 import type { Product, SkinConcern } from "@/lib/types";
@@ -61,7 +61,7 @@ export function PromoCarousel({ banners }: { banners: Banner[] }) {
       <div ref={ref} className="b-rail !gap-3" data-testid="promo-carousel">
         {banners.map((b, i) => (
           <Link key={b.key} href={b.href} data-i={i} data-testid={b.testId}
-            className="relative flex h-[200px] w-[88%] max-w-[560px] overflow-hidden rounded-[24px] p-5 @3xl:h-[248px] @3xl:w-[48%] @3xl:p-8"
+            className="relative flex h-[214px] w-[88%] max-w-[560px] overflow-hidden rounded-[24px] p-5 @3xl:h-[248px] @3xl:w-[48%] @3xl:p-8"
             style={{ background: b.bg, color: b.dark ? "#fff" : "var(--b-text)" }}>
             <div className="relative z-10 flex max-w-[64%] flex-col @3xl:max-w-[58%]">
               <span className="b-pill self-start" style={b.dark ? { background: "rgba(255,255,255,.16)", color: "#fff" } : { background: "rgba(255,255,255,.85)", color: "var(--b-rose-ink)" }}>{b.tag}</span>
@@ -69,7 +69,7 @@ export function PromoCarousel({ banners }: { banners: Banner[] }) {
               <span className="mt-1.5 line-clamp-1 text-[0.76rem] font-medium leading-snug @3xl:line-clamp-2 @3xl:text-[0.9rem]" style={{ opacity: 0.82 }}>{b.sub}</span>
               <span className="mt-auto inline-flex items-center gap-1 pt-3 text-[0.86rem] font-extrabold">{b.cta} <ChevronRight size={16} aria-hidden /></span>
             </div>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex w-[42%] items-end justify-center @3xl:w-[50%]" aria-hidden>{b.art}</div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex w-[42%] items-end justify-center @3xl:w-[44%]" aria-hidden>{b.art}</div>
           </Link>
         ))}
       </div>
@@ -119,5 +119,30 @@ export function CategoryRail({ products }: { products: Product[] }) {
         </Link>
       ))}
     </div>
+  );
+}
+
+/** 바로가기 아이콘 줄 — 앱 첫 화면의 둥근 메뉴 (모두 실제 화면으로 연결) */
+export function QuickMenu({ member }: { member: boolean }) {
+  const items = [
+    { href: "/beauty/finder", label: "1분 상담", icon: Sparkles, bg: "var(--t-blush)", fg: "#B8355B" },
+    { href: "/beauty/products?best=1", label: "베스트", icon: Crown, bg: "var(--t-butter)", fg: "#8A6400" },
+    { href: "/beauty/products?sort=new", label: "신제품", icon: Star, bg: "var(--t-lilac)", fg: "#6A4FB3" },
+    { href: "/beauty/passport#saved", label: "찜한 제품", icon: Heart, bg: "var(--t-peach)", fg: "#B4572A" },
+    member ? { href: "/beauty/me", label: "마이페이지", icon: User, bg: "var(--t-mint)", fg: "#2F7A5B" } : { href: "/beauty/login?mode=signup", label: "회원 혜택", icon: Gift, bg: "var(--t-mint)", fg: "#2F7A5B" },
+  ];
+  return (
+    <nav aria-label="바로가기" data-testid="quick-menu">
+      <ul className="grid grid-cols-5 gap-1 @3xl:flex @3xl:gap-8">
+        {items.map((it) => (
+          <li key={it.label}>
+            <Link href={it.href} className="pressable flex flex-col items-center gap-1.5 rounded-2xl py-1 text-center">
+              <span className="flex h-[52px] w-[52px] items-center justify-center rounded-[18px] @3xl:h-14 @3xl:w-14" style={{ background: it.bg, color: it.fg }}><it.icon size={23} strokeWidth={2} aria-hidden /></span>
+              <span className="text-[0.76rem] font-bold leading-tight @3xl:text-[0.84rem]">{it.label}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
