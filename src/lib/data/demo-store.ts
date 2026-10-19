@@ -16,6 +16,16 @@ import { addDaysISO, daysBetween, todayISO } from "../date";
 
 const KEY = "miryeo-demo-db-v2";
 const CHANGE_EVENT = "miryeo-db-change";
+/** 읽지 못한 Demo 자료 원본 (PASS 28, D-089) — 시연 데이터로 다시 시작하기 전에 같은 브라우저에 보관 (조용히 지우지 않음) */
+const RECOVERY_KEY = "miryeo-demo-db-v2-recovered";
+const RECOVERY_AT_KEY = "miryeo-demo-db-v2-recovered-at";
+/** 브라우저 저장 한도 — 대부분 약 500만 글자 (UTF-16) */
+export const DEMO_STORAGE_LIMIT = 5_000_000;
+
+/** Demo 저장 실패 (공간 부족·자료 손상) — 저장된 척하지 않고 화면에 그대로 알린다 */
+export class DemoStorageError extends Error {
+  constructor(message: string) { super(message); this.name = "DemoStorageError"; }
+}
 
 /** Demo 고객 화면의 저장된 추천 결과 (Live: beauty_recommendations) */
 export interface DemoBeautyResult { id: string; sessionId: string; customerUserId: string | null; productIds: string[]; reasons: Record<string, string>; createdAt: string }
@@ -60,6 +70,7 @@ function seed(): DemoDB {
     customerPurchases: demoCustomerPurchases(),
     settlements: demoSettlements(),
     monthlyTargets: [],
+    importBatches: [],
     beautyResults: [],
     stage2: true,
     seedSales: 2,
@@ -75,7 +86,7 @@ function emptyPractice(): DemoDB {
     org: { name: "샘플 연습 (Demo)", pilotStartedOn: null },
     products: [], inventory: [], production: [], channels: [], sales: [], b2b: [], exports: [],
     customers: [], customerEvents: [], actions: [], actionEvents: [], proofEvents: [], techAssets: [], baselines: [],
-    customerAccounts: [], customerPurchases: [], settlements: [], monthlyTargets: [], beautyResults: [],
+    customerAccounts: [], customerPurchases: [], settlements: [], monthlyTargets: [], importBatches: [], beautyResults: [],
     stage2: true, seedSales: 2, pass10: true, practice: true,
   };
 }
@@ -94,15 +105,20 @@ function rebase(db: DemoDB): DemoDB {
   return db;
 }
 
+/** 화면이 쓰는 핵심 목록이 배열인지 — 아니면 손상으로 본다 */
+const looksValid = (d: Partial<DemoDB>) => d.version === 2 && ["products", "sales", "channels", "inventory", "actions", "actionEvents", "proofEvents", "customerEvents"].every((k) => Array.isArray((d as Record<string, unknown>)[k]));
+
 function read(): DemoDB {
   if (typeof window === "undefined") return seed();
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(KEY);
+    raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as DemoDB;
-      if (parsed.version === 2) {
+      if (looksValid(parsed)) {
         parsed.baselines ??= []; // PASS 2에서 추가된 필드
         parsed.monthlyTargets ??= []; // PASS 10
+        parsed.importBatches ??= []; // PASS 28
         if (!parsed.pass10) {
           // PASS 10: 저장된 Demo 상품에 시연용 생산기간·MOQ (직접 입력한 상품은 그대로)
           parsed.products = parsed.products.map((p) => (p.isDemo && DEMO_LEAD_TIMES[p.id] && p.leadTimeDays == null ? { ...p, ...DEMO_LEAD_TIMES[p.id] } : p));
@@ -133,27 +149,38 @@ function read(): DemoDB {
       }
     }
   } catch {
-    /* 손상된 데이터 → 재시드 */
+    /* 아래에서 원본 보관 후 재시드 */
+  }
+  // 읽지 못한 자료는 지우기 전에 원본을 보관 → 시연 데이터로 다시 시작 + 안내 배너(원본 받기).
+  // 보관할 공간도 없으면 덮어쓰지 않고 오류 → 복구 화면에서 원본 받기·다시 시작 (PASS 28, D-089)
+  if (raw) {
+    try {
+      localStorage.setItem(RECOVERY_KEY, raw);
+      localStorage.setItem(RECOVERY_AT_KEY, new Date().toISOString());
+    } catch {
+      throw new DemoStorageError("저장된 Demo 자료를 읽지 못했고, 원본을 따로 보관할 저장 공간도 부족합니다. '원본 파일 받기'로 자료를 받은 뒤 '시연 데이터로 다시 시작'을 누르세요.");
+    }
   }
   const fresh = seed();
   write(fresh, false);
   return fresh;
 }
 
-function write(db: DemoDB, notify = true) {
+function write(db: DemoDB, notify = true): boolean {
   db.updatedAt = new Date().toISOString();
   try {
     localStorage.setItem(KEY, JSON.stringify(db));
   } catch {
-    /* 용량 초과 등 — Demo에서는 무시 */
+    return false; // 용량 초과 등 — mutate가 오류로 알린다 (예전처럼 저장된 척하지 않음)
   }
   if (notify && typeof window !== "undefined") window.dispatchEvent(new Event(CHANGE_EVENT));
+  return true;
 }
 
 function mutate(fn: (db: DemoDB) => void): Promise<void> {
   const db = read();
   fn(db);
-  write(db);
+  if (!write(db)) return Promise.reject(new DemoStorageError("이 브라우저의 저장 공간이 부족해 저장하지 못했습니다. 데이터 관리 > 내보내기에서 백업 파일을 받은 뒤 오래된 자료를 정리하거나, 실제 자료는 Live 주소를 사용하세요."));
   return Promise.resolve();
 }
 
@@ -176,7 +203,7 @@ export const demoSource: DataSource = {
   mode: "demo",
   async loadAx() {
     const db = read();
-    return { ...db, loadedAt: new Date().toISOString() };
+    return { ...db, importLogReady: true, loadedAt: new Date().toISOString() };
   },
   async loadPublicProducts() {
     return read().products.filter((p) => p.isPublished);
@@ -197,11 +224,34 @@ export const demoSource: DataSource = {
   upsertChannel: (c) => mutate((db) => void (db.channels = upsertBy(db.channels, withId(c), (x) => x.id))),
   upsertProduction: (p) => mutate((db) => void (db.production = upsertBy(db.production, withId(p), (x) => x.id))),
   upsertB2B: (b) => mutate((db) => void (db.b2b = upsertBy(db.b2b, withId(b), (x) => x.id))),
-  async addSales(rows) {
+  async addSales(rows, opts) {
     await mutate((db) => {
-      db.sales = [...db.sales, ...rows.map((r) => ({ ...r, id: newId("sale") }))];
+      db.sales = [...db.sales, ...rows.map((r) => ({ ...r, id: newId("sale"), importBatchId: opts?.batchId ?? r.importBatchId ?? null }))];
     });
+    opts?.onProgress?.(rows.length, rows.length);
     return rows.length;
+  },
+  async createImportBatch(b) {
+    const id = newId("imp");
+    await mutate((db) => {
+      db.importBatches = [{ id, kind: b.kind, fileName: b.fileName.slice(0, 200), rowCount: b.rowCount, createdAt: new Date().toISOString(), createdBy: b.actorName ?? null, undoneAt: null }, ...(db.importBatches ?? [])].slice(0, 100);
+    });
+    return id;
+  },
+  async undoImport(batchId) {
+    let sales = 0, settlements = 0;
+    await mutate((db) => {
+      const b = (db.importBatches ?? []).find((x) => x.id === batchId);
+      if (!b) throw new Error("가져오기 기록을 찾을 수 없습니다");
+      if (b.undoneAt) throw new Error("이미 되돌린 파일입니다");
+      const s0 = db.sales.length, t0 = db.settlements.length;
+      db.sales = db.sales.filter((x) => x.importBatchId !== batchId);
+      db.settlements = db.settlements.filter((x) => x.importBatchId !== batchId);
+      sales = s0 - db.sales.length;
+      settlements = t0 - db.settlements.length;
+      db.importBatches = (db.importBatches ?? []).map((x) => (x.id === batchId ? { ...x, undoneAt: new Date().toISOString(), undoneBy: "Demo" } : x));
+    });
+    return { sales, settlements };
   },
   async deleteSales(ids) {
     const set = new Set(ids);
@@ -262,6 +312,52 @@ export const demoSource: DataSource = {
 /** Demo 전용: 샘플 자료 연습 시작 (이 브라우저의 Demo 데이터를 비움 — 끝나면 reset()으로 시연 데이터 복원) */
 export function startPracticeDemo() {
   write(emptyPractice());
+}
+
+/** 읽지 못해 보관한 원본이 있으면 그 시각·크기 (안내 배너용) */
+export function demoRecoveryInfo(): { at: string | null; chars: number } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(RECOVERY_KEY);
+    return raw ? { at: localStorage.getItem(RECOVERY_AT_KEY), chars: raw.length } : null;
+  } catch { return null; }
+}
+
+/** 원본 Demo 자료 내려받기 — 보관본이 있으면 보관본, 없으면 지금 저장된 그대로 (손상돼도 글자 그대로) */
+export function downloadDemoRaw(): boolean {
+  try {
+    const raw = localStorage.getItem(RECOVERY_KEY) ?? localStorage.getItem(KEY);
+    if (!raw) return false;
+    const url = URL.createObjectURL(new Blob([raw], { type: "application/json" }));
+    const a = Object.assign(document.createElement("a"), { href: url, download: `miryeo_demo_raw_${todayISO()}.json` });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  } catch { return false; }
+}
+
+export function clearDemoRecovery() {
+  try { localStorage.removeItem(RECOVERY_KEY); localStorage.removeItem(RECOVERY_AT_KEY); } catch { /* 무시 */ }
+  window.dispatchEvent(new Event(CHANGE_EVENT));
+}
+
+/** 복구 화면 '시연 데이터로 다시 시작' — 손상된 자료를 지우고(원본은 먼저 받도록 안내) 새 시연 데이터 */
+export function restartDemoFromSeed() {
+  try { localStorage.removeItem(KEY); } catch { /* 무시 */ }
+  write(seed(), false);
+}
+
+/** 이 사이트가 브라우저에 쓰는 저장 공간 (글자 수 기준, 한도 약 500만) */
+export function demoStorageUsage(): { chars: number; ratio: number } {
+  if (typeof window === "undefined") return { chars: 0, ratio: 0 };
+  let chars = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i) ?? "";
+      chars += k.length + (localStorage.getItem(k)?.length ?? 0);
+    }
+  } catch { /* 무시 */ }
+  return { chars, ratio: chars / DEMO_STORAGE_LIMIT };
 }
 
 /** 고객 계정 Demo 구현(customer-account.ts)용 — 같은 Demo DB를 읽고 쓴다 */

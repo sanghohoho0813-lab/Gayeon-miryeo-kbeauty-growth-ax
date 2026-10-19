@@ -7,6 +7,7 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { useData } from "@/components/providers/DataProvider";
 import { ConfigErrorState, ErrorState, LoadingState } from "./States";
 import { getSupabase } from "@/lib/data/supabase";
+import { DemoRecoveryActions } from "./DemoRecovery";
 
 /* Live 인증/조직/로드 상태 게이트. Demo는 즉시 통과. */
 export function AxGate({ children }: { children: ReactNode }) {
@@ -34,7 +35,7 @@ export function AxGate({ children }: { children: ReactNode }) {
     );
   }
   if (session.status !== "ready" || status === "loading") return <LoadingState />;
-  if (status === "error") return <ErrorState message={error} onRetry={refresh} />;
+  if (status === "error") return <ErrorState message={error} onRetry={refresh}><DemoRecoveryActions /></ErrorState>;
   return <>{children}</>;
 }
 

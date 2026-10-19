@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, StatusBadge } from "@/components/ax/Cards";
 import { Tabs } from "@/components/ax/Tabs";
 import { SalesImport } from "@/components/ax/SalesImport";
+import { ImportHistory } from "@/components/ax/ImportHistory";
 import { ProductImport } from "@/components/ax/ProductImport";
 import { ExportCenter } from "@/components/ax/ExportCenter";
 import { TransferCard } from "@/components/ax/TransferCard";
@@ -110,6 +111,8 @@ function SalesTab() {
         </DataCard>
       ) : <ManualSaleCard />}
       <SalesImport />
+      {/* 파일 가져오기 기록·되돌리기 (PASS 28, D-090) */}
+      <ImportHistory className="@4xl:col-span-2" />
     </div>
   );
 }

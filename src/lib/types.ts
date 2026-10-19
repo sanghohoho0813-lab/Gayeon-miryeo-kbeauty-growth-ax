@@ -86,6 +86,22 @@ export interface SalesRecord {
   units: number;
   revenue: number;
   source: "manual" | "csv" | "api" | "seed";
+  /** 이 행을 들여온 파일 기록 (PASS 28) — 되돌리기로 그 파일의 행만 삭제 */
+  importBatchId?: string | null;
+}
+
+/** 파일 가져오기 기록 (PASS 28, migration 011) — 판매·정산 파일마다 1건 */
+export type ImportKind = "sales" | "settlements";
+export interface ImportBatch {
+  id: string;
+  kind: ImportKind;
+  fileName: string;
+  rowCount: number;
+  createdAt: string;
+  /** 올린 사람 (Live: 로그인 계정 이메일) */
+  createdBy?: string | null;
+  undoneAt?: string | null;
+  undoneBy?: string | null;
 }
 
 export type B2BStatus = "거래중" | "협의중" | "휴면";
@@ -358,4 +374,6 @@ export interface Settlement {
   status: SettlementStatus;
   note?: string | null;
   updatedAt?: string;
+  /** 이 정산을 들여온 파일 기록 (PASS 28) */
+  importBatchId?: string | null;
 }

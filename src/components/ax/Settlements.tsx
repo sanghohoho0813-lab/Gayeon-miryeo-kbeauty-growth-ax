@@ -9,6 +9,7 @@ import { toast } from "./Toast";
 import { ExportButton } from "./ExportButton";
 import { Fold } from "./InfoTip";
 import { SettlementImport } from "./SettlementImport";
+import { ImportHistory } from "./ImportHistory";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { formatKRW, formatPrice } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
@@ -122,6 +123,7 @@ export function Settlements() {
       {/* 청구·입금 현황 파일로 한 번에 (PASS 27, D-087) — 정산 내역이 없을 때는 펼쳐 둔다 */}
       <Fold summary="청구·입금 현황을 파일로 한 번에 가져오기 (엑셀·CSV)" defaultOpen={list.length === 0} testId="settlement-import-fold">
         <SettlementImport />
+        <ImportHistory kind="settlements" className="mt-4" />
       </Fold>
 
       {edit && <SettlementModal value={edit} onClose={() => setEdit(null)} />}

@@ -39,11 +39,12 @@ UI (src/app, src/components)
        └ live-source.ts  (Supabase, RLS)
  └ buildModel (src/lib/model.ts) → analytics.ts (RULE / STATISTICAL)
 ```
-- Schema / RLS: `supabase/migrations/001~010` (005·007·008·009·010 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
+- Schema / RLS: `supabase/migrations/001~011` (005·007·008·009·010·011 필수, 006 고객 화면 공개 전 필수), 검증: `supabase/tests/`
 - 월별 실적 `/ax/monthly`, 정산·미수금 `/ax/channels?tab=settlements`, 대표 브리핑 `src/lib/briefing.ts`, 내보내기 `/ax/data?tab=export`
 - AX Sprint II 소개 영상 (PASS 17, V2 교체 PASS 18): 플레이어 `src/components/review/ReviewVideo.tsx`(비율 전환·속도·영상 흐름·내려받기) + 데이터 `src/lib/review/ax-sprint2-video.ts`, 파일 `public/media/ax-sprint2/`, 제작 원본·장면표 `video/ax-sprint2/README.md`
 - AX Sprint II 심사 페이지 (PASS 16): `src/app/review/ax-sprint2/page.tsx` → `src/components/review/ReviewAxSprint2.tsx`, 공개 시연 데이터·계산 연결 `src/lib/review/ax-sprint2-demo.ts`(실제 `computeProductMetrics`·`generateCandidates`·`computeCustomerInsight` 사용, 저장·전송 없음)
 - 심플화·고도화 (PASS 21): ⓘ 안내·펼쳐보기 `src/components/ax/InfoTip.tsx`(`InfoTip`·`Fold`), 카드 `DataCard info=/collapsible`, 탭 ↔ 주소 # `src/lib/use-hash-tab.ts`, 접힘은 `.is-folded`(인쇄 시 펼침) — 설명 문장은 ⓘ로, 덜 보는 것은 접고, 비슷한 것은 탭으로(D-075). 생산 판단 '조건 바꿔 보기' `src/lib/scenario.ts` + `src/components/ax/ProductionPlanner.tsx`(`CoverBar`·`ScenarioModal`) — 계산식 `analytics.planProduction()` 하나를 상품 지표와 같이 씀(D-076)
+- 안정화·고도화 (PASS 28): 오류 화면 `src/app/global-error.tsx`·`error.tsx`·`ax/error.tsx`·`beauty/error.tsx`·`not-found.tsx`(D-088), Demo 저장 안전장치 `src/lib/data/demo-store.ts`(저장 실패 = 오류, 손상 자료 원본 보관) + `src/components/ax/DemoRecovery.tsx`(복구 버튼·배너·저장 공간, D-089), 가져오기 기록·되돌리기 `src/components/ax/ImportHistory.tsx` + `DataSource.createImportBatch/undoImport`(migration 011 `import_batches`·RPC `undo_import`), Live 판매 500행 단위 저장 `SALES_CHUNK`(D-090)
 - 고도화 (PASS 27): 채널별 판매 입력 주기 `src/lib/channel-cycle.ts`(migration 010 `channels.input_cycle`) → `buildModel`의 `channelAsOf`·`asOfFor`로 채널·상품 '최근 4주' 계산(D-086), 청구·입금 파일 가져오기 `src/lib/settlement-import.ts` + `src/components/ax/SettlementImport.tsx`(정산 탭) + 템플릿 `public/samples/settlements_template.csv`, 연습 키트 ④ `practiceSettlementFile`(D-087)
 - 고도화·UI/UX (PASS 15): 운영 기준값 `src/lib/planning.ts` + `src/components/ax/PlanningCard.tsx`(설정 > 운영 기준값, migration 009 `organizations.planning`) → `computeProductMetrics`·`measureOutcome`에 전달, 대화상자·처리 창 body portal `src/components/ax/Modal.tsx`, 처리 창 '지금 다시 계산하면'·첫 단계 버튼 고정 `ActionDrawer.tsx`, 고객 앱 모바일 메뉴 4칸 `BeautyHeader.tsx`
 - 고도화·UI/UX (PASS 14): 대표 보고 모드 `src/app/ax/present/page.tsx` + `src/lib/present.ts`(슬라이드 목록·권한·주간 매출), 순위 막대 `src/components/ax/RankBars.tsx`(채널 비교), 실증·Evidence 12주 타임라인·한글 표기(`PROOF_TYPE_LABEL` in `src/lib/evidence.ts`), 설정 바로가기, 주간 점검 품질 항목 `src/lib/weekly-routine.ts`

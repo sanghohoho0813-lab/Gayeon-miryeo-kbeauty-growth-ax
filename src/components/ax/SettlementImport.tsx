@@ -9,11 +9,13 @@ import { formatPrice } from "@/lib/analytics";
 import { autoMap, readTable } from "@/lib/import";
 import { SETTLEMENT_FIELDS, validateSettlementRows, type SettlementField } from "@/lib/settlement-import";
 import { SETTLEMENT_KIND_LABEL, SETTLEMENT_STATUS_LABEL } from "@/lib/settlements";
+import { useSession } from "@/components/providers/SessionProvider";
 
 /* 청구·입금 파일 가져오기 (PASS 27, D-087) — 거래처별 청구·입금 현황을 엑셀·CSV 그대로. 오류 행·중복 의심은 저장하지 않는다 */
 export function SettlementImport() {
   const m = useModel();
-  const { run } = useData();
+  const { run, refresh } = useData();
+  const { actorName } = useSession();
   const [fileName, setFileName] = useState("");
   const [table, setTable] = useState<{ headers: string[]; body: string[][] } | null>(null);
   const [map, setMap] = useState<Record<SettlementField, number> | null>(null);
@@ -113,16 +115,21 @@ export function SettlementImport() {
             <button className="btn-primary" disabled={!!busy || toSave.length === 0} onClick={async () => {
               setBusy({ done: 0, total: toSave.length });
               try {
+                let logged = false;
                 await run(async (s) => {
+                  // 파일마다 기록 → 잘못 올렸으면 아래 '가져오기 기록'에서 그 파일만 되돌리기 (PASS 28)
+                  const batchId = await s.createImportBatch({ kind: "settlements", fileName, rowCount: toSave.length, actorName });
+                  logged = !!batchId;
                   for (const [i, r] of toSave.entries()) {
-                    await s.upsertSettlement(r.value!);
+                    await s.upsertSettlement({ ...r.value!, importBatchId: batchId });
                     setBusy({ done: i + 1, total: toSave.length });
                   }
                 });
-                toast(`청구·입금 ${toSave.length}건을 저장했습니다`);
+                toast(`청구·입금 ${toSave.length}건을 저장했습니다${logged ? " — 잘못 올렸으면 '가져오기 기록'에서 되돌릴 수 있습니다" : ""}`);
                 reset();
               } catch (e) {
                 toast(e instanceof Error ? e.message : "저장 실패", "error");
+                void refresh();
               } finally { setBusy(null); }
             }}>
               {busy ? `저장 중 ${busy.done}/${busy.total}` : `${toSave.length}건 저장 (Confirm)`}

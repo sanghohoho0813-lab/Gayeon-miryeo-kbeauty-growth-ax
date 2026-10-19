@@ -61,6 +61,7 @@ const SCHEMA: { id: string; label: string; probes: [string, string?][]; rpc?: st
   { id: "m008", label: "OEM 생산기간·월 매출 목표 (008)", probes: [["products", "lead_time_days"], ["products", "moq"], ["monthly_targets", "month"]], file: "008" },
   { id: "m009", label: "운영 기준값 (009)", probes: [["organizations", "planning"]], file: "009" },
   { id: "m010", label: "채널별 판매 입력 주기 (010)", probes: [["channels", "input_cycle"]], file: "010" },
+  { id: "m011", label: "파일 가져오기 기록·되돌리기 (011)", probes: [["import_batches"], ["sales_records", "import_batch_id"], ["settlements", "import_batch_id"]], file: "011" },
 ];
 
 /* 익명에게 0행이어야 하는 테이블 — 구성원에게 보이는 행 수와 비교 */
@@ -73,6 +74,7 @@ const PRIVATE_TABLES: [string, string, string][] = [
   ["customer_accounts", "user_id", "고객 회원 정보"],
   ["customer_purchases", "id", "고객 구매기록"],
   ["growth_actions", "id", "Action"],
+  ["import_batches", "id", "파일 가져오기 기록"],
 ];
 
 export interface ReadinessInput {

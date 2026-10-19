@@ -140,6 +140,10 @@ if (PHASE === "B") {
   await owner.waitForTimeout(1000);
   const sales = await one("select count(*) n, sum(units) u, sum(revenue) r from sales_records where organization_id = $1 and source = 'csv'", [orgId]);
   ok("판매 8행 → DB (수량·매출 자동 계산)", Number(sales.n) === 8 && Number(sales.u) === 128 && Number(sales.r) === 128 * 30000, JSON.stringify(sales));
+  // PASS 28: 파일 가져오기 기록 (migration 011)
+  const b1 = await one("select id, kind, file_name, row_count, created_by_email from import_batches where organization_id = $1 and kind = 'sales' order by created_at desc limit 1", [orgId]);
+  ok("판매 파일 → import_batches 기록 (파일 이름·행 수·로그인 계정)", b1?.file_name === "sales.csv" && b1.row_count === 8 && b1.created_by_email === "owner@miryeo.test", JSON.stringify(b1));
+  ok("판매 8행 → 파일 기록 연결 (import_batch_id)", (await count("select count(*) n from sales_records where organization_id = $1 and import_batch_id = $2", [orgId, b1?.id])) === 8);
 
   // 3. 재고 낮게 → 품절위험 RULE → Action 자동 생성
   await owner.goto(`${APP}/ax/products?tab=inventory`, { waitUntil: "networkidle" });
@@ -309,6 +313,31 @@ if (PHASE === "B") {
   await owner.getByTestId("settlement-import-preview").waitFor();
   ok("같은 파일 다시 → 중복 의심 2건 · 저장 0건", (await owner.getByTestId("settlement-import-preview").innerText()).includes("중복 의심 2건") && (await owner.getByRole("button", { name: "0건 저장 (Confirm)" }).isDisabled()));
   await owner.getByRole("button", { name: "취소", exact: true }).click();
+  // PASS 28: 정산 파일 기록 → 되돌리기 (RPC undo_import, 한 트랜잭션)
+  const sb1 = await one("select id from import_batches where organization_id = $1 and kind = 'settlements' order by created_at desc limit 1", [orgId]);
+  ok("정산 파일 → 기록 연결 (2건)", (await count("select count(*) n from settlements where organization_id = $1 and import_batch_id = $2", [orgId, sb1?.id])) === 2);
+  await owner.getByTestId("import-history-settlements").getByRole("button", { name: /되돌리기/ }).first().click();
+  await owner.getByTestId("import-undo-confirm").click();
+  await owner.waitForTimeout(1500);
+  ok("정산 파일 되돌리기 → 2건 삭제 · 기록에 되돌림 (계정)", (await count("select count(*) n from settlements where organization_id = $1 and counterparty like 'E2E %'", [orgId])) === 0 && (await one("select undone_by_email e from import_batches where id = $1", [sb1?.id]))?.e === "owner@miryeo.test");
+
+  // PASS 28: 큰 판매 파일 1,200행 → 500행씩 나눠 저장(한 기록) → 되돌리기로 그 파일만 삭제
+  const big = ["주문일,상품코드,판매처,수량"];
+  for (let i = 0; i < 1200; i++) big.push(`${day(2 + (i % 50))},MR-TONER-01,자사몰,${101 + i}`);
+  fs.writeFileSync(`${OUT}/sales_big.csv`, big.join("\n"));
+  await owner.goto(`${APP}/ax/data`, { waitUntil: "networkidle" });
+  await owner.setInputFiles('[data-testid="sales-file"]', `${OUT}/sales_big.csv`);
+  await owner.getByRole("button", { name: "1200행 저장 (Confirm)" }).click();
+  for (let i = 0; i < 40 && (await count("select count(*) n from sales_records where organization_id = $1", [orgId])) < 1208; i++) await owner.waitForTimeout(500);
+  const bb = await one("select id, row_count from import_batches where organization_id = $1 and kind = 'sales' order by created_at desc limit 1", [orgId]);
+  ok("큰 파일 1,200행 → 500행씩 나눠 저장 (DB 1,200행 · 한 기록)", bb?.row_count === 1200 && (await count("select count(*) n from sales_records where organization_id = $1 and import_batch_id = $2", [orgId, bb.id])) === 1200);
+  await owner.waitForTimeout(800);
+  const topBatch = owner.getByTestId("import-history").locator("[data-import-batch]").first();
+  ok("가져오기 기록 맨 위 = 큰 파일 (지금 1,200행)", (await topBatch.innerText()).includes("sales_big.csv") && (await topBatch.innerText()).includes("지금 1,200행"));
+  await topBatch.getByRole("button", { name: /되돌리기/ }).click();
+  await owner.getByTestId("import-undo-confirm").click();
+  for (let i = 0; i < 40 && (await count("select count(*) n from sales_records where organization_id = $1 and import_batch_id = $2", [orgId, bb.id])) > 0; i++) await owner.waitForTimeout(500);
+  ok("큰 파일 되돌리기 → 1,200행 삭제 · 처음 파일 8행은 그대로", (await count("select count(*) n from sales_records where organization_id = $1 and import_batch_id = $2", [orgId, bb.id])) === 0 && (await count("select count(*) n from sales_records where organization_id = $1 and source = 'csv'", [orgId])) === 8);
 
   // 7-4. 월별 실적 · 대표 브리핑 · 내보내기
   await owner.goto(`${APP}/ax/monthly`, { waitUntil: "networkidle" });

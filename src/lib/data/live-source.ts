@@ -5,7 +5,7 @@ import type { DataSnapshot, DataSource } from "./source";
 import { uuidv4 } from "./source";
 import type {
   B2BAccount, Channel, CustomerEvent, CustomerProfile, ExportRecord, GrowthAction, ActionEvent,
-  CustomerAccount, CustomerPurchase, Inventory, KpiBaseline, Product, ProductionPlan, ProofEvent, SalesRecord, Settlement, TechAsset,
+  CustomerAccount, CustomerPurchase, ImportBatch, Inventory, KpiBaseline, Product, ProductionPlan, ProofEvent, SalesRecord, Settlement, TechAsset,
   OrgSettings,
 } from "../types";
 
@@ -34,7 +34,10 @@ const fromProduct = (p: Product, org: string): Row => ({
 const toInventory = (r: Row): Inventory => ({ productId: r.product_id, currentStock: r.current_stock, safetyStock: r.safety_stock, incomingStock: r.incoming_stock, incomingDate: r.incoming_date, updatedAt: r.updated_at });
 const toProduction = (r: Row): ProductionPlan => ({ id: r.id, productId: r.product_id, partner: r.partner, lastProducedAt: r.last_produced_at, quantity: r.quantity, expectedArrival: r.expected_arrival, status: r.status, nextRecommendedAt: r.next_recommended_at });
 const toChannel = (r: Row): Channel => ({ id: r.id, name: r.name, type: r.type, avgDiscountRate: Number(r.avg_discount_rate), active: r.active, inputCycle: r.input_cycle ?? undefined });
-const toSale = (r: Row): SalesRecord => ({ id: r.id, productId: r.product_id, channelId: r.channel_id, saleDate: r.sale_date, units: r.units, revenue: Number(r.revenue), source: r.source });
+const toSale = (r: Row): SalesRecord => ({ id: r.id, productId: r.product_id, channelId: r.channel_id, saleDate: r.sale_date, units: r.units, revenue: Number(r.revenue), source: r.source, importBatchId: r.import_batch_id ?? null });
+const toImportBatch = (r: Row): ImportBatch => ({ id: r.id, kind: r.kind, fileName: r.file_name ?? "", rowCount: Number(r.row_count ?? 0), createdAt: r.created_at, createdBy: r.created_by_email ?? null, undoneAt: r.undone_at ?? null, undoneBy: r.undone_by_email ?? null });
+/** 판매 저장 한 번에 보내는 행 수 — 큰 파일을 나눠 보내 요청 크기·시간 한도를 넘지 않게 (PASS 28) */
+export const SALES_CHUNK = 500;
 const toB2B = (r: Row): B2BAccount => ({ id: r.id, name: r.name, status: r.status, lastOrderAt: r.last_order_at, totalRevenue: Number(r.total_revenue), mainProductIds: r.main_product_ids ?? [], nextDelivery: r.next_delivery, note: r.note ?? undefined });
 const toExport = (r: Row): ExportRecord => ({ id: r.id, region: r.region, channel: r.channel ?? undefined, totalRevenue: Number(r.total_revenue), mainProductIds: r.main_product_ids ?? [], lastOrderAt: r.last_order_at, growthRate: r.growth_rate == null ? null : Number(r.growth_rate) });
 const toCustomer = (r: Row): CustomerProfile => ({ id: r.id, displayName: r.display_name ?? "고객", joinedAt: r.joined_at, lastOrderAt: r.last_order_at, orderCount: r.order_count, favoriteProductIds: r.favorite_product_ids ?? [], concerns: r.concerns ?? [] });
@@ -69,7 +72,7 @@ export const toPurchase = (r: Row): CustomerPurchase => ({
 });
 const toSettlement = (r: Row): Settlement => ({
   id: r.id, kind: r.kind, counterparty: r.counterparty, refId: r.ref_id, description: r.description, amount: Number(r.amount), paidAmount: Number(r.paid_amount),
-  issuedOn: r.issued_on, dueOn: r.due_on, paidOn: r.paid_on, status: r.status, note: r.note, updatedAt: r.updated_at,
+  issuedOn: r.issued_on, dueOn: r.due_on, paidOn: r.paid_on, status: r.status, note: r.note, updatedAt: r.updated_at, importBatchId: r.import_batch_id ?? null,
 });
 
 const TECH_KINDS = ["특허", "벤처기업확인", "연구개발 조직", "기술인증", "실증자료"] as const;
@@ -83,7 +86,7 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
   return {
     mode: "live",
     async loadAx(): Promise<DataSnapshot> {
-      const [o, products, inventory, production, channels, sales, b2b, exports, customers, events, actions, aevents, proofs, tech, baselines, accounts, purchases, settlements, targets] = await Promise.all([
+      const [o, products, inventory, production, channels, sales, b2b, exports, customers, events, actions, aevents, proofs, tech, baselines, accounts, purchases, settlements, targets, batches] = await Promise.all([
         sb.from("organizations").select("*").eq("id", org).single(),
         sb.from("products").select("*").eq("organization_id", org).order("created_at"),
         sb.from("inventory").select("*").eq("organization_id", org),
@@ -103,6 +106,8 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
         sb.from("customer_purchases").select("*").eq("organization_id", org).order("purchased_on"),
         sb.from("settlements").select("*").eq("organization_id", org).order("issued_on"),
         sb.from("monthly_targets").select("*").eq("organization_id", org).order("month"),
+        // migration 011 전이면 오류 → 기록 없이(되돌리기 숨김) 계속
+        sb.from("import_batches").select("*").eq("organization_id", org).order("created_at", { ascending: false }).limit(50),
       ]);
       if (targets.error) throw new Error(`${targets.error.message} — supabase/migrations/008 적용 여부를 확인하세요`);
       for (const r of [accounts, purchases, settlements]) if (r.error) throw new Error(`${r.error.message} — supabase/migrations/007 적용 여부를 확인하세요`);
@@ -132,6 +137,8 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
         customerPurchases: must<Row[]>(purchases).map(toPurchase),
         settlements: must<Row[]>(settlements).map(toSettlement),
         monthlyTargets: must<Row[]>(targets).map((r) => ({ month: r.month, revenueTarget: Number(r.revenue_target), note: r.note ?? null, setBy: r.set_by ?? null, updatedAt: r.updated_at })),
+        importBatches: batches.error ? [] : must<Row[]>(batches).map(toImportBatch),
+        importLogReady: !batches.error,
         loadedAt: new Date().toISOString(),
       };
     },
@@ -178,10 +185,36 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
       if (!b.id.startsWith("new-")) row.id = b.id;
       must(await sb.from("b2b_accounts").upsert(row).select());
     },
-    async addSales(rows) {
-      const payload = rows.map((r) => ({ organization_id: org, product_id: r.productId, channel_id: r.channelId, sale_date: r.saleDate, units: r.units, revenue: r.revenue, source: r.source }));
-      must(await sb.from("sales_records").insert(payload).select("id"));
-      return rows.length;
+    async addSales(rows, opts) {
+      // 500행씩 나눠 저장 (PASS 28) — 중간에 실패하면 몇 행까지 들어갔는지 알리고, 파일 기록이 있으면 되돌린 뒤 다시 올리도록 안내
+      let done = 0;
+      for (let i = 0; i < rows.length; i += SALES_CHUNK) {
+        const payload = rows.slice(i, i + SALES_CHUNK).map((r) => ({
+          organization_id: org, product_id: r.productId, channel_id: r.channelId, sale_date: r.saleDate, units: r.units, revenue: r.revenue, source: r.source,
+          ...(opts?.batchId ? { import_batch_id: opts.batchId } : {}),
+        }));
+        const res = await sb.from("sales_records").insert(payload).select("id");
+        if (res.error) {
+          const hint = opts?.batchId ? " — 데이터 관리 > 가져오기 기록에서 이 파일을 되돌린 뒤 다시 올리세요" : "";
+          throw new Error(done > 0 ? `${done.toLocaleString()}행까지 저장한 뒤 오류: ${res.error.message}${hint}` : res.error.message);
+        }
+        done += payload.length;
+        opts?.onProgress?.(done, rows.length);
+      }
+      return done;
+    },
+    async createImportBatch(b) {
+      const res = await sb.from("import_batches").insert({ organization_id: org, kind: b.kind, file_name: b.fileName.slice(0, 200), row_count: b.rowCount }).select("id").single();
+      // migration 011 전: 기록 없이 가져오기는 그대로 (되돌리기만 불가)
+      if (res.error && /import_batches|does not exist|schema cache/i.test(res.error.message)) return null;
+      if (res.error) throw new Error(res.error.message);
+      return (res.data as Row).id as string;
+    },
+    async undoImport(batchId) {
+      const { data, error } = await sb.rpc("undo_import", { p_batch: batchId });
+      if (error) throw new Error(/already undone/.test(error.message) ? "이미 되돌린 파일입니다" : /requires OWNER/.test(error.message) ? "대표·관리자만 되돌릴 수 있습니다" : error.message);
+      const r = (data ?? {}) as { sales?: number; settlements?: number };
+      return { sales: Number(r.sales ?? 0), settlements: Number(r.settlements ?? 0) };
     },
     async deleteSales(ids) {
       let n = 0;
@@ -250,6 +283,7 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
     },
     async upsertSettlement(st) {
       const row: Row = { organization_id: org, kind: st.kind, counterparty: st.counterparty, ref_id: st.refId ?? null, description: st.description ?? null, amount: st.amount, paid_amount: st.paidAmount, issued_on: st.issuedOn, due_on: st.dueOn ?? null, paid_on: st.paidOn ?? null, status: st.status, note: st.note ?? null };
+      if (st.importBatchId) row.import_batch_id = st.importBatchId;
       if (!st.id.startsWith("new-")) row.id = st.id;
       must(await sb.from("settlements").upsert(row).select("id"));
     },

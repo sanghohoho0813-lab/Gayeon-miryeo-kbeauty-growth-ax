@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AlertTriangle, Database, Inbox, RefreshCw } from "lucide-react";
+import { isLive } from "@/lib/config";
 
 export function EmptyState({ title, desc, action, icon }: { title: string; desc?: string; action?: ReactNode; icon?: ReactNode }) {
   return (
@@ -16,18 +17,19 @@ export function EmptyState({ title, desc, action, icon }: { title: string; desc?
   );
 }
 
-export function ErrorState({ title = "데이터를 불러오지 못했습니다", message, onRetry }: { title?: string; message?: string; onRetry?: () => void }) {
+export function ErrorState({ title = "데이터를 불러오지 못했습니다", message, onRetry, children }: { title?: string; message?: string; onRetry?: () => void; children?: ReactNode }) {
   return (
     <div className="mx-auto mt-16 max-w-lg rounded-2xl border p-8 text-center" style={{ borderColor: "var(--danger)", background: "var(--danger-soft)" }} role="alert">
       <AlertTriangle size={28} className="mx-auto" style={{ color: "var(--danger)" }} aria-hidden />
       <p className="mt-3 text-[1.1rem] font-bold">{title}</p>
       {message && <p className="mt-2 break-any font-mono text-[0.82rem] text-ink-soft">{message}</p>}
-      <p className="mt-2 text-[0.88rem] text-ink-soft">Live 모드에서는 오류 시 Demo 숫자로 대체하지 않습니다.</p>
+      {isLive && <p className="mt-2 text-[0.88rem] text-ink-soft">Live 모드에서는 오류 시 Demo 숫자로 대체하지 않습니다.</p>}
       {onRetry && (
         <button className="btn-secondary mt-4" onClick={onRetry}>
           <RefreshCw size={16} aria-hidden /> 다시 시도
         </button>
       )}
+      {children}
     </div>
   );
 }

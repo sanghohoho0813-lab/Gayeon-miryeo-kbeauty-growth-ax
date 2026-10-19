@@ -7,11 +7,13 @@ import { toast } from "./Toast";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { autoMap, diagnoseSales, findUnknownMasters, readTable, SALES_FIELDS, validateSalesRows, type ColumnMap, type SalesField } from "@/lib/import";
 import { ImportMasters, SalesDiagnosisCard } from "./ImportMasters";
+import { useSession } from "@/components/providers/SessionProvider";
 
 /* 판매 파일 가져오기 — 1 파일 선택 → 2 열 확인 → 3 검사 → 4 저장. 기존 데이터는 변경하지 않고 추가만 한다. */
 export function SalesImport() {
   const m = useModel();
-  const { run } = useData();
+  const { run, refresh } = useData();
+  const { actorName } = useSession();
   const channels = m.snapshot.channels.filter((c) => c.active);
   const [fileName, setFileName] = useState("");
   const [table, setTable] = useState<{ headers: string[]; body: string[][] } | null>(null);
@@ -19,7 +21,7 @@ export function SalesImport() {
   const [auto, setAuto] = useState<ColumnMap | null>(null);
   const [defaultChannel, setDefaultChannel] = useState(channels[0]?.id ?? "");
   const [includeDup, setIncludeDup] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<{ done: number; total: number } | null>(null);
 
   const reset = () => { setTable(null); setMap(null); setAuto(null); setFileName(""); setIncludeDup(false); };
 
@@ -150,13 +152,26 @@ export function SalesImport() {
             </label>
           )}
           <div className="mt-3 flex flex-wrap gap-2">
-            <button className="btn-primary" disabled={busy || toSave.length === 0} onClick={async () => {
-              setBusy(true);
-              try { await run((s) => s.addSales(toSave.map((r) => r.value!))); toast(`${toSave.length}행을 저장했습니다`); reset(); } catch (e) { toast(e instanceof Error ? e.message : "저장 실패", "error"); } finally { setBusy(false); }
+            <button className="btn-primary" disabled={!!busy || toSave.length === 0} onClick={async () => {
+              setBusy({ done: 0, total: toSave.length });
+              try {
+                // 파일마다 기록 → 잘못 올렸으면 '가져오기 기록'에서 그 파일만 되돌리기 (PASS 28). Live는 500행씩 나눠 저장
+                let logged = false;
+                await run(async (s) => {
+                  const batchId = await s.createImportBatch({ kind: "sales", fileName, rowCount: toSave.length, actorName });
+                  logged = !!batchId;
+                  await s.addSales(toSave.map((r) => r.value!), { batchId, onProgress: (done, total) => setBusy({ done, total }) });
+                });
+                toast(`${toSave.length}행을 저장했습니다${logged ? " — 잘못 올렸으면 아래 '가져오기 기록'에서 되돌릴 수 있습니다" : ""}`);
+                reset();
+              } catch (e) {
+                toast(e instanceof Error ? e.message : "저장 실패", "error");
+                void refresh(); // 나눠 저장하다 멈췄으면 들어간 행까지 화면에 반영
+              } finally { setBusy(null); }
             }}>
-              {toSave.length}행 저장 (Confirm)
+              {busy ? `저장 중 ${busy.done.toLocaleString()}/${busy.total.toLocaleString()}` : `${toSave.length}행 저장 (Confirm)`}
             </button>
-            <button className="btn-secondary" onClick={reset}>취소</button>
+            <button className="btn-secondary" disabled={!!busy} onClick={reset}>취소</button>
           </div>
           <p className="mt-2 text-[0.8rem] text-ink-soft">오류 행은 저장되지 않습니다. 기존 데이터는 변경되지 않습니다 (추가만).</p>
         </div>

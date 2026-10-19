@@ -22,6 +22,8 @@ import type {
   Settlement,
   TechAsset,
   MonthlyTarget,
+  ImportBatch,
+  ImportKind,
 } from "../types";
 import type { DataMode } from "../config";
 
@@ -52,6 +54,10 @@ export interface DataSnapshot {
   settlements: Settlement[];
   /** 월 매출 목표 — 조회 OWNER/ADMIN, 입력 OWNER (migration 008) */
   monthlyTargets: MonthlyTarget[];
+  /** 파일 가져오기 기록 최근 50건 (PASS 28) — Live에서 migration 011 전이면 빈 배열 */
+  importBatches?: ImportBatch[];
+  /** 가져오기 기록·되돌리기 사용 가능 (Live: migration 011 적용) */
+  importLogReady?: boolean;
   /** Demo 전용: 샘플 자료 연습 모드 (Demo 시드 없이 빈 상태에서 샘플 파일로 실제 업무 리허설) */
   practice?: boolean;
   loadedAt: string;
@@ -82,7 +88,12 @@ export interface DataSource {
   upsertChannel(c: Channel): Promise<void>;
   upsertProduction(p: ProductionPlan): Promise<void>;
   upsertB2B(b: B2BAccount): Promise<void>;
-  addSales(rows: Omit<SalesRecord, "id">[]): Promise<number>;
+  /** batchId: 파일 가져오기 기록(되돌리기용) · onProgress: 나눠 저장할 때 진행 (Live 500행 단위) */
+  addSales(rows: Omit<SalesRecord, "id">[], opts?: { batchId?: string | null; onProgress?: (done: number, total: number) => void }): Promise<number>;
+  /** 파일 가져오기 기록 만들기 — 기록을 쓸 수 없으면(Live migration 011 전) null, 가져오기는 그대로 진행 */
+  createImportBatch(b: { kind: ImportKind; fileName: string; rowCount: number; actorName?: string }): Promise<string | null>;
+  /** 그 파일로 들어온 판매·정산만 한 번에 삭제 (대표·관리자, Live: 한 트랜잭션 RPC undo_import) */
+  undoImport(batchId: string): Promise<{ sales: number; settlements: number }>;
   /** 판매 행 삭제 — 대표·관리자 (DB 정책 sales_delete). 데이터 품질 점검의 잘못 들어온 행 정리용 */
   deleteSales(ids: string[]): Promise<number>;
 
