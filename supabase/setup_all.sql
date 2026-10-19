@@ -1,6 +1,6 @@
 -- ============================================================================
 -- MIRYEO K-Beauty Growth AX — Supabase 일괄 설치 (자동 생성 파일, 직접 수정 금지)
--- 생성: node scripts/build-setup-sql.mjs · 원본: supabase/migrations/001·002·003·005·006·007·008·009 · sha 9c508c1eea6b
+-- 생성: node scripts/build-setup-sql.mjs · 원본: supabase/migrations/001·002·003·005·006·007·008·009·010 · sha 1549f30e42de
 --
 -- 사용: **새** Supabase 프로젝트 > SQL Editor > 이 파일 전체를 붙여 넣고 Run (1회).
 --   - 이미 001~003을 실행한 프로젝트에는 쓰지 않는다 (정책 중복으로 실패). 그때는 남은 번호 파일만 실행.
@@ -831,5 +831,18 @@ alter table public.organizations add constraint organizations_planning_check che
 );
 
 comment on column public.organizations.planning is '운영 기준값 (PASS 15): safetyDays 0~60 · coverDays 7~180 · roundTo 1~1000 · outcomeDays 7/14/28. 없는 키는 기본값(14·42·50·14)';
+
+-- ───────────── 010_pass27_channel_input_cycle.sql ─────────────
+-- 010 PASS 27 — 채널별 판매 입력 주기 (R-24, D-086)
+-- 도매·수출처럼 판매를 주·월 단위로 몰아 올리는 채널은 그 채널의 마지막 입력 기준으로 '최근 4주'를 계산한다.
+-- 001~009 적용 후 실행. 재실행 안전. 새 프로젝트는 supabase/setup_all.sql 한 번이면 포함된다.
+-- 수정은 기존 channels_write 정책(OWNER·ADMIN)을 그대로 따른다. 기존 채널은 모두 'daily'(지금과 같은 계산).
+
+alter table public.channels add column if not exists input_cycle text not null default 'daily';
+
+alter table public.channels drop constraint if exists channels_input_cycle_check;
+alter table public.channels add constraint channels_input_cycle_check check (input_cycle in ('daily', 'weekly', 'monthly'));
+
+comment on column public.channels.input_cycle is '판매 입력 주기 (PASS 27): daily 매일(기본) · weekly 주 1회 몰아서 · monthly 월 1회 몰아서 — 채널별 최근 4주 기준일 (src/lib/channel-cycle.ts)';
 
 commit;

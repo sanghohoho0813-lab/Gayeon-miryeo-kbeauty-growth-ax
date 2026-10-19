@@ -13,7 +13,7 @@ import { isLive } from "@/lib/config";
 import { realScope } from "@/lib/start-guide";
 import { downloadCSV } from "@/lib/export";
 import { startPracticeDemo } from "@/lib/data/demo-store";
-import { PRACTICE_MISTAKES, PRACTICE_STEPS, practiceProductFile, practiceSalesFile, practiceWeekFile, type PracticeFile } from "@/lib/practice-kit";
+import { PRACTICE_MISTAKES, PRACTICE_STEPS, practiceProductFile, practiceSalesFile, practiceSettlementFile, practiceWeekFile, type PracticeFile } from "@/lib/practice-kit";
 
 /* 샘플 자료 연습 (Demo 주소 전용) — 실제 자료가 오기 전, 가상 샘플 파일로 첫 주 업무(Week 0)를 그대로 해 본다.
    계약 별지 제1호 "실제 자료 또는 합리적인 샘플 자료로 실제 업무에 쓸 수 있는지 확인"의 리허설 수단. */
@@ -27,11 +27,11 @@ export function PracticeCard() {
   const on = !!m.snapshot.practice;
   const r = realScope(m.snapshot);
   const realCount = on ? 0 : r.products.length + r.sales.length + r.settlements.length;
-  const files: [string, () => PracticeFile][] = [["sales", () => practiceSalesFile(m.today)], ["products", practiceProductFile], ["week", () => practiceWeekFile(m.today)]];
+  const files: [string, () => PracticeFile][] = [["sales", () => practiceSalesFile(m.today)], ["products", practiceProductFile], ["week", () => practiceWeekFile(m.today)], ["settlements", () => practiceSettlementFile(m.today)]];
 
   return (
     <DataCard className="mb-5" title={on ? "샘플 자료 연습 중" : "샘플 자료로 먼저 연습하기"} action={<StatusBadge tone={on ? "warning" : "neutral"}>{on ? "연습 모드" : "선택"}</StatusBadge>}
-      info={on ? "모든 이름이 '샘플', SKU가 'SAMPLE-'로 시작하는 가상 자료입니다(실적 아님). 날짜는 오늘 기준으로 만들어집니다." : "가상 샘플 파일 3개(판매 8주·상품 정보·재고·추가 1주)로 첫 주 업무를 실제 순서 그대로 해 봅니다. Demo 시연 데이터를 비운 빈 상태에서 시작하므로 실제 자료를 처음 올리는 날과 같은 화면을 봅니다. 이 브라우저에만 저장되고, 끝나면 시연 데이터로 되돌립니다."}>
+      info={on ? "모든 이름이 '샘플', SKU가 'SAMPLE-'로 시작하는 가상 자료입니다(실적 아님). 날짜는 오늘 기준으로 만들어집니다." : "가상 샘플 파일 4개(판매 8주·상품 정보·재고·추가 1주·청구·입금)로 첫 주 업무를 실제 순서 그대로 해 봅니다. Demo 시연 데이터를 비운 빈 상태에서 시작하므로 실제 자료를 처음 올리는 날과 같은 화면을 봅니다. 이 브라우저에만 저장되고, 끝나면 시연 데이터로 되돌립니다."}>
       <div data-testid="practice-card" data-state={on ? "on" : "off"}>
         {!on ? (
           <>
@@ -45,7 +45,7 @@ export function PracticeCard() {
         ) : (
           <>
             <p className="text-[0.88rem] text-ink-soft"><b>가상 자료</b>(실적 아님) — 아래 순서대로 파일을 올리고 화면을 확인하세요.</p>
-            <div className="mt-3 grid gap-2 @xl:grid-cols-3">
+            <div className="mt-3 grid gap-2 @xl:grid-cols-2 @4xl:grid-cols-4">
               {files.map(([key, make]) => {
                 const f = make();
                 return (
@@ -65,7 +65,7 @@ export function PracticeCard() {
               ))}
             </ol>
             <details className="mt-3 text-[0.86rem]">
-              <summary className="cursor-pointer font-semibold">일부러 넣은 실수 3가지 (먼저 찾아본 뒤 열어 보세요)</summary>
+              <summary className="cursor-pointer font-semibold">일부러 넣은 실수 {PRACTICE_MISTAKES.length}가지 (먼저 찾아본 뒤 열어 보세요)</summary>
               <ul className="mt-1.5 list-disc space-y-1 pl-5 text-ink-soft">{PRACTICE_MISTAKES.map((x) => <li key={x}>{x}</li>)}</ul>
             </details>
             <div className="mt-4 flex flex-wrap items-center gap-2">

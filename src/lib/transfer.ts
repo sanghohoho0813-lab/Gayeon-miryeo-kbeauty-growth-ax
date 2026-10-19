@@ -4,6 +4,7 @@ import type { Channel, Inventory, MonthlyTarget, PlanningSettings, Product, Prod
 import { planningPatch, resolvePlanning } from "./planning";
 import { realScope } from "./start-guide";
 import { isPracticeName, isPracticeSku } from "./practice-kit";
+import { INPUT_CYCLE_IDS } from "./channel-cycle";
 
 /* 작업 데이터 백업·이관 (계약 3단계 "실제 자료 적용" — Supabase 연결 전 입력한 실데이터를 다시 입력하지 않게)
    - 내보내기: Demo 시드를 뺀 실데이터만 (채널·상품·재고·판매·정산 + Pilot 시작일·AX OWNER).
@@ -110,7 +111,8 @@ export function parseTransfer(text: string): ParsedTransfer | { fatal: string } 
     if (!isObj(v)) return bad("채널", i);
     const id = str(v.id, 80), name = str(v.name, 100), type = oneOf(v.type, CHANNEL_TYPES), rate = num(v.avgDiscountRate, 0, 0.95);
     if (!id || !name || !type || rate == null) return bad("채널", i);
-    channels.push({ id, name, type, avgDiscountRate: rate, active: v.active !== false });
+    const cycle = oneOf(v.inputCycle, INPUT_CYCLE_IDS);
+    channels.push({ id, name, type, avgDiscountRate: rate, active: v.active !== false, ...(cycle && cycle !== "daily" ? { inputCycle: cycle } : {}) });
   });
   const products: Product[] = [];
   arr("products").forEach((v, i) => {

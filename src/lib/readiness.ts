@@ -60,6 +60,7 @@ const SCHEMA: { id: string; label: string; probes: [string, string?][]; rpc?: st
   { id: "m007", label: "고객 회원·구매기록·정산 (007)", probes: [["customer_accounts", "user_id"], ["customer_purchases"], ["settlements"], ["products", "usage_days"]], file: "007" },
   { id: "m008", label: "OEM 생산기간·월 매출 목표 (008)", probes: [["products", "lead_time_days"], ["products", "moq"], ["monthly_targets", "month"]], file: "008" },
   { id: "m009", label: "운영 기준값 (009)", probes: [["organizations", "planning"]], file: "009" },
+  { id: "m010", label: "채널별 판매 입력 주기 (010)", probes: [["channels", "input_cycle"]], file: "010" },
 ];
 
 /* 익명에게 0행이어야 하는 테이블 — 구성원에게 보이는 행 수와 비교 */

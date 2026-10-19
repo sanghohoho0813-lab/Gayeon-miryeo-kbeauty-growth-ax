@@ -18,6 +18,7 @@ import { can } from "@/lib/permissions";
 import { formatKRW, formatPct } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
 import { useNarrow } from "@/lib/use-narrow";
+import { INPUT_CYCLES } from "@/lib/channel-cycle";
 
 const TABS = [{ id: "analysis", label: "채널 분석" }, { id: "b2b", label: "B2B" }, { id: "export", label: "수출" }, { id: "settlements", label: "정산·미수금" }] as const;
 type TabId = (typeof TABS)[number]["id"];
@@ -43,6 +44,17 @@ export default function ChannelsPage() {
   return <Suspense><Inner /></Suspense>;
 }
 
+/** 판매 입력 주기·'최근 4주' 끝 날 (PASS 27, R-24) — 주기를 넘겨 입력이 없으면 '입력 확인' */
+function InputBasis({ id }: { id: string }) {
+  const m = useModel();
+  const a = m.channelAsOf.get(id);
+  if (!a) return <span className="text-ink-soft">-</span>;
+  const short = INPUT_CYCLES[a.cycle].short;
+  const md = (iso: string) => formatDateKR(iso).slice(5);
+  if (a.stale) return <span data-input-basis={id} data-stale="1" className="tabular font-semibold" style={{ color: "var(--warning)" }}>{short} · 입력 확인 (마지막 {a.lastSale ? md(a.lastSale) : "-"})</span>;
+  return <span data-input-basis={id} className="tabular"><span className="text-ink-soft">{short} · </span>{md(a.asOf)}까지</span>;
+}
+
 function Analysis() {
   const m = useModel();
   const narrow = useNarrow();
@@ -56,7 +68,7 @@ function Analysis() {
   return (
     <div className="space-y-6">
       {/* 축 라벨이 겹치던 가로 막대 차트 → 이름·값을 글자로 쓰는 순위 막대 (PASS 14) */}
-      <DataCard title="채널 비교 — 최근 4주 매출" subtitle={`합계 ${formatKRW(total)} · 큰 순서`}>
+      <DataCard title="채널 비교 — 최근 4주 매출" subtitle={`합계 ${formatKRW(total)} · 큰 순서${rows.some((r) => r.asOf !== m.salesAsOf) ? " · 몰아서 입력하는 채널은 각자 입력 기준일까지" : ""}`}>
         <RankBars label="채널별 최근 4주 매출" items={rows.map((r) => ({ id: r.channel.id, label: r.channel.name, value: r.recentRevenue, prev: r.prevRevenue, valueText: formatKRW(r.recentRevenue), change: r.prevRevenue > 0 ? r.growthRate : null }))} />
       </DataCard>
       {best && (
@@ -78,6 +90,7 @@ function Analysis() {
                   <div><dt className="text-[0.76rem] text-ink-soft">이전 4주 대비</dt><dd className="font-semibold" style={{ color: r.growthRate >= 0 ? "var(--success)" : "var(--danger)" }}>{r.prevRevenue > 0 ? formatPct(r.growthRate) : "-"}</dd></div>
                   <div><dt className="text-[0.76rem] text-ink-soft">판매 수량</dt><dd>{r.recentUnits.toLocaleString()}개</dd></div>
                   <div><dt className="text-[0.76rem] text-ink-soft">평균 할인율</dt><dd>{Math.round(r.channel.avgDiscountRate * 100)}%</dd></div>
+                  <div className="col-span-2"><dt className="text-[0.76rem] text-ink-soft">판매 입력</dt><dd><InputBasis id={r.channel.id} /></dd></div>
                 </dl>
                 <p className="mt-2 text-[0.8rem] text-ink-soft">주요 SKU: {r.topProductIds.map((id) => m.productById.get(id)?.name ?? "-").join(", ") || "-"}</p>
               </li>
@@ -88,7 +101,7 @@ function Analysis() {
           <table className="text-[0.93rem]">
             <thead>
               <tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>
-                <th className="py-2.5 pr-4 font-semibold">채널</th><th className="py-2.5 pr-4 font-semibold">유형</th><th className="py-2.5 pr-4 font-semibold">최근 4주 매출</th><th className="py-2.5 pr-4 font-semibold">이전 4주 대비</th><th className="py-2.5 pr-4 font-semibold">판매 수량</th><th className="py-2.5 pr-4 font-semibold">평균 할인율</th><th className="py-2.5 font-semibold">주요 SKU</th>
+                <th className="py-2.5 pr-4 font-semibold">채널</th><th className="py-2.5 pr-4 font-semibold">유형</th><th className="py-2.5 pr-4 font-semibold">최근 4주 매출</th><th className="py-2.5 pr-4 font-semibold">이전 4주 대비</th><th className="py-2.5 pr-4 font-semibold">판매 수량</th><th className="py-2.5 pr-4 font-semibold">평균 할인율</th><th className="py-2.5 pr-4 font-semibold">판매 입력</th><th className="py-2.5 font-semibold">주요 SKU</th>
               </tr>
             </thead>
             <tbody>
@@ -100,6 +113,7 @@ function Analysis() {
                   <td className="tabular py-3 pr-4 font-semibold" style={{ color: r.growthRate >= 0 ? "var(--success)" : "var(--danger)" }}>{r.prevRevenue > 0 ? formatPct(r.growthRate) : "-"}</td>
                   <td className="tabular py-3 pr-4">{r.recentUnits.toLocaleString()}개</td>
                   <td className="tabular py-3 pr-4">{Math.round(r.channel.avgDiscountRate * 100)}%</td>
+                  <td className="py-3 pr-4 text-[0.86rem]"><InputBasis id={r.channel.id} /></td>
                   <td className="py-3 text-[0.86rem] text-ink-soft">{r.topProductIds.map((id) => m.productById.get(id)?.name ?? "-").join(", ") || "-"}</td>
                 </tr>
               ))}

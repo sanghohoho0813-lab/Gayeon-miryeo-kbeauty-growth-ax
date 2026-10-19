@@ -4,7 +4,7 @@ import { addDaysISO } from "./date";
 /* 샘플 자료 연습 키트 (계약 별지 제1호: "실제 자료 또는 합리적인 샘플 자료로 실제 업무에 쓸 수 있는지 확인")
    - 가상 자료입니다. 가연인터내셔널의 실제 상품·매출·거래처가 아니며, 이름은 모두 '샘플'·SKU는 'SAMPLE-'로 시작합니다.
    - 날짜는 받는 날 기준으로 만들어 언제 연습해도 '최근 4주/8주' 분석이 동작합니다. 같은 날 받으면 같은 파일입니다(고정 난수).
-   - 실제 업무에서 흔한 실수 3가지를 일부러 넣었습니다(천원 단위 판매가, 연도 오타, 이미 올린 날짜 다시 올리기) — 품질 점검·중복 제외 연습용. */
+   - 실제 업무에서 흔한 실수 5가지를 일부러 넣었습니다(천원 단위 판매가, 연도 오타, 이미 올린 날짜 다시 올리기, 같은 청구 두 번, 입금액 0 하나 더) — 품질 점검·중복 제외 연습용. */
 
 export const PRACTICE_SKU_PREFIX = "SAMPLE-";
 export const PRACTICE_NAME_PREFIX = "샘플 ";
@@ -112,10 +112,29 @@ export function practiceWeekFile(today: string): PracticeFile {
   return { name: "miryeo_practice3_sales_1week.csv", title: "③ 최근 1주 추가 판매 (매주 올리는 파일)", headers: SALES_HEADERS, rows, note: "지난 파일과 겹친 날은 자동 제외, 연도 오타는 품질 점검에서 발견" };
 }
 
+/** ④ 청구·입금 현황 (PASS 27, R-25) — 정산 파일 가져오기 연습. 실수: 같은 청구를 두 번 적음, 입금액에 0을 하나 더 */
+export function practiceSettlementFile(today: string): PracticeFile {
+  const d = (n: number) => addDaysISO(today, -n);
+  const row = (구분: string, 거래처: string, 내용: string, 청구일: string, 청구액: number, 입금기한: string, 입금액: number | "", 입금일: string): CsvRow => ({ 구분, 거래처, 내용, 청구일, 청구액, "입금 기한": 입금기한, 입금액, 입금일 });
+  const rows: CsvRow[] = [
+    row("B2B", CH.b2b, "두 달 전 납품분", d(75), 4620000, d(45), 4620000, d(48)),
+    row("B2B", CH.b2b, "지난달 납품분", d(45), 5180000, d(15), 2000000, d(20)), // 부분 입금 + 기한 지남 → 연체
+    row("B2B", CH.b2b, "이번 달 납품분", d(10), 3960000, addDaysISO(today, 20), "", ""),
+    row("수출", CH.exp, "2차 선적", d(40), 7150000, d(10), 7150000, d(12)),
+    row("수출", CH.exp, "3차 선적", d(12), 6600000, addDaysISO(today, 18), "", ""),
+    row("채널", CH.mall, "지난달 판매 정산", d(8), 2480000, addDaysISO(today, 7), "", ""),
+  ];
+  rows.push({ ...rows[2] }); // 실수 4: 같은 청구를 두 번 → '중복 의심'으로 자동 제외
+  rows.push(row("수출", CH.exp, "샘플 발송분", d(25), 1980000, addDaysISO(today, 5), 19800000, d(3))); // 실수 5: 입금액에 0 하나 더 → 오류
+  return { name: "miryeo_practice4_settlements.csv", title: "④ 청구·입금 현황 (거래처 정산)", headers: ["구분", "거래처", "내용", "청구일", "청구액", "입금 기한", "입금액", "입금일"], rows, note: "같은 청구 두 번은 자동 제외, 입금액 오타는 오류로 표시" };
+}
+
 export const PRACTICE_MISTAKES = [
   "② 상품 정보: 클렌저 판매가를 천원 단위(18)로 입력 → 품질 점검 '원가가 판매가 이상' 오류 → 상품 폼에서 18,000으로 수정",
   "③ 추가 판매: 이미 올린 날짜(8일 전)를 다시 포함 → 가져오기에서 '중복 의심'으로 기본 제외",
   "③ 추가 판매: 연도 오타 1행(내년 날짜) → 품질 점검 '오늘 이후 날짜의 판매' → 정리 버튼으로 삭제",
+  "④ 정산: 같은 청구(이번 달 납품분)를 두 번 적음 → 가져오기에서 '중복 의심'으로 기본 제외",
+  "④ 정산: 샘플 발송분 입금액에 0을 하나 더 입력 → '입금액이 청구액보다 큼' 오류로 저장 안 됨 → 정산 내역에서 직접 추가",
 ];
 
 /** 연습 순서 — 실제 첫 주(Week 0)와 같은 순서. href는 해당 화면 */
@@ -126,5 +145,6 @@ export const PRACTICE_STEPS: { title: string; detail: string; href: string }[] =
   { title: "Pilot 시작일·AX OWNER·월 목표", detail: "설정에서 시작일·책임자, 월별 실적에서 이번 달 목표(연습값)", href: "/ax/settings#pilot" },
   { title: "판단 확인 → 승인 → 실행 → 완료", detail: "AI Growth Center에서 생산 착수·과잉재고·생산 확대 판단의 근거를 읽고 처리", href: "/ax/growth" },
   { title: "추가 판매 파일 ③ 올리기", detail: "매주 하는 일. 겹친 날짜는 자동 제외, 남은 실수는 품질 점검에서 정리", href: "/ax/data" },
+  { title: "정산 파일 ④ 올리기", detail: "채널·B2B·수출 > 정산 > 파일로 가져오기. 같은 청구 두 번은 자동 제외, 입금액 오타는 오류 → 받을 돈·연체 확인, 연체는 AI Growth Center '연체 미수금 회수'로", href: "/ax/channels?tab=settlements" },
   { title: "주간 리포트·사업화 실적 자료 인쇄", detail: "결과가 어떻게 문서로 나오는지 확인 (DEMO 표시 — 제출용 아님)", href: "/ax/reports/weekly" },
 ];

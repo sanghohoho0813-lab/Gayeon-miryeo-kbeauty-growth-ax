@@ -86,6 +86,17 @@ if (PHASE === "B") {
   await owner.getByRole("button", { name: "저장", exact: true }).click();
   await owner.waitForTimeout(800);
   ok("채널 저장 → DB", (await count("select count(*) n from channels where organization_id = $1 and name = '자사몰'", [orgId])) === 1);
+  // PASS 27: 채널별 판매 입력 주기 (migration 010) — 월 1회 저장 → DB, 다시 매일
+  await owner.getByRole("button", { name: /^자사몰/ }).click();
+  await owner.getByTestId("channel-cycle").selectOption("monthly");
+  await owner.getByRole("button", { name: "저장", exact: true }).click();
+  await owner.waitForTimeout(800);
+  ok("채널 입력 주기 월 1회 → channels.input_cycle (010)", (await one("select input_cycle from channels where organization_id = $1 and name = '자사몰'", [orgId]))?.input_cycle === "monthly");
+  await owner.getByRole("button", { name: /^자사몰/ }).click();
+  await owner.getByTestId("channel-cycle").selectOption("daily");
+  await owner.getByRole("button", { name: "저장", exact: true }).click();
+  await owner.waitForTimeout(800);
+  ok("다시 매일 → input_cycle daily", (await one("select input_cycle from channels where organization_id = $1 and name = '자사몰'", [orgId]))?.input_cycle === "daily");
 
   await owner.goto(`${APP}/ax/data?tab=products`, { waitUntil: "networkidle" });
   await owner.getByRole("button", { name: /새 상품/ }).click();
@@ -181,7 +192,7 @@ if (PHASE === "B") {
   await owner.screenshot({ path: `${OUT}/B_reports.png`, fullPage: true });
 
   // 6. 설정: Pilot 시작일 · AX OWNER
-  await owner.goto(`${APP}/ax/settings`, { waitUntil: "networkidle" });
+  await owner.goto(`${APP}/ax/settings#pilot`, { waitUntil: "networkidle" }); // PASS 21: 설정이 탭으로 묶임 → 실증 운영 탭
   await owner.fill("#pilot-date", today);
   await owner.locator("#pilot-date").locator("xpath=following-sibling::button").click();
   await owner.waitForTimeout(600);
@@ -252,7 +263,7 @@ if (PHASE === "B") {
   ok("고객 계정으로 /ax → 조직 만들기 대신 고객 안내", (await cust.locator("body").innerText()).includes("고객 계정으로 로그인되어 있습니다"));
 
   // 7-2. 운영자: 회원·재구매 · 운영자 구매 기록
-  await owner.goto(`${APP}/ax/customers?reload=members`, { waitUntil: "networkidle" }); // 같은 페이지 해시 이동은 새로 불러오지 않음
+  await owner.goto(`${APP}/ax/customers?reload=members#members`, { waitUntil: "networkidle" }); // 같은 페이지 해시 이동은 새로 불러오지 않음 · PASS 21: 회원·재구매 탭
   await owner.waitForTimeout(800);
   const memText = await owner.locator("#members").innerText();
   ok("AX 회원 패널 (대표): 회원 1명 · 이메일 마스킹", memText.includes("1명") && memText.includes("cu******") && !memText.includes("customer@miryeo.test"));
@@ -283,8 +294,25 @@ if (PHASE === "B") {
   await owner.waitForTimeout(1500);
   ok("연체 미수금 RULE → growth_actions (정산)", (await count("select count(*) n from growth_actions where organization_id = $1 and rule_key = 'settlement-overdue' and category = '정산'", [orgId])) === 1);
 
+  // 7-3b. 청구·입금 파일 가져오기 (PASS 27) — Live 저장 · 같은 파일 다시 올리면 중복 의심으로 제외
+  const stCsv = `${OUT}/settlements_import.csv`;
+  fs.writeFileSync(stCsv, `구분,거래처,내용,청구일,청구액,입금 기한,입금액,입금일\nB2B,E2E 도매처,9월 납품,${day(12)},3300000,${day(-18)},1000000,${day(3)}\n수출,E2E 바이어,1차 선적,${day(30)},5500000,${day(5)},5500000,${day(6)}\n`);
+  await owner.goto(`${APP}/ax/channels?tab=settlements`, { waitUntil: "networkidle" });
+  await owner.getByTestId("settlement-import-fold").locator(".fold-btn").click();
+  await owner.setInputFiles('[data-testid="settlement-file"]', stCsv);
+  await owner.getByTestId("settlement-import-preview").waitFor();
+  await owner.getByRole("button", { name: "2건 저장 (Confirm)" }).click();
+  await owner.waitForTimeout(1500);
+  const imp = (await db.query("select kind, status, paid_amount::bigint p from settlements where organization_id = $1 and counterparty like 'E2E %' order by kind", [orgId])).rows;
+  ok("정산 파일 2건 → settlements (B2B 부분 입금 · 수출 완납)", imp.length === 2 && imp[0].kind === "B2B" && imp[0].status === "PARTIAL" && imp[1].kind === "EXPORT" && imp[1].status === "PAID", JSON.stringify(imp));
+  await owner.setInputFiles('[data-testid="settlement-file"]', stCsv);
+  await owner.getByTestId("settlement-import-preview").waitFor();
+  ok("같은 파일 다시 → 중복 의심 2건 · 저장 0건", (await owner.getByTestId("settlement-import-preview").innerText()).includes("중복 의심 2건") && (await owner.getByRole("button", { name: "0건 저장 (Confirm)" }).isDisabled()));
+  await owner.getByRole("button", { name: "취소", exact: true }).click();
+
   // 7-4. 월별 실적 · 대표 브리핑 · 내보내기
   await owner.goto(`${APP}/ax/monthly`, { waitUntil: "networkidle" });
+  await owner.getByRole("tab", { name: "제품별" }).click(); // PASS 21: 채널별·제품별 탭
   ok("월별 실적 (Live 판매 행)", (await owner.getByTestId("monthly-products").innerText()).includes("E2E 토너"));
   await owner.goto(`${APP}/ax`, { waitUntil: "networkidle" });
   if (await owner.getByTestId("briefing-toggle").count()) await owner.getByTestId("briefing-toggle").click(); // PASS 12: 중요 문장만 먼저 → 전체 펼침
@@ -347,7 +375,7 @@ if (PHASE === "B") {
     return [await get("customer_accounts"), await get("customer_purchases"), await get("settlements")];
   }, { gw: GW });
   ok("STAFF 토큰: 고객 개인정보·구매·정산 0행 (RLS)", staffPriv.every((n) => n === 0), JSON.stringify(staffPriv));
-  await staff.goto(`${APP}/ax/settings`, { waitUntil: "networkidle" });
+  await staff.goto(`${APP}/ax/settings#members`, { waitUntil: "networkidle" }); // PASS 21: 구성원은 '사람·권한' 탭
   ok("STAFF: 구성원 목록 차단", (await staff.locator("#members").innerText()).includes("대표·관리자만"));
 
   const admin = await accept(linkFor("admin@miryeo.test"), "admin-pass-123", "admin");

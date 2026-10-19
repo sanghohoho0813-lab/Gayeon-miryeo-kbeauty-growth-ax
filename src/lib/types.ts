@@ -64,12 +64,17 @@ export interface ProductionPlan {
 
 export type ChannelType = "직영몰" | "온라인몰" | "오프라인" | "라이브/인플루언서" | "B2B" | "수출";
 
+/** 판매 입력 주기 (PASS 27, R-24) — 주·월 단위로 몰아 올리는 채널은 그 채널의 마지막 입력 기준으로 '최근 4주'를 계산 (src/lib/channel-cycle.ts) */
+export type InputCycle = "daily" | "weekly" | "monthly";
+
 export interface Channel {
   id: string;
   name: string;
   type: ChannelType;
   avgDiscountRate: number;
   active: boolean;
+  /** 없으면 매일(daily) */
+  inputCycle?: InputCycle;
 }
 
 /** 판매 1행 = 특정 일(또는 주) 단위 집계. Demo의 weeklyUnits 배열을 대체한다. */

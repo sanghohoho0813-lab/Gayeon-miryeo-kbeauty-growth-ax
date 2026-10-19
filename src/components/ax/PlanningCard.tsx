@@ -36,7 +36,7 @@ export function PlanningCard() {
       .filter((p) => p.leadTimeDays)
       .map((p) => {
         const inv = s.inventory.find((i) => i.productId === p.id);
-        return { p, now: m.metrics.get(p.id)!, next: computeProductMetrics(p, inv, s.sales, m.today, m.salesAsOf, value) };
+        return { p, now: m.metrics.get(p.id)!, next: computeProductMetrics(p, inv, s.sales, m.today, m.asOfFor, value) };
       })
       .filter((x) => x.now?.daysToDeadline != null)
       .sort((a, b) => a.now.daysToDeadline! - b.now.daysToDeadline!);

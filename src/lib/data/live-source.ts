@@ -33,7 +33,7 @@ const fromProduct = (p: Product, org: string): Row => ({
 });
 const toInventory = (r: Row): Inventory => ({ productId: r.product_id, currentStock: r.current_stock, safetyStock: r.safety_stock, incomingStock: r.incoming_stock, incomingDate: r.incoming_date, updatedAt: r.updated_at });
 const toProduction = (r: Row): ProductionPlan => ({ id: r.id, productId: r.product_id, partner: r.partner, lastProducedAt: r.last_produced_at, quantity: r.quantity, expectedArrival: r.expected_arrival, status: r.status, nextRecommendedAt: r.next_recommended_at });
-const toChannel = (r: Row): Channel => ({ id: r.id, name: r.name, type: r.type, avgDiscountRate: Number(r.avg_discount_rate), active: r.active });
+const toChannel = (r: Row): Channel => ({ id: r.id, name: r.name, type: r.type, avgDiscountRate: Number(r.avg_discount_rate), active: r.active, inputCycle: r.input_cycle ?? undefined });
 const toSale = (r: Row): SalesRecord => ({ id: r.id, productId: r.product_id, channelId: r.channel_id, saleDate: r.sale_date, units: r.units, revenue: Number(r.revenue), source: r.source });
 const toB2B = (r: Row): B2BAccount => ({ id: r.id, name: r.name, status: r.status, lastOrderAt: r.last_order_at, totalRevenue: Number(r.total_revenue), mainProductIds: r.main_product_ids ?? [], nextDelivery: r.next_delivery, note: r.note ?? undefined });
 const toExport = (r: Row): ExportRecord => ({ id: r.id, region: r.region, channel: r.channel ?? undefined, totalRevenue: Number(r.total_revenue), mainProductIds: r.main_product_ids ?? [], lastOrderAt: r.last_order_at, growthRate: r.growth_rate == null ? null : Number(r.growth_rate) });
@@ -156,8 +156,17 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
     },
     async upsertChannel(c) {
       const row: Row = { organization_id: org, name: c.name, type: c.type, avg_discount_rate: c.avgDiscountRate, active: c.active };
+      if (c.inputCycle) row.input_cycle = c.inputCycle;
       if (!c.id.startsWith("new-")) row.id = c.id;
-      must(await sb.from("channels").upsert(row).select());
+      const res = await sb.from("channels").upsert(row).select();
+      // migration 010 적용 전 DB: '매일'은 기본값과 같으니 그 열 없이 저장, 주·월 주기는 010이 있어야 저장된다고 알림
+      if (res.error && "input_cycle" in row && /input_cycle/.test(res.error.message)) {
+        if (c.inputCycle !== "daily") throw new Error(`${res.error.message} — supabase/migrations/010 적용 여부를 확인하세요`);
+        delete row.input_cycle;
+        must(await sb.from("channels").upsert(row).select());
+        return;
+      }
+      must(res);
     },
     async upsertProduction(p) {
       const row: Row = { organization_id: org, product_id: p.productId, partner: p.partner, last_produced_at: p.lastProducedAt ?? null, quantity: p.quantity, expected_arrival: p.expectedArrival ?? null, status: p.status, next_recommended_at: p.nextRecommendedAt ?? null };

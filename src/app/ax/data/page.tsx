@@ -22,7 +22,8 @@ import { can } from "@/lib/permissions";
 import { formatPrice } from "@/lib/analytics";
 import { todayISO } from "@/lib/date";
 import { isLive } from "@/lib/config";
-import type { B2BAccount, Channel, ChannelType, Product, ProductCategory, ProductionPlan, SkinConcern, Texture } from "@/lib/types";
+import type { B2BAccount, Channel, ChannelType, InputCycle, Product, ProductCategory, ProductionPlan, SkinConcern, Texture } from "@/lib/types";
+import { cycleOf, INPUT_CYCLE_IDS, INPUT_CYCLES } from "@/lib/channel-cycle";
 
 const TABS = [
   { id: "sales", label: "판매 입력·파일" },
@@ -244,6 +245,14 @@ function ChannelsTab() {
           <div><label className="field-label" htmlFor="c-type">유형</label><select id="c-type" className="field" value={c.type} onChange={(e) => setC({ ...c, type: e.target.value as ChannelType })}>{CH_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
           <div><label className="field-label" htmlFor="c-disc">평균 할인율 (%)</label><input id="c-disc" className="field tabular" inputMode="decimal" value={Math.round(c.avgDiscountRate * 1000) / 10} onChange={(e) => setC({ ...c, avgDiscountRate: Math.min(1, Math.max(0, Number(e.target.value) / 100 || 0)) })} /></div>
           <label className="flex items-center gap-2 pt-7 text-[0.92rem]"><input type="checkbox" className="h-4 w-4" checked={c.active} onChange={(e) => setC({ ...c, active: e.target.checked })} /> 사용 중</label>
+          {/* 판매 입력 주기 (PASS 27, R-24) — 몰아서 올리는 채널은 그 채널의 마지막 입력 기준으로 '최근 4주' */}
+          <div className="@xl:col-span-2">
+            <label className="field-label" htmlFor="c-cycle">판매 입력 주기</label>
+            <select id="c-cycle" data-testid="channel-cycle" className="field" value={cycleOf(c)} aria-describedby="c-cycle-help" onChange={(e) => setC({ ...c, inputCycle: e.target.value as InputCycle })}>
+              {INPUT_CYCLE_IDS.map((k) => <option key={k} value={k}>{INPUT_CYCLES[k].label}</option>)}
+            </select>
+            <p id="c-cycle-help" className="mt-1 text-[0.82rem] text-ink-soft">{INPUT_CYCLES[cycleOf(c)].help}</p>
+          </div>
         </div>
         <div className="mt-4 flex gap-2">
           <button className="btn-primary" disabled={busy || !c.name.trim()} onClick={async () => { if (await save("채널을 저장했습니다", (s) => s.upsertChannel({ ...c, name: c.name.trim() }))) setC({ id: `new-ch-${Date.now()}`, name: "", type: "온라인몰", avgDiscountRate: 0, active: true }); }}>저장</button>
@@ -251,7 +260,7 @@ function ChannelsTab() {
         </div>
       </DataCard>
       <DataCard title={`채널 (${m.snapshot.channels.length})`}>
-        <ul className="space-y-1.5">{m.snapshot.channels.map((x) => <li key={x.id}><button onClick={() => setC(x)} className="row-hover flex w-full justify-between rounded-xl border px-3 py-2.5 text-[0.92rem]" style={{ borderColor: "var(--border)" }}><span className="font-semibold">{x.name}</span><span className="text-ink-soft">{x.type} · {Math.round(x.avgDiscountRate * 100)}%{x.active ? "" : " · 중지"}</span></button></li>)}</ul>
+        <ul className="space-y-1.5">{m.snapshot.channels.map((x) => <li key={x.id}><button onClick={() => setC(x)} className="row-hover flex w-full justify-between rounded-xl border px-3 py-2.5 text-[0.92rem]" style={{ borderColor: "var(--border)" }}><span className="font-semibold">{x.name}</span><span className="text-ink-soft">{x.type} · {Math.round(x.avgDiscountRate * 100)}%{cycleOf(x) !== "daily" ? ` · 입력 ${INPUT_CYCLES[cycleOf(x)].short}` : ""}{x.active ? "" : " · 중지"}</span></button></li>)}</ul>
       </DataCard>
     </div>
   );

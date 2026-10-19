@@ -57,6 +57,7 @@ export default function DashboardPage() {
           <InfoTip text={<>입력 전 {daysBetween(m.salesAsOf, m.today)}일을 판매 0으로 보지 않도록 마지막 판매일까지로 계산합니다. 재고·착수 마감은 오늘 기준입니다.</>} label="판매 기준일 설명" />
         </p>
       )}
+      <LaggingChannels />
 
       {/* 핵심 숫자 7개를 한 패널로 묶음 — 최근 4주 | 이번 달 (PASS 21, D-075) */}
       <section aria-label="핵심 숫자" className="ax-card p-2 @md:p-2.5" data-tour="kpis">
@@ -312,5 +313,28 @@ function RoutineBanner() {
         <span className="text-ink-soft"> · 확인 필요: {r.next?.title} — {r.next?.detail}</span>
       </span>
     </Link>
+  );
+}
+
+/* 몰아서 입력하는 채널 안내 (PASS 27, R-24) — 채널 설정 '판매 입력 주기'가 주·월이고 조직 기준일보다 2일 이상 앞에서 끊었거나, 주기를 넘겨 입력이 없을 때만 */
+function LaggingChannels() {
+  const m = useModel();
+  const md = (iso: string) => formatDateKR(iso).slice(5);
+  const items = m.snapshot.channels
+    .filter((c) => c.active)
+    .map((c) => ({ c, a: m.channelAsOf.get(c.id) }))
+    .filter((x): x is { c: typeof x.c; a: NonNullable<typeof x.a> } => !!x.a && (x.a.stale || x.a.lagDays >= 2));
+  if (items.length === 0) return null;
+  return (
+    <p className="-mt-2 mb-3 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[0.86rem] text-ink-soft" data-testid="channel-asof">
+      <span>몰아서 입력하는 채널은 각자 입력 기준일까지:</span>
+      {items.map(({ c, a }) => (
+        <span key={c.id} className="tabular" style={a.stale ? { color: "var(--warning)", fontWeight: 600 } : undefined}>
+          {c.name} {a.stale ? `입력 확인 (마지막 ${a.lastSale ? md(a.lastSale) : "-"})` : `${md(a.asOf)}까지`}
+        </span>
+      ))}
+      <InfoTip text={<>데이터 관리 &gt; 채널에서 &lsquo;판매 입력 주기&rsquo;를 주 1회·월 1회로 정한 채널은, 아직 올리지 않은 날을 판매 0으로 보지 않도록 그 채널의 마지막 입력 기준으로 최근 4주를 계산합니다. 주기를 넘겨 입력이 없으면 &lsquo;입력 확인&rsquo;으로 표시합니다.</>} label="채널별 판매 기준일 설명" />
+      <Link href="/ax/channels" className="font-semibold underline-offset-2 hover:underline" style={{ color: "var(--primary)" }}>채널 보기</Link>
+    </p>
   );
 }

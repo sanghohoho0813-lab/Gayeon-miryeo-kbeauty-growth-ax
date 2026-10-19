@@ -63,30 +63,36 @@ export type PlanBasis = Pick<PlanningSettings, "safetyDays" | "coverDays" | "rou
 
 export const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
 
-/** 판매 행을 오늘 기준 주 단위 버킷(0 = 최근 7일)으로 집계 → 오래된 순 8칸 배열 */
-export function weeklyUnits(sales: SalesRecord[], filter: (s: SalesRecord) => boolean, today = todayISO()): number[] {
+/** 판매 분석 기준일 — 모든 채널 같은 날(문자열) 또는 채널별 기준일(채널 ID → 날짜, PASS 27 R-24 · D-086) */
+export type SalesAsOf = string | ((channelId: string) => string);
+const asOfRef = (a: SalesAsOf) => (typeof a === "string" ? () => a : a);
+
+/** 판매 행을 기준일 기준 주 단위 버킷(0 = 최근 7일)으로 집계 → 오래된 순 8칸 배열 */
+export function weeklyUnits(sales: SalesRecord[], filter: (s: SalesRecord) => boolean, today: SalesAsOf = todayISO()): number[] {
   const buckets = Array(8).fill(0) as number[];
+  const ref = asOfRef(today);
   for (const s of sales) {
     if (!filter(s)) continue;
-    const ago = daysBetween(s.saleDate, today);
+    const ago = daysBetween(s.saleDate, ref(s.channelId));
     if (ago < 0 || ago >= 56) continue;
     buckets[7 - Math.floor(ago / 7)] += s.units;
   }
   return buckets;
 }
 
-function revenueBetween(sales: SalesRecord[], filter: (s: SalesRecord) => boolean, fromAgo: number, toAgo: number, today: string) {
+function revenueBetween(sales: SalesRecord[], filter: (s: SalesRecord) => boolean, fromAgo: number, toAgo: number, today: SalesAsOf) {
   let total = 0;
+  const ref = asOfRef(today);
   for (const s of sales) {
     if (!filter(s)) continue;
-    const ago = daysBetween(s.saleDate, today);
+    const ago = daysBetween(s.saleDate, ref(s.channelId));
     if (ago >= fromAgo && ago < toAgo) total += s.revenue;
   }
   return total;
 }
 
-/** asOf: 판매 분석 기준일 (마지막 판매일 — D-053). 재고·착수 마감은 오늘(today) 기준 */
-export function computeProductMetrics(product: Product, inventory: Inventory | undefined, sales: SalesRecord[], today: string, asOf: string = today, plan: PlanBasis = PLANNING): ProductMetrics {
+/** asOf: 판매 분석 기준일 (마지막 판매일 — D-053, 채널별 입력 주기 — D-086). 재고·착수 마감은 오늘(today) 기준 */
+export function computeProductMetrics(product: Product, inventory: Inventory | undefined, sales: SalesRecord[], today: string, asOf: SalesAsOf = today, plan: PlanBasis = PLANNING): ProductMetrics {
   const weekly = weeklyUnits(sales, (s) => s.productId === product.id, asOf);
   const recent4wUnits = sum(weekly.slice(4));
   const prev4wUnits = sum(weekly.slice(0, 4));
@@ -158,17 +164,23 @@ export interface ChannelStats {
   recentUnits: number;
   profitIndex: number; // 기준 마진 68% - 평균 할인율 (Demo 규칙)
   topProductIds: string[];
+  /** 이 채널의 '최근 4주' 끝 날 (채널별 입력 주기 — D-086) */
+  asOf: string;
 }
 
-export function computeChannelStats(channels: Channel[], sales: SalesRecord[], today: string): ChannelStats[] {
+export function computeChannelStats(channels: Channel[], sales: SalesRecord[], today: SalesAsOf): ChannelStats[] {
+  const ref = asOfRef(today);
   return channels.map((channel) => {
     const f = (s: SalesRecord) => s.channelId === channel.id;
-    const recentRevenue = revenueBetween(sales, f, 0, 28, today);
-    const prevRevenue = revenueBetween(sales, f, 28, 56, today);
+    const asOf = ref(channel.id);
+    const recentRevenue = revenueBetween(sales, f, 0, 28, asOf);
+    const prevRevenue = revenueBetween(sales, f, 28, 56, asOf);
     const byProduct = new Map<string, number>();
     let recentUnits = 0;
     for (const s of sales) {
-      if (!f(s) || daysBetween(s.saleDate, today) >= 28) continue;
+      if (!f(s)) continue;
+      const ago = daysBetween(s.saleDate, asOf);
+      if (ago < 0 || ago >= 28) continue;
       recentUnits += s.units;
       byProduct.set(s.productId, (byProduct.get(s.productId) ?? 0) + s.revenue);
     }
@@ -180,6 +192,7 @@ export function computeChannelStats(channels: Channel[], sales: SalesRecord[], t
       recentUnits,
       profitIndex: Math.max(0, 0.68 - channel.avgDiscountRate),
       topProductIds: [...byProduct.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([id]) => id),
+      asOf,
     };
   });
 }

@@ -7,6 +7,8 @@ import { EmptyState } from "./States";
 import { Modal } from "./Modal";
 import { toast } from "./Toast";
 import { ExportButton } from "./ExportButton";
+import { Fold } from "./InfoTip";
+import { SettlementImport } from "./SettlementImport";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { formatKRW, formatPrice } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
@@ -116,6 +118,11 @@ export function Settlements() {
         )}
         <p className="mt-3 text-[0.8rem] text-ink-soft">연체된 받을 돈은 AI Growth Center에 &lsquo;연체 미수금 회수&rsquo; Action으로 올라갑니다. 금액은 입력한 청구·입금 기록 기준입니다.</p>
       </DataCard>
+
+      {/* 청구·입금 현황 파일로 한 번에 (PASS 27, D-087) — 정산 내역이 없을 때는 펼쳐 둔다 */}
+      <Fold summary="청구·입금 현황을 파일로 한 번에 가져오기 (엑셀·CSV)" defaultOpen={list.length === 0} testId="settlement-import-fold">
+        <SettlementImport />
+      </Fold>
 
       {edit && <SettlementModal value={edit} onClose={() => setEdit(null)} />}
       {pay && <PaymentModal value={pay} onClose={() => setPay(null)} />}
