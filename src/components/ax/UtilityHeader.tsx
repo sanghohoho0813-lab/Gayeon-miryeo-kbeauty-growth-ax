@@ -179,7 +179,7 @@ export function UtilityHeader() {
               </button>
             </div>
             <div className="mb-4 rounded-xl p-3" style={{ background: "var(--sidebar-active-bg)", color: "var(--sidebar-text)" }}>
-              <LiveClock />
+              <LiveClock onDark />
             </div>
             <NavList onNavigate={() => setDrawerOpen(false)} />
             <Link href="/beauty" className="mt-2 flex min-h-[48px] items-center justify-center gap-2 rounded-xl px-4 font-semibold" style={{ background: "var(--sidebar-active-bg)", color: "var(--sidebar-active-text)" }}>

@@ -7,6 +7,7 @@ import { toast } from "./Toast";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { formatPrice } from "@/lib/analytics";
 import { autoMap, PRODUCT_FIELDS, readTable, validateProductRows, type ProductField } from "@/lib/import";
+import { useLeaveGuard } from "@/lib/use-leave-guard";
 
 /* 상품 일괄 등록 — SKU 기준: 없으면 신규, 있으면 파일에 값이 있는 항목만 갱신 (빈 칸은 기존 값 유지) */
 export function ProductImport() {
@@ -17,6 +18,7 @@ export function ProductImport() {
   const [map, setMap] = useState<Record<ProductField, number> | null>(null);
   const [auto, setAuto] = useState<Record<ProductField, number> | null>(null);
   const [busy, setBusy] = useState<{ done: number; total: number } | null>(null);
+  useLeaveGuard(!!busy);
   const reset = () => { setTable(null); setMap(null); setAuto(null); setFileName(""); };
 
   const onFile = async (file?: File) => {

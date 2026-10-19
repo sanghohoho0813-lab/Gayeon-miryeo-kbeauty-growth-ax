@@ -11,6 +11,7 @@ import { can } from "@/lib/permissions";
 import { isLive } from "@/lib/config";
 import { formatDateTimeKR } from "@/lib/date";
 import type { ImportBatch, ImportKind } from "@/lib/types";
+import { useLeaveGuard } from "@/lib/use-leave-guard";
 
 const KIND_LABEL: Record<ImportKind, string> = { sales: "판매 파일", settlements: "청구·입금 파일" };
 
@@ -22,6 +23,7 @@ export function ImportHistory({ kind, className = "" }: { kind?: ImportKind; cla
   const { role } = useSession();
   const [confirm, setConfirm] = useState<ImportBatch | null>(null);
   const [busy, setBusy] = useState(false);
+  useLeaveGuard(!!busy);
   const canUndo = can(role, "edit_master");
   const list = (m.snapshot.importBatches ?? []).filter((b) => !kind || b.kind === kind);
   // 지금 남아 있는 행 수 (나중에 품질 점검으로 지운 행은 빠짐)

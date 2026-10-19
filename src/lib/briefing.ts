@@ -73,3 +73,18 @@ export function buildBriefing(m: AxModel, opts: { financial: boolean }): Briefin
   const headline = !top ? "기록된 데이터가 아직 적어 요약할 내용이 없습니다." : top.tone === "risk" ? `오늘은 ${lines.filter((l) => l.tone === "risk").map((l) => l.topic).join("·")} 대응이 우선입니다.` : top.tone === "warn" ? `${lines.filter((l) => l.tone === "warn").map((l) => l.topic).join("·")} 점검이 필요합니다.` : "큰 위험 신호는 없습니다. 성장 제품과 실행 중인 Action을 확인하세요.";
   return { headline, lines: lines.slice(0, 10) };
 }
+
+/** 메신저·메일에 붙여 넣을 글 (PASS 29) — 화면의 RULE 문장 그대로, 링크·내부 용어 없이.
+    시연 데이터는 실제 숫자로 오해되지 않게 첫 줄에 표시한다. */
+export function briefingText(b: Briefing, opts: { title: string; orgName?: string; today: string; demo: boolean }): string {
+  const head = `[${opts.orgName ? `${opts.orgName} ` : ""}${opts.title} · ${opts.today}]`;
+  return [
+    ...(opts.demo ? ["※ 시연용 예시 데이터입니다 (실제 숫자 아님)"] : []),
+    head,
+    b.headline,
+    "",
+    ...b.lines.map((l) => `· ${l.topic}: ${l.text}`),
+    "",
+    "— 시스템에 기록된 숫자로만 만든 요약입니다.",
+  ].join("\n");
+}

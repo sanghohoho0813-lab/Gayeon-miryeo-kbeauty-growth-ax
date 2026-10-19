@@ -7,13 +7,16 @@ import { candidatesToMaterialize } from "@/lib/analytics";
 import { useSession } from "./SessionProvider";
 
 /* Business AX Data — Snapshot 로드 → Model 계산 → RULE 후보 Action 저장(materialize).
-   Live 로드 실패 시 error 상태를 그대로 노출한다 (Demo fallback 없음). */
+   Live 로드 실패 시 error 상태를 그대로 노출한다 (Demo fallback 없음).
+   단, 이미 화면을 그린 뒤 다시 불러오기만 실패하면(잠깐 끊긴 연결 등) 마지막 자료를 그대로 두고 stale로 알린다 (PASS 29). */
 
 type LoadStatus = "loading" | "ready" | "error";
 
 interface DataValue {
   status: LoadStatus;
   error?: string;
+  /** 마지막 다시 불러오기 실패 — 화면은 이전 자료 기준 (ConnectionBanner가 안내·재시도) */
+  stale: boolean;
   model: AxModel | null;
   source: DataSource | null;
   refresh: () => Promise<void>;
@@ -28,16 +31,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<DataSnapshot | null>(null);
   const [status, setStatus] = useState<LoadStatus>("loading");
   const [error, setError] = useState<string>();
+  const [stale, setStale] = useState(false);
   const materializing = useRef(false);
+  const loadedFrom = useRef<DataSource | null>(null);
 
   const refresh = useCallback(async () => {
     if (!source) return;
     try {
       const snap = await source.loadAx();
+      loadedFrom.current = source;
       setSnapshot(snap);
       setStatus("ready");
       setError(undefined);
+      setStale(false);
     } catch (e) {
+      if (loadedFrom.current === source) {
+        console.warn("[AX] refresh failed — keeping last snapshot", e);
+        setStale(true);
+        return;
+      }
       setError(e instanceof Error ? e.message : String(e));
       setStatus("error");
     }
@@ -71,7 +83,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return result;
   }, [source, refresh]);
 
-  const value = useMemo<DataValue>(() => ({ status, error, model, source, refresh, run }), [status, error, model, source, refresh, run]);
+  const value = useMemo<DataValue>(() => ({ status, error, stale, model, source, refresh, run }), [status, error, stale, model, source, refresh, run]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

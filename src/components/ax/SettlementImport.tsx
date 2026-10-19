@@ -10,6 +10,7 @@ import { autoMap, readTable } from "@/lib/import";
 import { SETTLEMENT_FIELDS, validateSettlementRows, type SettlementField } from "@/lib/settlement-import";
 import { SETTLEMENT_KIND_LABEL, SETTLEMENT_STATUS_LABEL } from "@/lib/settlements";
 import { useSession } from "@/components/providers/SessionProvider";
+import { useLeaveGuard } from "@/lib/use-leave-guard";
 
 /* 청구·입금 파일 가져오기 (PASS 27, D-087) — 거래처별 청구·입금 현황을 엑셀·CSV 그대로. 오류 행·중복 의심은 저장하지 않는다 */
 export function SettlementImport() {
@@ -22,6 +23,7 @@ export function SettlementImport() {
   const [auto, setAuto] = useState<Record<SettlementField, number> | null>(null);
   const [includeDup, setIncludeDup] = useState(false);
   const [busy, setBusy] = useState<{ done: number; total: number } | null>(null);
+  useLeaveGuard(!!busy);
   const reset = () => { setTable(null); setMap(null); setAuto(null); setFileName(""); setIncludeDup(false); };
 
   const onFile = async (file?: File) => {

@@ -2,8 +2,12 @@
 
 export const TIME_ZONE = "Asia/Seoul";
 
+/* 날짜 형식기는 만들 때 비용이 커서(수천 번 호출되면 화면이 수 초 멈춤) 한 번만 만들어 다시 쓴다 (PASS 29, D-091) */
+const ISO_DAY = new Intl.DateTimeFormat("sv-SE", { timeZone: TIME_ZONE });
+const KR_DATETIME = new Intl.DateTimeFormat("ko-KR", { timeZone: TIME_ZONE, month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+
 export function todayISO(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat("sv-SE", { timeZone: TIME_ZONE }).format(now);
+  return ISO_DAY.format(now);
 }
 
 export function addDaysISO(iso: string, days: number): string {
@@ -30,14 +34,7 @@ export function formatDateKR(iso?: string | null): string {
 
 export function formatDateTimeKR(iso?: string | null): string {
   if (!iso) return "-";
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: TIME_ZONE,
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(iso));
+  return KR_DATETIME.format(new Date(iso));
 }
 
 export function relativeKR(iso: string, now: number = Date.now()): string {

@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Newspaper, Sparkles } from "lucide-react";
+import { Check, ChevronRight, Copy, Newspaper, Sparkles } from "lucide-react";
 import { DataCard, StatusBadge, type Tone } from "./Cards";
 import { AiReadyButton, AI_SPECS } from "./AiReady";
+import { toast } from "./Toast";
 import { useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
-import { buildBriefing, type BriefTone } from "@/lib/briefing";
+import { briefingText, buildBriefing, type BriefTone } from "@/lib/briefing";
+import { copyText } from "@/lib/clipboard";
 import { AI_BRIEFING_UI, isLive } from "@/lib/config";
 import { getSupabase } from "@/lib/data/supabase";
 
@@ -22,6 +24,16 @@ export function BriefingCard({ compact = false, limit }: { compact?: boolean; li
   const b = buildBriefing(m, { financial: can(role, "view_financials") });
   const [ai, setAi] = useState<{ text?: string; note?: string; busy?: boolean }>({});
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const title = can(role, "view_financials") ? "대표 브리핑" : "운영 브리핑";
+  // 메신저로 보내기 — 접힌 상태여도 전체 문장을 복사
+  const copy = async () => {
+    const ok = await copyText(briefingText(b, { title, orgName: m.snapshot.org.name, today: m.today, demo: !isLive }));
+    if (!ok) { toast("복사하지 못했습니다. 문장을 길게 눌러 직접 복사해 주세요", "error"); return; }
+    setCopied(true);
+    toast("브리핑을 복사했습니다 — 메신저·메일에 붙여 넣으세요");
+    window.setTimeout(() => setCopied(false), 2500);
+  };
   const collapsible = !!limit && b.lines.length > limit;
   const shown = !collapsible || expanded ? b.lines : (() => {
     const rank = (t: BriefTone) => (t === "risk" ? 0 : t === "warn" ? 1 : 2);
@@ -42,8 +54,16 @@ export function BriefingCard({ compact = false, limit }: { compact?: boolean; li
   };
   return (
     <DataCard
-      title={<span className="flex items-center gap-2"><Newspaper size={19} style={{ color: "var(--primary)" }} aria-hidden /> {can(role, "view_financials") ? "대표 브리핑" : "운영 브리핑"}</span>}
-      action={!compact && <div className="flex items-center gap-2" data-print="hide"><StatusBadge tone="neutral">RULE 요약</StatusBadge><AiReadyButton spec={AI_SPECS.report} /></div>}
+      title={<span className="flex items-center gap-2"><Newspaper size={19} style={{ color: "var(--primary)" }} aria-hidden /> {title}</span>}
+      action={!compact && (
+        <div className="flex flex-wrap items-center gap-2" data-print="hide">
+          <StatusBadge tone="neutral">RULE 요약</StatusBadge>
+          <button className="btn-ghost !min-h-[36px] !px-2.5 text-[0.82rem]" onClick={() => void copy()} disabled={b.lines.length === 0} data-testid="briefing-copy" title="메신저·메일에 붙여 넣을 글로 복사">
+            {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />} {copied ? "복사됨" : "글 복사"}
+          </button>
+          <AiReadyButton spec={AI_SPECS.report} />
+        </div>
+      )}
       tourId="briefing"
     >
       <p className="text-[1.05rem] font-bold leading-snug" data-testid="briefing-headline">{b.headline}</p>

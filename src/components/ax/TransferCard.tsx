@@ -11,6 +11,7 @@ import { isLive } from "@/lib/config";
 import { todayISO } from "@/lib/date";
 import { DemoStorageMeter } from "./DemoRecovery";
 import { applyTransfer, buildTransfer, parseTransfer, planTransfer, type TransferFile, type TransferPlan } from "@/lib/transfer";
+import { useLeaveGuard } from "@/lib/use-leave-guard";
 
 /* 작업 데이터 백업·이관 — Supabase 연결 전(Demo 주소)에 입력한 실데이터를 파일로 받아 두고, Live 전환 후 한 번에 옮긴다.
    같은 파일로 Demo 브라우저 데이터를 복원할 수도 있다. 고객 개인정보는 포함하지 않는다. */
@@ -20,6 +21,7 @@ export function TransferCard() {
   const { role } = useSession();
   const [file, setFile] = useState<{ name: string; data: TransferFile; errors: string[] } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  useLeaveGuard(!!busy);
   const canExport = can(role, "view_financials");
   const canImport = can(role, "manage_org");
   const { summary } = buildTransfer(m.snapshot, isLive ? "live" : "demo");

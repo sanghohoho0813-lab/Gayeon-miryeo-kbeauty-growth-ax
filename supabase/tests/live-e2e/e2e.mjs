@@ -328,6 +328,10 @@ if (PHASE === "B") {
   await owner.goto(`${APP}/ax/data`, { waitUntil: "networkidle" });
   await owner.setInputFiles('[data-testid="sales-file"]', `${OUT}/sales_big.csv`);
   await owner.getByRole("button", { name: "1200행 저장 (Confirm)" }).click();
+  // PASS 29: 저장하는 동안 창 닫기·새로고침 → 브라우저 확인창 (beforeunload 취소)
+  const leaveBlocked = () => owner.evaluate(() => { const e = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented; });
+  const savingSeen = await owner.getByRole("button", { name: /저장 중/ }).waitFor({ timeout: 5000 }).then(() => true, () => false);
+  ok("저장 중 창 닫기 경고 켜짐 (PASS 29)", savingSeen && (await leaveBlocked()));
   for (let i = 0; i < 40 && (await count("select count(*) n from sales_records where organization_id = $1", [orgId])) < 1208; i++) await owner.waitForTimeout(500);
   const bb = await one("select id, row_count from import_batches where organization_id = $1 and kind = 'sales' order by created_at desc limit 1", [orgId]);
   ok("큰 파일 1,200행 → 500행씩 나눠 저장 (DB 1,200행 · 한 기록)", bb?.row_count === 1200 && (await count("select count(*) n from sales_records where organization_id = $1 and import_batch_id = $2", [orgId, bb.id])) === 1200);
@@ -338,6 +342,21 @@ if (PHASE === "B") {
   await owner.getByTestId("import-undo-confirm").click();
   for (let i = 0; i < 40 && (await count("select count(*) n from sales_records where organization_id = $1 and import_batch_id = $2", [orgId, bb.id])) > 0; i++) await owner.waitForTimeout(500);
   ok("큰 파일 되돌리기 → 1,200행 삭제 · 처음 파일 8행은 그대로", (await count("select count(*) n from sales_records where organization_id = $1 and import_batch_id = $2", [orgId, bb.id])) === 0 && (await count("select count(*) n from sales_records where organization_id = $1 and source = 'csv'", [orgId])) === 8);
+  ok("저장이 끝나면 창 닫기 경고 꺼짐", !(await leaveBlocked()));
+
+  // PASS 29: 인터넷 끊김 안내 → 다시 연결되면 새로 불러오기. 다시 불러오기가 실패해도 화면은 마지막 자료 그대로 (전체 오류 화면 아님)
+  await owner.goto(`${APP}/ax`, { waitUntil: "networkidle" });
+  const banner = owner.getByTestId("connection-banner");
+  await owner.context().setOffline(true);
+  ok("인터넷 끊김 → 연결 끊김 안내", await banner.waitFor({ timeout: 5000 }).then(async () => (await banner.getAttribute("data-state")) === "offline", () => false));
+  await owner.route("**/rest/v1/**", (r) => r.abort("internetdisconnected"));
+  await owner.context().setOffline(false);
+  await owner.waitForFunction(() => document.querySelector('[data-testid="connection-banner"]')?.getAttribute("data-state") === "stale", null, { timeout: 15000 }).catch(() => {});
+  ok("다시 연결 후 불러오기 실패 → 화면 유지 + '다시 불러오기' 안내", (await banner.getAttribute("data-state").catch(() => null)) === "stale" && (await owner.getByTestId("briefing-headline").count()) === 1 && !(await owner.locator("main").innerText()).includes("데이터를 불러오지 못했습니다"));
+  await owner.unroute("**/rest/v1/**");
+  await owner.getByTestId("connection-retry").click();
+  await owner.waitForFunction(() => document.querySelector('[data-testid="connection-banner"]')?.getAttribute("data-state") !== "stale", null, { timeout: 15000 }).catch(() => {});
+  ok("'다시 불러오기' → 안내 사라짐", (await banner.count()) === 0 || (await banner.getAttribute("data-state")) !== "stale");
 
   // 7-4. 월별 실적 · 대표 브리핑 · 내보내기
   await owner.goto(`${APP}/ax/monthly`, { waitUntil: "networkidle" });
@@ -347,6 +366,12 @@ if (PHASE === "B") {
   if (await owner.getByTestId("briefing-toggle").count()) await owner.getByTestId("briefing-toggle").click(); // PASS 12: 중요 문장만 먼저 → 전체 펼침
   const brief = await owner.getByTestId("briefing-lines").innerText();
   ok("대표 브리핑 (Live): 미수금·재고 문장", brief.includes("미수금") && brief.includes("재고"), (await owner.getByTestId("briefing-headline").innerText()));
+  // PASS 29: 메신저용 글 복사 — Live는 '시연용' 표시 없이, 링크·내부 용어 없이
+  await owner.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: APP });
+  await owner.getByTestId("briefing-copy").click();
+  await owner.waitForTimeout(300);
+  const copied = await owner.evaluate(() => navigator.clipboard.readText());
+  ok("브리핑 글 복사 (Live): 조직명·미수금 문장 · 시연 표시·링크 없음", copied.includes("가연인터내셔널 (Live E2E) 대표 브리핑") && copied.includes("· 미수금:") && !copied.includes("시연용") && !copied.includes("/ax") && !/supabase|rls/i.test(copied), copied.split("\n").slice(0, 3).join(" / "));
   await owner.goto(`${APP}/ax/data?tab=export`, { waitUntil: "networkidle" });
   const [dl] = await Promise.all([owner.waitForEvent("download"), owner.locator('[data-export="상품목록"]').click()]);
   const csv = fs.readFileSync(await dl.path(), "utf8");

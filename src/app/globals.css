@@ -101,12 +101,12 @@
   --surface-muted: #F5F6F7;
   --primary-soft: #F2F3F5;
   --sidebar-text: #343B44;
-  --sidebar-heading: #6B7680;
+  --sidebar-heading: #5F6A74; /* PASS 29: 사이드바 바닥(#F7F8F9) 위 5.2:1 (이전 4.36) */
   --sidebar-active-bg: #F1F2F4;
   --sidebar-hover-bg: #F7F8F9;
   --sidebar-active-text: #171B20;
   --sidebar-border: #E7EAEE;
-  --wordmark: #D47A4A;
+  --wordmark: #A9552A; /* 작은 글자(BUSINESS AX)도 흰 바탕 대비 5.2:1 (PASS 29 — 이전 #D47A4A 3.1:1) */
   --chart-5: #A9B0B8;
   --chart-6: #E7B99F;
 }

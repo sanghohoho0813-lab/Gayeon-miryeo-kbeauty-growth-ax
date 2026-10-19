@@ -8,6 +8,7 @@ import { useData, useModel } from "@/components/providers/DataProvider";
 import { autoMap, diagnoseSales, findUnknownMasters, readTable, SALES_FIELDS, validateSalesRows, type ColumnMap, type SalesField } from "@/lib/import";
 import { ImportMasters, SalesDiagnosisCard } from "./ImportMasters";
 import { useSession } from "@/components/providers/SessionProvider";
+import { useLeaveGuard } from "@/lib/use-leave-guard";
 
 /* 판매 파일 가져오기 — 1 파일 선택 → 2 열 확인 → 3 검사 → 4 저장. 기존 데이터는 변경하지 않고 추가만 한다. */
 export function SalesImport() {
@@ -22,6 +23,7 @@ export function SalesImport() {
   const [defaultChannel, setDefaultChannel] = useState(channels[0]?.id ?? "");
   const [includeDup, setIncludeDup] = useState(false);
   const [busy, setBusy] = useState<{ done: number; total: number } | null>(null);
+  useLeaveGuard(!!busy);
 
   const reset = () => { setTable(null); setMap(null); setAuto(null); setFileName(""); setIncludeDup(false); };
 
