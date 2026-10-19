@@ -33,7 +33,7 @@ export const isSoon = (i: RepurchaseItem) => i.daysLeft <= 7;
 export function DDay({ item }: { item: RepurchaseItem }) {
   const soon = isSoon(item);
   return (
-    <span className="tabular shrink-0 rounded-full px-3 py-1 text-[0.86rem] font-bold" style={soon ? { background: "var(--b-ink)", color: "#fff" } : { border: "1px solid var(--b-line-strong)", color: "var(--b-text-soft)" }}>
+    <span className="tabular shrink-0 rounded-full px-3 py-1 text-[0.86rem] font-bold" style={soon ? { background: "var(--b-rose-ink)", color: "#fff" } : { border: "1px solid var(--b-line-strong)", color: "var(--b-text-soft)", background: "#fff" }}>
       {dDayLabel(item.daysLeft)}
     </span>
   );
@@ -42,9 +42,9 @@ export function DDay({ item }: { item: RepurchaseItem }) {
 /** 재구매 시점 줄 목록 — 사진 · 제품 · 구매일/예상일 · D-day (구분선형) */
 export function RepurchaseList({ items, limit }: { items: RepurchaseItem[]; limit?: number }) {
   return (
-    <ul className="border-t" style={{ borderColor: "var(--b-line)" }}>
+    <ul className="b-card b-list px-4 @3xl:px-6">
       {(limit ? items.slice(0, limit) : items).map((i) => (
-        <li key={i.purchase.id} className="flex items-center gap-4 border-b py-4" style={{ borderColor: "var(--b-line)" }}>
+        <li key={i.purchase.id} className="flex items-center gap-4 py-4" style={{ borderColor: "var(--b-line)" }}>
           <div className="flex h-[72px] w-[56px] shrink-0 items-center justify-center rounded-2xl" style={{ background: "var(--b-surface-warm)" }}>
             <div className="h-[82%]"><ProductVisual category={i.product.category} variant={i.product.id.length} productId={i.product.id} className="h-full" /></div>
           </div>
@@ -66,14 +66,14 @@ export function RepurchaseNotice() {
   if (!due.length) return null;
   const top = due[0];
   return (
-    <div data-testid="home-repurchase" className="mt-5 flex items-center gap-4 border-y py-3.5" style={{ borderColor: "var(--b-line)" }}>
-      <div className="flex h-[56px] w-[44px] shrink-0 items-center justify-center rounded-xl" style={{ background: "var(--b-surface-warm)" }}>
+    <div data-testid="home-repurchase" className="mt-4 flex items-center gap-3.5 rounded-[18px] p-3 pr-4" style={{ background: "var(--b-rose-soft)" }}>
+      <div className="flex h-[56px] w-[44px] shrink-0 items-center justify-center rounded-xl bg-white">
         <div className="h-[82%]"><ProductVisual category={top.product.category} variant={top.product.id.length} productId={top.product.id} className="h-full" /></div>
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-[0.92rem]"><Link href={`/beauty/products/${top.product.id}`} className="font-bold">{top.product.name}</Link>{" "}
           {top.daysLeft >= 0 ? "다시 필요할 시점이 다가와요" : "다시 필요할 시점이 지났어요"}{due.length > 1 ? ` (외 ${due.length - 1}개)` : ""}</p>
-        <p className="b-caption">구매 기록 기준 예상 · <Link href="/beauty/me" className="font-semibold underline underline-offset-2">마이페이지</Link></p>
+        <p className="b-caption">구매 기록 기준 예상 · <Link href="/beauty/me" className="font-bold underline underline-offset-2" style={{ color: "var(--b-rose-ink)" }}>마이페이지</Link></p>
       </div>
       <DDay item={top} />
     </div>

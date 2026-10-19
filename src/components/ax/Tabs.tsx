@@ -41,8 +41,8 @@ export function Tabs<T extends string>({ tabs, value, onChange, className = "mb-
     <div
       ref={box}
       onScroll={measure}
-      className={`flex gap-1 overflow-x-auto rounded-2xl border bg-surface p-1.5 [scrollbar-width:none] ${className}`}
-      style={{ borderColor: "var(--border)", maskImage: fade, WebkitMaskImage: fade }}
+      className={`flex gap-1 overflow-x-auto rounded-[14px] p-1 [scrollbar-width:none] ${className}`}
+      style={{ background: "color-mix(in srgb, var(--text-primary) 6%, var(--surface))", maskImage: fade, WebkitMaskImage: fade }}
       role="tablist"
       aria-label={label}
       data-overflow={edge.l || edge.r ? (edge.r ? "right" : "left") : undefined}
@@ -58,8 +58,8 @@ export function Tabs<T extends string>({ tabs, value, onChange, className = "mb-
           tabIndex={value === t.id ? 0 : -1}
           onClick={() => onChange(t.id)}
           onKeyDown={(e) => onKey(e, i)}
-          className="pressable min-h-[44px] shrink-0 rounded-xl px-4 text-[0.94rem] font-semibold transition-colors @md:px-5 @md:text-[0.96rem]"
-          style={value === t.id ? { background: "var(--primary)", color: "#fff" } : { color: "var(--text-secondary)" }}
+          className="pressable min-h-[42px] shrink-0 rounded-[11px] px-4 text-[0.93rem] font-semibold transition-colors @md:px-5 @md:text-[0.95rem]"
+          style={value === t.id ? { background: "var(--surface)", color: "var(--text-primary)", boxShadow: "0 1px 3px rgba(16,24,40,.12), 0 1px 1px rgba(16,24,40,.04)", fontWeight: 700 } : { color: "var(--text-secondary)" }}
         >
           {t.label}
         </button>

@@ -18,7 +18,7 @@ export function NavList({ onNavigate, dense = false }: { onNavigate?: () => void
     <nav aria-label="주요 메뉴">
       {groups.map((group) => (
         <div key={group.group} className={dense ? "mb-1.5" : "mb-3"}>
-          <div className={`px-3 text-[0.76rem] font-semibold tracking-wider ${dense ? "pb-1" : "pb-1.5"}`} style={{ color: "var(--sidebar-heading)" }}>{group.group}</div>
+          <div className={`px-3 text-[0.68rem] font-bold uppercase tracking-[0.12em] ${dense ? "pb-1" : "pb-1.5"}`} style={{ color: "var(--sidebar-heading)" }}>{group.group}</div>
           <ul className="space-y-0.5">
             {group.items.map((item) => {
               const active = isActivePath(pathname, item.href);
@@ -28,17 +28,12 @@ export function NavList({ onNavigate, dense = false }: { onNavigate?: () => void
                     href={item.href}
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
-                    className={`group relative flex items-center gap-3 rounded-xl px-2.5 font-medium transition-colors duration-150 hover:bg-[var(--sidebar-hover-bg)] ${dense ? "min-h-[38px] text-[0.94rem]" : "min-h-[44px] text-[0.98rem]"}`}
-                    style={active ? { background: "var(--sidebar-active-bg)", color: "var(--sidebar-active-text)" } : { color: "var(--sidebar-text)" }}
+                    className={`group relative flex items-center gap-3 rounded-[10px] px-3 transition-colors duration-150 hover:bg-[var(--sidebar-hover-bg)] ${active ? "font-semibold" : "font-medium"} ${dense ? "min-h-[38px] text-[0.92rem]" : "min-h-[44px] text-[0.98rem]"}`}
+                    style={active ? { background: "var(--sidebar-active-bg)", color: "var(--sidebar-active-text)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.04)" } : { color: "var(--sidebar-text)" }}
                   >
-                    {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full" style={{ background: group.hue }} aria-hidden />}
-                    <span
-                      className={`flex shrink-0 items-center justify-center rounded-lg transition-transform duration-150 group-hover:scale-105 ${dense ? "h-7 w-7" : "h-8 w-8"}`}
-                      style={{ background: `color-mix(in srgb, ${group.hue} ${active ? 30 : 16}%, transparent)`, color: group.hue }}
-                      aria-hidden
-                    >
-                      <item.icon size={dense ? 16 : 18} />
-                    </span>
+                    {active && <span className="absolute -left-1 top-2.5 bottom-2.5 w-[3px] rounded-full" style={{ background: "var(--wordmark)" }} aria-hidden />}
+                    {/* 아이콘은 한 가지 색 (PASS 26, D-083) — 선택된 메뉴만 강조색 */}
+                    <item.icon size={dense ? 17 : 19} strokeWidth={active ? 2.2 : 1.8} className="shrink-0 transition-opacity" style={{ color: active ? "var(--wordmark)" : "currentColor", opacity: active ? 1 : 0.72 }} aria-hidden />
                     {item.label}
                   </Link>
                 </li>
@@ -55,14 +50,17 @@ export function Sidebar() {
   const { role, roleReady } = useSession();
   return (
     <aside data-print="hide" className="fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col lg:flex" style={{ background: "var(--sidebar-bg)", borderRight: "1px solid var(--sidebar-border)" }}>
-      <Link href="/ax" className="px-7 pb-3 pt-5">
-        <div className="font-display text-[1.45rem] font-bold leading-tight" style={{ color: "var(--sidebar-active-text)" }}>MIRYEO</div>
-        <div className="mt-0.5 text-[1rem] font-semibold tracking-wide" style={{ color: "var(--wordmark)" }}>Business AX</div>
+      <Link href="/ax" className="flex items-center gap-3 px-6 pb-3.5 pt-5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-[10px] font-display text-[1.1rem] font-bold" style={{ background: "var(--wordmark)", color: "var(--sidebar-bg)" }} aria-hidden>M</span>
+        <span>
+          <span className="block font-display text-[1.2rem] font-bold leading-none tracking-[0.06em]" style={{ color: "var(--sidebar-active-text)" }}>MIRYEO</span>
+          <span className="mt-1 block text-[0.66rem] font-bold uppercase leading-none tracking-[0.2em]" style={{ color: "var(--wordmark)" }}>Business AX</span>
+        </span>
       </Link>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 [scrollbar-width:thin]">
         <NavList dense />
       </div>
-      <div className="mx-4 mb-3 rounded-xl px-3.5 py-2" style={{ background: "var(--sidebar-active-bg)" }}>
+      <div className="mx-4 mb-4 rounded-[12px] border px-3.5 py-2.5" style={{ background: "var(--sidebar-hover-bg)", borderColor: "rgba(255,255,255,.06)" }}>
         <div className="flex items-center justify-between gap-2 text-[0.82rem] font-semibold" style={{ color: "var(--sidebar-active-text)" }}>
           <span className="flex items-center gap-1.5"><Database size={14} aria-hidden /> {DATA_SOURCE_LABEL}</span>
           <span className="flex items-center gap-1" style={{ color: "var(--sidebar-text)" }}><ShieldCheck size={13} aria-hidden /> {roleReady ? ROLE_LABEL[role] : "확인 중"}</span>

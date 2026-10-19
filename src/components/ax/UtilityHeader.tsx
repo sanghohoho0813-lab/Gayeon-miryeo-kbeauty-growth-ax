@@ -106,7 +106,7 @@ export function UtilityHeader() {
 
   return (
     <header data-print="hide" className="@container sticky top-0 z-20 border-b bg-surface/95 backdrop-blur" style={{ borderColor: "var(--border)" }}>
-      <div className="flex h-[68px] items-center gap-2 px-4 lg:px-8">
+      <div className="flex h-[64px] items-center gap-2 px-4 lg:px-8">
         <button className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-surface-muted lg:hidden" aria-label="메뉴 열기" onClick={() => setDrawerOpen(true)}>
           <Menu size={22} />
         </button>

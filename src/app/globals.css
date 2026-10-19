@@ -43,12 +43,13 @@
 /* ---------- Derived semantic tokens (Theme 영향) ---------- */
 :root {
   /* Neutral — Theme와 분리, 본문/표/폼/모달 가독성 고정 */
-  --neutral-canvas: #F6F7F9;
+  --neutral-canvas: #F4F5F7;
   --surface: #FFFFFF;
   --surface-muted: #F2F4F7;
   --text-primary: #171B20;
   --text-secondary: #4A5361;
-  --border: #E3E7EC;
+  --border: #E5E8ED;
+  --border-strong: #D3D8E0;
 
   --bg: color-mix(in srgb, var(--theme-soft) 28%, var(--neutral-canvas));
   --primary: var(--theme-primary);
@@ -84,10 +85,11 @@
   /* Sidebar Group Icon Hue (v4.1 B-2) */
   --grp-ops: #5B8DEF; --grp-growth: #D79A43; --grp-ax: #3C9A75; --grp-sys: #718096;
 
-  --radius-card: 16px;
-  --radius-button: 11px;
-  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-card-hover: 0 10px 24px rgba(16, 24, 40, 0.1), 0 3px 8px rgba(16, 24, 40, 0.06);
+  /* PASS 26 (D-083): 더 가볍고 정돈된 표면 — 둥근 18px · 얇은 테두리 · 낮은 그림자 */
+  --radius-card: 18px;
+  --radius-button: 12px;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 1px rgba(16, 24, 40, 0.02);
+  --shadow-card-hover: 0 14px 30px -10px rgba(16, 24, 40, 0.16), 0 2px 6px rgba(16, 24, 40, 0.05);
 }
 
 /* Pure White — Light Shell: Dark Neutral Text */
@@ -108,46 +110,70 @@
 
 /* ---------- Customer Front (MIRYEO AI Beauty) ---------- */
 .beauty-scope {
-  --b-bg: #FAF8F4;               /* Neutral Ivory — Front Reference 캔버스 */
+  /* 고객 앱 — 커머스형 리디자인 (PASS 26, D-082): 흰 바탕 · 파스텔 타일 · MIRYEO 로즈 강조 · 굵은 고딕 제목
+     잉크(--b-ink)는 계속 선택 테마를 따르고, 로즈는 고객 앱 고정 강조색 */
+  --b-bg: #FFFFFF;
+  --b-canvas: #F6F6F8;           /* 띠·푸터 · 입력 배경 */
   --b-surface: #FFFFFF;
-  --b-surface-warm: #F4F0E8;
-  --b-text: #1C2436;
-  --b-text-soft: #5E6678;
-  --b-border: #E7E1D5;
-  --b-navy: var(--theme-shell);   /* Brand Ink — 선택 Theme 전파 */
+  --b-surface-warm: #F6F1EB;     /* 제품 사진 타일 */
+  --b-soft: #F2F2F5;             /* 칩 · 검색칸 */
+  --b-text: #191B22;
+  --b-text-soft: #5D616C;        /* 흰 바탕 6.1:1 · 사진 타일 5.3:1 */
+  --b-border: #E9E9EE;
+  --b-navy: var(--theme-shell);  /* Brand Ink — 선택 Theme 전파 */
   --b-navy-hover: color-mix(in srgb, var(--theme-shell) 85%, #000);
   --b-gold: color-mix(in srgb, var(--theme-highlight) 62%, #3A2A05);
-  /* 글자·작은 배지용 금색 — 7개 테마 모두 흰색/웜 배경 대비 4.5:1 이상 (b-gold는 장식·테두리용) */
   --b-gold-ink: color-mix(in srgb, var(--theme-highlight) 40%, #2A1D03);
+  --b-rose: #E5577B;             /* 채움 장식 (찜 · 점 · 배지) */
+  --b-rose-ink: #C2385F;         /* 주 버튼 · 강조 글자 — 흰 글자 5.2:1 */
+  --b-rose-hover: #A92E52;
+  --b-rose-soft: #FDEFF3;
+  --t-blush: #FDEEF2; --t-peach: #FFF0E5; --t-lilac: #F1EEFB; --t-mint: #E8F5EF; --t-sky: #E9F2FB; --t-butter: #FFF5D9;
   --b-radius: 20px;
-  /* 리디자인 (D-073) — 색 추가 없이 본문색 기반 구분선 · 잉크 별칭 */
-  --b-line: color-mix(in srgb, var(--b-text) 12%, transparent);
-  --b-line-strong: color-mix(in srgb, var(--b-text) 22%, transparent);
+  --b-shadow: 0 1px 2px rgba(16, 18, 27, 0.04), 0 10px 28px -14px rgba(16, 18, 27, 0.16);
+  --b-line: color-mix(in srgb, var(--b-text) 9%, transparent);
+  --b-line-strong: color-mix(in srgb, var(--b-text) 18%, transparent);
   --b-ink: var(--b-navy);
   background: var(--b-bg);
   color: var(--b-text);
+  letter-spacing: -0.01em;
 }
-/* 고객 앱 타이포그래피 위계: Display · Section · Product · Body · Caption */
-.beauty-scope .b-serif { font-family: Georgia, "Times New Roman", "Noto Serif KR", serif; }
-.beauty-scope .b-display { font-family: Georgia, "Times New Roman", "Noto Serif KR", serif; font-weight: 600; line-height: 1.2; letter-spacing: -0.01em; color: var(--b-ink); }
-.beauty-scope .b-section { font-family: Georgia, "Times New Roman", "Noto Serif KR", serif; font-weight: 600; line-height: 1.3; color: var(--b-ink); }
-.beauty-scope .b-eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--b-gold-ink); }
-.beauty-scope .b-body { font-size: 0.95rem; line-height: 1.7; color: var(--b-text-soft); }
+/* 고객 앱 타이포그래피 — 제목은 굵은 고딕(Pretendard), 세리프는 로고(b-serif)에만 */
+.beauty-scope .b-serif { font-family: Georgia, "Times New Roman", "Noto Serif KR", serif; letter-spacing: 0; }
+.beauty-scope .b-display { font-weight: 800; line-height: 1.22; letter-spacing: -0.03em; color: var(--b-text); }
+.beauty-scope .b-section { font-weight: 800; line-height: 1.3; letter-spacing: -0.025em; color: var(--b-text); }
+.beauty-scope .b-eyebrow { font-size: 0.74rem; font-weight: 800; letter-spacing: 0.04em; color: var(--b-rose-ink); }
+.beauty-scope .b-body { font-size: 0.94rem; line-height: 1.6; color: var(--b-text-soft); }
 .beauty-scope .b-caption { font-size: 0.78rem; line-height: 1.5; color: var(--b-text-soft); }
 .beauty-scope .b-rule { border-top: 1px solid var(--b-line); }
-.beauty-scope .b-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 52px; padding: 0 1.6rem; border-radius: 999px; font-weight: 700; background: var(--b-ink); color: #fff; transition: transform 0.1s ease-out, background 0.15s ease-out; }
-.beauty-scope .b-btn:hover { background: var(--b-navy-hover); }
-.beauty-scope .b-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.beauty-scope .b-link { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 44px; font-weight: 700; color: var(--b-ink); text-decoration: underline; text-decoration-color: var(--b-gold); text-decoration-thickness: 1.5px; text-underline-offset: 6px; }
-.beauty-scope .b-link:hover { text-decoration-color: var(--b-ink); }
+.beauty-scope .b-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 52px; padding: 0 1.5rem; border-radius: 16px; font-weight: 800; background: var(--b-rose-ink); color: #fff; transition: transform 0.1s ease-out, background 0.15s ease-out; }
+.beauty-scope .b-btn:hover { background: var(--b-rose-hover); }
+.beauty-scope .b-btn:disabled { background: #D9DAE0; color: #5D616C; cursor: not-allowed; }
+.beauty-scope .b-btn-ink { background: var(--b-ink); }
+.beauty-scope .b-btn-ink:hover { background: var(--b-navy-hover); }
+.beauty-scope .b-btn-line { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 52px; padding: 0 1.3rem; border-radius: 16px; font-weight: 800; background: #fff; color: var(--b-text); border: 1px solid var(--b-line-strong); }
+.beauty-scope .b-btn-line:hover { background: var(--b-canvas); }
+.beauty-scope .b-link { display: inline-flex; align-items: center; gap: 0.25rem; min-height: 44px; font-weight: 700; color: var(--b-rose-ink); }
+.beauty-scope .b-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.beauty-scope .b-card { background: #fff; border: 1px solid var(--b-border); border-radius: var(--b-radius); box-shadow: var(--b-shadow); }
+.beauty-scope .b-list > * + * { border-top: 1px solid var(--b-line); }
+.beauty-scope .b-chip { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 40px; padding: 0 1rem; border-radius: 999px; font-size: 0.88rem; font-weight: 700; white-space: nowrap; background: var(--b-soft); color: var(--b-text); border: 1px solid transparent; transition: background 0.14s ease-out; }
+.beauty-scope .b-chip:hover { background: #E9E9EE; }
+.beauty-scope .b-chip[aria-pressed="true"] { background: var(--b-ink); color: #fff; }
+.beauty-scope .b-pill { display: inline-flex; align-items: center; gap: 0.25rem; border-radius: 999px; padding: 0.2rem 0.6rem; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.01em; white-space: nowrap; }
+/* 가로로 넘기는 줄 (상품 레일·배너·칩) — 모바일은 화면 끝까지, 스크롤바 숨김 */
+.beauty-scope .b-rail { display: flex; gap: 0.75rem; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; margin: 0 -1rem; padding: 0.25rem 1rem 0.5rem; scroll-padding-inline: 1rem; }
+.beauty-scope .b-rail::-webkit-scrollbar { display: none; }
+.beauty-scope .b-rail > * { scroll-snap-align: start; flex: none; }
+@media (min-width: 768px) { .beauty-scope .b-rail { margin: 0 -1.5rem; padding-inline: 1.5rem; scroll-padding-inline: 1.5rem; } }
 @keyframes b-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
 @keyframes b-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .beauty-scope .b-step-in { animation: b-fade-in 0.32s ease-out both; }
 .b-sheet-up { animation: b-sheet-up 0.26s cubic-bezier(.2,.8,.2,1) both; }
-/* 고객 앱 입력칸 (PASS 25, D-080) — 둥근 모서리 · 테두리 3:1 · 잉크 초점 (로그인·마이페이지) */
-.beauty-scope .field { min-height: 48px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--b-text) 48%, #fff); background: #fff; color: var(--b-text); }
-.beauty-scope .field:focus { border-color: var(--b-ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--b-ink) 14%, transparent); }
-.beauty-scope .field-label { color: var(--b-text); }
+/* 고객 앱 입력칸 (PASS 25 D-080 → PASS 26) — 회색 바탕 · 둥근 14px · 테두리 대비 3:1 · 로즈 초점 */
+.beauty-scope .field { min-height: 50px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--b-text) 48%, #fff); background: #fff; color: var(--b-text); }
+.beauty-scope .field:focus { border-color: var(--b-rose-ink); box-shadow: 0 0 0 3px color-mix(in srgb, var(--b-rose-ink) 16%, transparent); }
+.beauty-scope .field-label { color: var(--b-text); font-weight: 700; }
 [data-ax-theme="pure-white"] .beauty-scope {
   --b-navy: #171B20;
   --b-navy-hover: #000000;
@@ -188,6 +214,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   word-break: keep-all;
+  letter-spacing: -0.012em;
 }
 .tabular { font-variant-numeric: tabular-nums; }
 .font-display { font-family: Georgia, "Times New Roman", "Noto Serif KR", serif; letter-spacing: 0.01em; }
@@ -210,12 +237,13 @@ body {
 .btn-primary, .btn-secondary, .btn-ghost {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
   min-height: 46px; padding: 0 1.15rem; border-radius: var(--radius-button);
-  font-weight: 600; white-space: nowrap; cursor: pointer;
+  font-weight: 700; white-space: nowrap; cursor: pointer;
   transition: background 0.16s ease-out, border-color 0.16s ease-out, transform 0.1s ease-out, box-shadow 0.16s ease-out;
 }
 .btn-primary { background: var(--primary); color: #FFFFFF; }
-.btn-primary:hover { background: var(--primary-hover); box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 25%, transparent); }
-.btn-secondary { background: var(--surface); border: 1.5px solid var(--border); color: var(--text-primary); }
+.btn-primary { box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+.btn-primary:hover { background: var(--primary-hover); box-shadow: 0 6px 16px -4px color-mix(in srgb, var(--primary) 40%, transparent); }
+.btn-secondary { background: var(--surface); border: 1px solid var(--border-strong); color: var(--text-primary); box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04); }
 .btn-secondary:hover { border-color: var(--primary); background: var(--primary-soft); }
 .btn-ghost { color: var(--text-secondary); }
 .btn-ghost:hover { background: var(--surface-muted); color: var(--text-primary); }
@@ -224,11 +252,11 @@ body {
 
 .badge {
   display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.16rem 0.62rem;
-  border-radius: 999px; font-size: 0.8rem; font-weight: 600; white-space: nowrap;
+  border-radius: 999px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; letter-spacing: -0.005em;
 }
 
 .field {
-  width: 100%; min-height: 46px; border-radius: 11px; border: 1.5px solid var(--border);
+  width: 100%; min-height: 46px; border-radius: 12px; border: 1px solid var(--border-strong);
   background: var(--surface); padding: 0 0.85rem; font-size: 0.95rem; color: var(--text-primary);
   transition: border-color 0.16s ease-out, box-shadow 0.16s ease-out;
 }
@@ -268,6 +296,12 @@ textarea.field { padding: 0.6rem 0.85rem; min-height: 88px; }
 .table-scroll table { min-width: 720px; width: 100%; }
 .row-hover { transition: background 0.14s ease-out; }
 .row-hover:hover { background: var(--surface-muted); }
+/* 표 머리 띠 (PASS 26, D-083) — 카드 안 표의 머리줄을 연회색 띠로. components 층이라 화면별 클래스가 있으면 그쪽이 이긴다 */
+.ax-card thead tr { background: var(--surface-muted); border-bottom-color: transparent !important; }
+.ax-card thead th { font-size: 0.8rem; letter-spacing: 0; }
+.ax-card thead th:first-child { padding-left: 0.75rem; border-radius: 10px 0 0 10px; }
+.ax-card thead th:last-child { border-radius: 0 10px 10px 0; }
+.ax-card tbody td:first-child { padding-left: 0.75rem; }
 
 }
 

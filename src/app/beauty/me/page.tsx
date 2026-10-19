@@ -16,7 +16,7 @@ import { formatDateKR, todayISO } from "@/lib/date";
 import type { CustomerPurchase, SavedRecommendation, SkinConcern } from "@/lib/types";
 
 /* 마이페이지 — 추천 기록 · 구매 기록 · 재구매 예상 시점 · 계정 (계약 별지 제1호 ⑥)
-   화면 (PASS 25, D-080): 고객 앱 리디자인(D-073) 문체 — 회원 카드형 머리(이름·고민·다음 재구매·기록 수) + 상자 없는 구간(eyebrow · 세리프 제목 · 구분선).
+   화면 (PASS 25 D-080 → PASS 26 D-082): 회원 카드형 머리(이름·고민·다음 재구매·기록 수) + 흰 카드 구간 4개(굵은 고딕 제목).
    기능·데이터·문구 기준(테스트 기준 포함)은 그대로. */
 export default function MyPage() {
   const router = useRouter();
@@ -78,13 +78,13 @@ export default function MyPage() {
   return (
     <div className="pt-6 @3xl:pt-10">
       {/* 회원 카드형 머리 — 이름 · 피부 고민 · 다음 재구매 · 기록 수 */}
-      <section className="relative overflow-hidden rounded-[32px] px-7 py-9 @3xl:px-12 @3xl:py-11" style={{ background: "var(--b-ink)" }} aria-labelledby="h-me">
+      <section className="relative overflow-hidden rounded-[28px] px-6 py-8 @3xl:px-12 @3xl:py-10" style={{ background: "linear-gradient(135deg, #1C1D24 0%, #3A2631 100%)" }} aria-labelledby="h-me">
         {/* eslint-disable-next-line @next/next/no-img-element -- 투명 배경 WebP 정적 파일 */}
         <img src="/images/beauty/card-recommendation.webp" alt="" width={512} height={512} decoding="async" className="pointer-events-none absolute bottom-8 right-12 hidden h-[200px] w-auto opacity-95 @4xl:block" />
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="b-eyebrow" style={{ color: "var(--theme-highlight)" }}>MY BEAUTY</p>
-            <h1 id="h-me" className="b-serif mt-3 text-[1.8rem] font-semibold leading-tight text-white @3xl:text-[2.3rem]">{acc.displayName || "회원"}님의 뷰티 기록</h1>
+            <span className="b-pill" style={{ background: "rgba(255,255,255,.14)", color: "#F7B6C8" }}>MY BEAUTY</span>
+            <h1 id="h-me" className="mt-3 text-[1.6rem] font-extrabold leading-tight tracking-[-0.03em] text-white @3xl:text-[2.2rem]">{acc.displayName || "회원"}님의 뷰티 기록</h1>
             <p className="mt-2 text-[0.9rem] text-white/65">가입 {formatDateKR(acc.createdAt)}</p>
           </div>
           <button className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-white/25 px-4 text-[0.9rem] font-semibold text-white hover:bg-white/10" onClick={async () => { await customerApi().signOut(); await refresh(); router.push("/beauty"); }}>
@@ -102,12 +102,12 @@ export default function MyPage() {
           <div><dt className="text-[0.74rem] text-white/60">AI 추천 기록</dt><dd className="mt-1 text-[1.15rem] font-bold tabular">{recs.length}회</dd></div>
         </dl>
         <div className="relative mt-7 flex flex-wrap items-center gap-x-5 gap-y-2">
-          <Link href="/beauty/finder" className="pressable inline-flex min-h-[48px] items-center gap-2 rounded-full bg-white px-5 text-[0.95rem] font-bold" style={{ color: "var(--b-ink)" }}><Sparkles size={16} aria-hidden /> 새로 추천받기</Link>
+          <Link href="/beauty/finder" className="pressable inline-flex min-h-[48px] items-center gap-2 rounded-2xl bg-white px-5 text-[0.95rem] font-extrabold" style={{ color: "var(--b-rose-ink)" }}><Sparkles size={16} aria-hidden /> 새로 추천받기</Link>
           <Link href="/beauty/passport" className="inline-flex min-h-[44px] items-center gap-1 text-[0.92rem] font-semibold text-white/85 underline decoration-white/30 underline-offset-4 hover:text-white">뷰티 패스포트 <ArrowRight size={15} aria-hidden /></Link>
         </div>
       </section>
 
-      {msg && <p className="mt-4 flex items-center gap-1.5 text-[0.88rem] font-semibold" role="status"><Check size={16} style={{ color: "var(--b-gold-ink)" }} aria-hidden />{msg}</p>}
+      {msg && <p className="mt-4 flex items-center gap-1.5 rounded-2xl px-4 py-3 text-[0.88rem] font-semibold" style={{ background: "var(--b-rose-soft)" }} role="status"><Check size={16} style={{ color: "var(--b-rose-ink)" }} aria-hidden />{msg}</p>}
       {err && <p className="mt-4 text-[0.9rem]" style={{ color: "var(--danger)" }} role="alert">{err}</p>}
 
       <Section eyebrow="REPURCHASE" title="재구매 예상 시점" sub="구매일과 제품 사용기간으로 다시 필요할 때를 계산했어요" testId="repurchase">
@@ -119,11 +119,11 @@ export default function MyPage() {
         <div className="grid gap-8 @3xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] @3xl:gap-12">
           <PurchaseForm products={products} onAdd={(p) => act(() => customerApi().addMyPurchase(p), "구매 기록을 추가했습니다")} />
           {purchases.length === 0 ? <Empty>아직 구매 기록이 없습니다.</Empty> : (
-            <ul className="border-t" style={{ borderColor: "var(--b-line)" }}>
+            <ul className="b-list rounded-2xl px-4" style={{ background: "var(--b-canvas)" }}>
               {purchases.map((p) => {
                 const name = productById.get(p.productId)?.name;
                 return (
-                  <li key={p.id} className="flex items-center justify-between gap-3 border-b py-3.5" style={{ borderColor: "var(--b-line)" }}>
+                  <li key={p.id} className="flex items-center justify-between gap-3 py-3.5">
                     <span className="min-w-0">
                       <span className="block truncate font-semibold">{name ?? "판매 종료·비공개 제품"}</span>
                       <span className="b-caption">{formatDateKR(p.purchasedOn)} · {p.quantity}개{p.channelLabel ? ` · ${p.channelLabel}` : ""}{p.source === "STAFF" ? " · 매장·운영자 기록" : ""}</span>
@@ -143,14 +143,14 @@ export default function MyPage() {
 
       <Section eyebrow="HISTORY" title="AI 추천 기록" sub="AI 뷰티 파인더 결과를 저장할 때마다 쌓여요" testId="recommendations">
         {recs.length === 0 ? <Empty>AI 뷰티 파인더 결과를 저장하면 여기에 쌓입니다. <Link href="/beauty/finder" className="b-link">추천 받기</Link></Empty> : (
-          <ol className="border-t" style={{ borderColor: "var(--b-line)" }}>
+          <ol className="b-list">
             {recs.map((r) => (
-              <li key={r.id} className="flex flex-col gap-2 border-b py-4 @xl:flex-row @xl:items-baseline @xl:gap-6" style={{ borderColor: "var(--b-line)" }}>
+              <li key={r.id} className="flex flex-col gap-2 py-4 first:pt-0 @xl:flex-row @xl:items-baseline @xl:gap-6">
                 <span className="tabular w-28 shrink-0 text-[0.88rem] font-semibold">{formatDay(r.createdAt)} 추천</span>
                 <span className="flex flex-wrap gap-1.5">
                   {r.productIds.map((id, n) => (
-                    <Link key={id} href={`/beauty/products/${id}`} className="rounded-full px-3 py-1.5 text-[0.84rem] font-semibold" style={{ background: "var(--b-surface-warm)" }}>
-                      <span style={{ color: "var(--b-gold-ink)" }}>STEP {n + 1}</span> · {productById.get(id)?.name ?? "비공개 제품"}
+                    <Link key={id} href={`/beauty/products/${id}`} className="rounded-full px-3 py-1.5 text-[0.84rem] font-semibold" style={{ background: "var(--b-canvas)" }}>
+                      <span style={{ color: "var(--b-rose-ink)" }}>STEP {n + 1}</span> · {productById.get(id)?.name ?? "비공개 제품"}
                     </Link>
                   ))}
                 </span>
@@ -164,9 +164,9 @@ export default function MyPage() {
         <div className="grid gap-8 @3xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] @3xl:gap-12">
           <ProfileForm key={`${acc.userId}-${acc.marketingConsent}`} concerns={acc.skinConcerns} name={acc.displayName ?? ""} marketing={acc.marketingConsent} onSave={(v) => act(() => customerApi().updateAccount({ displayName: v.name, skinConcerns: v.concerns, marketingConsent: v.marketing }), "내 정보를 저장했습니다")} />
           <div>
-            <dl className="border-t text-[0.88rem]" style={{ borderColor: "var(--b-line)" }}>
+            <dl className="b-list rounded-2xl px-4 text-[0.88rem]" style={{ background: "var(--b-canvas)" }}>
               {[["이메일", session.email ?? acc.email], ["가입일", formatDateKR(acc.createdAt)], ["개인정보 동의", `${formatDateKR(acc.privacyAgreedAt)} (${acc.privacyVersion})`]].map(([k, v]) => (
-                <div key={k} className="flex justify-between gap-4 border-b py-3" style={{ borderColor: "var(--b-line)" }}><dt style={{ color: "var(--b-text-soft)" }}>{k}</dt><dd className="min-w-0 truncate text-right font-semibold">{v}</dd></div>
+                <div key={k} className="flex justify-between gap-4 py-3"><dt style={{ color: "var(--b-text-soft)" }}>{k}</dt><dd className="min-w-0 truncate text-right font-semibold">{v}</dd></div>
               ))}
             </dl>
             <DeleteAccount onDone={async (full) => { await refresh(); setMsg(full ? "탈퇴가 완료되었습니다." : "계정 정보를 삭제했습니다. 로그인 정보 삭제는 운영자가 처리합니다."); router.push("/beauty"); }} />
@@ -241,11 +241,11 @@ function DeleteAccount({ onDone }: { onDone: (full: boolean) => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>();
   return (
-    <details className="mt-6 border-b pb-3" style={{ borderColor: "var(--b-line)" }} open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
+    <details className="mt-4 rounded-2xl border px-4 pb-3" style={{ borderColor: "var(--b-line)" }} open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
       <summary className="flex min-h-[44px] cursor-pointer items-center text-[0.88rem] font-semibold" style={{ color: "var(--b-text-soft)" }}>회원 탈퇴</summary>
       <p className="b-caption mt-1">계정 정보와 구매 기록이 삭제됩니다. 추천 기록은 개인을 알아볼 수 없는 통계로만 남습니다. 되돌릴 수 없습니다.</p>
       {err && <p className="mt-1 text-[0.85rem]" style={{ color: "var(--danger)" }}>{err}</p>}
-      <button className="mt-3 min-h-[44px] w-full rounded-full font-bold text-white disabled:opacity-50" style={{ background: "var(--danger)" }} disabled={busy} onClick={async () => {
+      <button className="mt-3 min-h-[44px] w-full rounded-2xl font-bold text-white disabled:opacity-50" style={{ background: "var(--danger)" }} disabled={busy} onClick={async () => {
         setBusy(true);
         try { const r = await customerApi().deleteAccount(); onDone(r.fullyDeleted); } catch (e) { setErr(e instanceof Error ? e.message : "실패"); } finally { setBusy(false); }
       }}>탈퇴하기</button>
@@ -255,14 +255,13 @@ function DeleteAccount({ onDone }: { onDone: (full: boolean) => void }) {
 
 function Section({ eyebrow, title, sub, children, testId }: { eyebrow: string; title: string; sub?: string; children: React.ReactNode; testId: string }) {
   return (
-    <section data-testid={testId} className="mt-10 border-t pt-8 @3xl:mt-14 @3xl:pt-10" style={{ borderColor: "var(--b-line)" }}>
-      <p className="b-eyebrow">{eyebrow}</p>
-      <h2 className="b-section mt-2 text-[1.45rem] @3xl:text-[1.7rem]">{title}</h2>
-      {sub && <p className="b-body mt-1">{sub}</p>}
-      <div className="mt-6">{children}</div>
+    <section data-testid={testId} data-eyebrow={eyebrow} className="b-card mt-4 p-5 @3xl:mt-5 @3xl:p-7">
+      <h2 className="b-section text-[1.12rem] @3xl:text-[1.3rem]">{title}</h2>
+      {sub && <p className="b-caption mt-0.5 text-[0.84rem]">{sub}</p>}
+      <div className="mt-4">{children}</div>
     </section>
   );
 }
 function Empty({ children }: { children: React.ReactNode }) {
-  return <p className="b-body border-y py-5" style={{ borderColor: "var(--b-line)" }}>{children}</p>;
+  return <p className="b-body rounded-2xl px-4 py-4 text-[0.9rem]" style={{ background: "var(--b-canvas)" }}>{children}</p>;
 }

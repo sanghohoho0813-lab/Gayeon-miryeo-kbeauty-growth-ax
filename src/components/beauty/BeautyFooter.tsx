@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-/* 푸터 — 꽉 찬 잉크 블록 대신 아이보리 + 구분선 (D-073). 모바일은 하단 탭 높이만큼 여백 */
+/* 푸터 — 연회색 띠 (PASS 26, D-082). 모바일은 하단 탭 높이만큼 여백 */
 export function BeautyFooter() {
   return (
-    <footer className="mt-16 border-t pb-24 md:pb-0" style={{ borderColor: "var(--b-line)" }}>
+    <footer className="mt-16 pb-24 md:pb-0" style={{ background: "var(--b-canvas)" }}>
       <div className="mx-auto w-full max-w-[1240px] px-4 py-12 md:px-6">
         <div className="grid gap-8 md:grid-cols-[1.2fr_1fr_1.4fr]">
           <div>

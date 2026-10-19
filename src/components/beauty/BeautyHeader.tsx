@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookHeart, Heart, Home, LayoutDashboard, LogIn, ShoppingBag, Sparkles, User } from "lucide-react";
+import { BookHeart, Heart, Home, LayoutDashboard, LogIn, Search, ShoppingBag, Sparkles, User } from "lucide-react";
 import { useCustomerSession } from "./CustomerSession";
 import { DeviceSwitch, useDeviceView } from "@/components/device/DeviceView";
 import { isLive } from "@/lib/config";
@@ -43,7 +43,7 @@ function AccountLink() {
   const member = !!session?.account && !session.operator;
   return member ? (
     <Link href="/beauty/me" data-testid="account-link" className="flex h-11 items-center gap-1.5 rounded-full px-2.5 text-[0.86rem] font-semibold hover:bg-black/5" aria-label="마이페이지">
-      <span className="flex h-8 w-8 items-center justify-center rounded-full text-white" style={{ background: "var(--b-navy)" }}><User size={17} aria-hidden /></span>
+      <span className="flex h-8 w-8 items-center justify-center rounded-full text-white" style={{ background: "var(--b-rose-ink)" }}><User size={17} aria-hidden /></span>
       <span className="hidden @xl:inline">마이페이지</span>
     </Link>
   ) : (
@@ -61,42 +61,42 @@ export function BeautyHeader() {
   return (
     <>
       <DemoControlBar />
-      <header className="@container sticky top-0 z-30 border-b backdrop-blur" style={{ borderColor: "var(--b-line)", background: "rgba(250, 248, 244, 0.94)" }}>
-        <div className="mx-auto flex h-[64px] w-full max-w-[1240px] items-center gap-4 px-4 md:h-[76px] md:px-6">
+      <header className="@container sticky top-0 z-30 border-b bg-white/95 backdrop-blur" style={{ borderColor: "var(--b-border)" }}>
+        <div className="mx-auto flex h-[58px] w-full max-w-[1240px] items-center gap-4 px-4 md:h-[72px] md:px-6">
           <Link href="/beauty" className="shrink-0">
-            <span className="b-serif block text-[1.4rem] font-bold leading-none tracking-[0.08em]" style={{ color: "var(--b-ink)" }}>MIRYEO</span>
-            <span className="text-[0.62rem] font-semibold tracking-[0.3em]" style={{ color: "var(--b-gold-ink)" }}>AI BEAUTY</span>
+            <span className="b-serif block text-[1.32rem] font-bold leading-none tracking-[0.08em]" style={{ color: "var(--b-text)" }}>MIRYEO</span>
+            <span className="text-[0.58rem] font-extrabold tracking-[0.28em]" style={{ color: "var(--b-rose-ink)" }}>AI BEAUTY</span>
           </Link>
-          <nav className="hidden flex-1 items-center justify-center gap-7 @3xl:flex" aria-label="주요 메뉴">
+          <nav className="hidden flex-1 items-center justify-center gap-1 @3xl:flex" aria-label="주요 메뉴">
             {NAV.map((n) => (
               <Link key={n.href} href={n.href} aria-current={active(n.href) ? "page" : undefined}
-                className="relative flex min-h-[44px] items-center text-[0.92rem] font-semibold transition-colors duration-150"
-                style={{ color: active(n.href) ? "var(--b-ink)" : "var(--b-text-soft)" }}>
+                className="flex min-h-[40px] items-center rounded-full px-4 text-[0.92rem] font-bold transition-colors duration-150"
+                style={active(n.href) ? { background: "var(--b-rose-soft)", color: "var(--b-rose-ink)" } : { color: "var(--b-text-soft)" }}>
                 {n.label}
-                {active(n.href) && <span className="absolute inset-x-0 bottom-1.5 h-[2px] rounded-full" style={{ background: "var(--b-gold)" }} aria-hidden />}
               </Link>
             ))}
           </nav>
-          <div className="flex flex-1 items-center justify-end gap-1 @3xl:flex-none">
-            <Link href="/beauty/finder" className="pressable mr-1 hidden items-center gap-1.5 rounded-full px-4 py-2.5 text-[0.86rem] font-bold text-white @3xl:flex" style={{ background: "var(--b-ink)" }}>
+          <div className="flex flex-1 items-center justify-end gap-0.5 @3xl:flex-none">
+            <Link href="/beauty/finder" className="pressable mr-1.5 hidden items-center gap-1.5 rounded-full px-4 py-2.5 text-[0.86rem] font-bold text-white @3xl:flex" style={{ background: "var(--b-rose-ink)" }}>
               <Sparkles size={15} aria-hidden /> 내 피부 추천받기
             </Link>
+            <Link href="/beauty/products?focus=search" className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-black/5" aria-label="제품 찾기"><Search size={20} /></Link>
             <Link href="/beauty/passport#saved" className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-black/5" aria-label="찜한 제품"><Heart size={20} /></Link>
             <AccountLink />
           </div>
         </div>
       </header>
       {/* 모바일: 앱처럼 하단 탭 (홈 · AI 파인더 · 제품 · 패스포트) — 현재 화면 표시. 제품 상세에서는 숨김 */}
-      <nav className={`fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden ${detail ? "hidden" : ""}`}
-        style={{ borderColor: "var(--b-line)", background: "rgba(250, 248, 244, 0.97)" }} aria-label="모바일 메뉴" data-testid="beauty-mobile-nav">
+      <nav className={`fixed inset-x-0 bottom-0 z-30 border-t bg-white/97 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden ${detail ? "hidden" : ""}`}
+        style={{ borderColor: "var(--b-border)", boxShadow: "0 -6px 20px -14px rgba(0,0,0,.18)" }} aria-label="모바일 메뉴" data-testid="beauty-mobile-nav">
         <div className="mx-auto grid max-w-[560px] grid-cols-4">
           {NAV.map((n) => {
             const on = active(n.href);
             return (
               <Link key={n.href} href={n.href} aria-current={on ? "page" : undefined}
-                className="pressable flex min-h-[60px] flex-col items-center justify-center gap-1 whitespace-nowrap text-[0.72rem] font-semibold"
-                style={{ color: on ? "var(--b-ink)" : "var(--b-text-soft)" }}>
-                <n.icon size={21} strokeWidth={on ? 2.2 : 1.7} aria-hidden />
+                className="pressable flex min-h-[60px] flex-col items-center justify-center gap-1 whitespace-nowrap text-[0.72rem] font-bold"
+                style={{ color: on ? "var(--b-rose-ink)" : "var(--b-text-soft)" }}>
+                <n.icon size={22} strokeWidth={on ? 2.3 : 1.8} aria-hidden />
                 <span>{n.short}</span>
               </Link>
             );

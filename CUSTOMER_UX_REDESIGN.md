@@ -1,4 +1,20 @@
-# MIRYEO AI Beauty — 고객 플랫폼 UI/UX 리디자인 (PASS 19, D-073)
+# MIRYEO AI Beauty — 고객 플랫폼 UI/UX (PASS 26 커머스형, D-082 · PASS 19 에디토리얼 D-073)
+
+## PASS 26 — 커머스형으로 전환 (2026-10-19, 사용자 요청 "진짜 판매 가능한, 예쁜 화장품 관련 웹앱")
+| 항목 | PASS 19 (D-073) | PASS 26 (D-082) |
+|---|---|---|
+| 바탕 | Warm Ivory | 흰색 + 연회색 띠(#F6F6F8) |
+| 제목 | 세리프 | 굵은 고딕(Pretendard 800) — 세리프는 로고만 |
+| 강조색 | 잉크 + 금색 | MIRYEO 로즈 #C2385F(버튼·강조 글자) · #E5577B(찜·점) · 고민별 파스텔 6색 |
+| 구조 | 여백·구분선 에디토리얼 | 검색칸 · 배너 넘기기 · 타일 · 가로 상품 줄 · 카드 |
+| 제품 카드 | 사진 + 글자, 가격 작게 | 사진 타일 · 배지 1개 · 찜 동그라미 · #고민 태그 · 가격 굵게 |
+| 상세 하단 | 찜 + 구매 채널 | 찜 + '구매 채널 보기 · 가격' |
+| 그대로 | 추천 로직 · 이벤트 기록 · 저장 · 개인화 원칙(실제 기록만) · 결제 외부 · 고객 화면에 AX 내부 정보 없음 |
+근거 없는 커머스 문구(할인율·별점·후기 수·배송·랭킹)는 넣지 않는다. 배너는 실제 기능만. 공용 부품: `src/components/beauty/ui.tsx`(SectionHead · SearchLink · PromoCarousel · ConcernTiles · CategoryRail), CSS `.b-card` `.b-chip` `.b-pill` `.b-rail` `.b-list` `.b-btn(-ink|-line)`.
+
+---
+
+## (이하 PASS 19 기록, D-073)
 
 목표: "AI 추천 기능이 들어간 잘 만든 화장품 쇼핑몰" → "나의 피부 고민을 이해하고, 나에게 맞는 제품과 루틴을 계속 관리해 주는 MIRYEO 개인화 뷰티 앱".
 기능·데이터 구조·추천 로직(`beauty-recommend.ts`)·Business AX 연동(customer-events)·저장 위치(beauty-store, 회원 API)는 그대로 두고 **화면 구성과 위계만** 바꾼다.

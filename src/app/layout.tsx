@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+// Pretendard (SIL OFL 1.1) — 기기와 상관없이 같은 글꼴, 쓰는 글자 범위만 내려받음 (PASS 26, D-082)
+import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 import { SettingsProvider } from "@/components/providers/SettingsProvider";
 import { DeviceViewProvider } from "@/components/device/DeviceView";

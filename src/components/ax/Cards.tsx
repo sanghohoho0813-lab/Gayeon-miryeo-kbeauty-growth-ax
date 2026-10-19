@@ -59,12 +59,16 @@ export function KpiCard({
         <span className="min-w-0 text-[0.86rem] font-semibold leading-snug text-ink-soft @md:text-[0.9rem]">{label}</span>
         {href && <ChevronRight size={16} className="ml-auto shrink-0 text-ink-soft opacity-50 transition-opacity group-hover:opacity-100" aria-hidden />}
       </div>
-      <div className={bare ? "mt-1 text-[1.2rem] font-bold leading-tight tracking-tight @md:text-[1.45rem]" : "mt-1.5 text-[1.3rem] font-bold leading-tight tracking-tight @md:mt-2 @md:text-[1.7rem] @4xl:text-[1.9rem]"}>{format(animated)}</div>
+      <div className={`tabular ${bare ? "mt-1 text-[1.2rem] font-extrabold leading-tight tracking-[-0.03em] @md:text-[1.5rem]" : "mt-1.5 text-[1.3rem] font-extrabold leading-tight tracking-[-0.03em] @md:mt-2 @md:text-[1.7rem] @4xl:text-[1.9rem]"}`}>{format(animated)}</div>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[0.8rem] leading-snug @md:text-[0.85rem]">
         {trend != null && (
-          <span className="inline-flex items-center gap-0.5 font-semibold" style={{ color: up ? "var(--success)" : "var(--danger)" }}>
-            {up ? <ArrowUpRight size={15} aria-hidden /> : <ArrowDownRight size={15} aria-hidden />}
-            {up ? "+" : ""}{Math.round(trend * 1000) / 10}%{trendLabel ? ` ${trendLabel}` : ""}
+          <span className="inline-flex flex-wrap items-center gap-x-1.5">
+            {/* 증감 숫자만 색 알약, 비교 기준은 옆 글자 (PASS 26, D-083) */}
+            <span className="tabular inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 font-bold" style={{ color: up ? "var(--success)" : "var(--danger)", background: up ? "var(--success-soft)" : "var(--danger-soft)" }}>
+              {up ? <ArrowUpRight size={15} aria-hidden /> : <ArrowDownRight size={15} aria-hidden />}
+              {up ? "+" : ""}{Math.round(trend * 1000) / 10}%
+            </span>
+            {trendLabel && <span className="font-semibold" style={{ color: up ? "var(--success)" : "var(--danger)" }}>{trendLabel}</span>}
           </span>
         )}
         {sub && <span className="text-ink-soft">{sub}</span>}
@@ -84,7 +88,7 @@ export function KpiCard({
 export function DataCard({ title, subtitle, info, action, children, className = "", tourId, id, collapsible = false, defaultOpen = true, testId }: { title?: ReactNode; subtitle?: ReactNode; info?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; tourId?: string; id?: string; collapsible?: boolean; defaultOpen?: boolean; testId?: string }) {
   const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();
-  const h2 = "text-[1.08rem] font-bold leading-snug @md:text-[1.15rem] @3xl:text-[1.25rem]";
+  const h2 = "text-[1.08rem] font-bold leading-snug tracking-[-0.02em] @md:text-[1.15rem] @3xl:text-[1.22rem]";
   const heading = collapsible ? (
     <h2 className={h2}>
       <button type="button" className="inline-flex items-center gap-1.5 text-left" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((o) => !o)}>
