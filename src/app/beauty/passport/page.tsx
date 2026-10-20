@@ -50,10 +50,8 @@ export default function PassportPage() {
 
   return (
     <div className="pt-4 @3xl:pt-8">
-      <MemberBanner />
-
-      {/* 신분증형 머리 — 이름 · 최근 분석일 · 고민 · 기록 수 · 다시 분석 */}
-      <section className="mt-4 overflow-hidden rounded-[28px] px-6 py-8 @3xl:px-12 @3xl:py-11" style={{ background: "linear-gradient(135deg, #1C1D24 0%, #3A2631 100%)" }} aria-labelledby="h-pass">
+      {/* 신분증형 머리 — 이름 · 최근 분석일 · 고민 · 기록 수 · 다시 분석. 첫 화면은 '내 기록'부터 (PASS 31: 회원 안내는 카드 아래로) */}
+      <section className="overflow-hidden rounded-[28px] px-6 py-8 @3xl:px-12 @3xl:py-11" style={{ background: "linear-gradient(135deg, #1C1D24 0%, #3A2631 100%)" }} aria-labelledby="h-pass">
         <div className="grid items-center gap-8 @3xl:grid-cols-[1.4fr_1fr]">
           <div>
             <span className="b-pill" style={{ background: "rgba(255,255,255,.14)", color: "#F7B6C8" }}>MY BEAUTY PASSPORT</span>
@@ -82,6 +80,7 @@ export default function PassportPage() {
           <img src="/images/beauty/card-passport.webp" alt="" width={512} height={512} decoding="async" className="mx-auto hidden h-[220px] w-auto @3xl:block" />
         </div>
       </section>
+      <div className="mt-4"><MemberBanner /></div>
 
       {mem.loaded && !hasData && (
         <section className="b-card mt-8 px-6 py-10 text-center">

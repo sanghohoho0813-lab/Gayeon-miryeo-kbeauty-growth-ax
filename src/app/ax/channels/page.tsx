@@ -17,6 +17,7 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { formatKRW, formatPct } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
+import { receivableFor } from "@/lib/settlements";
 import { useNarrow } from "@/lib/use-narrow";
 import { INPUT_CYCLES } from "@/lib/channel-cycle";
 
@@ -129,7 +130,20 @@ function Analysis() {
 function B2B() {
   const m = useModel();
   const narrow = useNarrow();
+  const { role } = useSession();
+  const fin = can(role, "view_financials");
   const list = m.snapshot.b2b;
+  // 거래처별 받을 돈 (PASS 31, D-099) — 누르면 정산 목록을 그 거래처로 걸러 엶. 재무 권한만
+  const recv = (b: (typeof list)[number]) => receivableFor(m.snapshot.settlements, m.today, { id: b.id, name: b.name });
+  const recvLink = (b: (typeof list)[number]) => {
+    const r = recv(b);
+    if (r.amount <= 0) return <span className="text-ink-soft">없음</span>;
+    return (
+      <Link href={`/ax/channels?tab=settlements&q=${encodeURIComponent(b.name)}`} className="tabular font-semibold hover:underline" style={{ color: r.overdueAmount > 0 ? "var(--danger)" : undefined }} data-b2b-recv={b.id}>
+        {formatKRW(r.amount)}{r.overdueAmount > 0 ? ` · 연체 ${r.maxOverdueDays}일` : ""}
+      </Link>
+    );
+  };
   const tone = (s: string) => (s === "거래중" ? "success" : s === "협의중" ? "info" : "neutral") as "success";
   return (
     <div className="space-y-6">
@@ -149,6 +163,7 @@ function B2B() {
                   <div><dt className="text-[0.74rem] text-ink-soft">최근 거래</dt><dd>{formatDateKR(b.lastOrderAt)}</dd></div>
                   <div><dt className="text-[0.74rem] text-ink-soft">다음 납품</dt><dd>{formatDateKR(b.nextDelivery)}</dd></div>
                 </dl>
+                {fin && <p className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-surface-muted px-2.5 py-1.5 text-[0.84rem]"><span className="text-ink-soft">받을 돈</span>{recvLink(b)}</p>}
                 <p className="mt-2 text-[0.8rem] text-ink-soft">주요 상품: {b.mainProductIds.map((id) => m.productById.get(id)?.name ?? "-").join(", ") || "-"}{b.note ? ` · ${b.note}` : ""}</p>
               </li>
             ))}
@@ -156,7 +171,7 @@ function B2B() {
         ) : (
           <div tabIndex={0} className="table-scroll">
             <table className="text-[0.93rem]">
-              <thead><tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}><th className="py-2.5 pr-4 font-semibold">거래처</th><th className="py-2.5 pr-4 font-semibold">상태</th><th className="py-2.5 pr-4 font-semibold">최근 거래</th><th className="py-2.5 pr-4 font-semibold">누적 매출</th><th className="py-2.5 pr-4 font-semibold">주요 상품</th><th className="py-2.5 pr-4 font-semibold">다음 납품</th><th className="py-2.5 font-semibold">비고</th></tr></thead>
+              <thead><tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}><th className="py-2.5 pr-4 font-semibold">거래처</th><th className="py-2.5 pr-4 font-semibold">상태</th><th className="py-2.5 pr-4 font-semibold">최근 거래</th><th className="py-2.5 pr-4 font-semibold">누적 매출</th>{fin && <th className="py-2.5 pr-4 font-semibold">받을 돈</th>}<th className="py-2.5 pr-4 font-semibold">주요 상품</th><th className="py-2.5 pr-4 font-semibold">다음 납품</th><th className="py-2.5 font-semibold">비고</th></tr></thead>
               <tbody>
                 {list.map((b) => (
                   <tr key={b.id} className="row-hover border-b" style={{ borderColor: "var(--border)" }}>
@@ -164,6 +179,7 @@ function B2B() {
                     <td className="py-3 pr-4"><StatusBadge tone={tone(b.status)}>{b.status}</StatusBadge></td>
                     <td className="tabular py-3 pr-4">{formatDateKR(b.lastOrderAt)}</td>
                     <td className="tabular py-3 pr-4 font-semibold">{formatKRW(b.totalRevenue)}</td>
+                    {fin && <td className="py-3 pr-4 text-[0.9rem]">{recvLink(b)}</td>}
                     <td className="py-3 pr-4 text-[0.86rem] text-ink-soft">{b.mainProductIds.map((id) => m.productById.get(id)?.name ?? "-").join(", ")}</td>
                     <td className="tabular py-3 pr-4">{formatDateKR(b.nextDelivery)}</td>
                     <td className="py-3 text-[0.86rem] text-ink-soft">{b.note ?? "-"}</td>

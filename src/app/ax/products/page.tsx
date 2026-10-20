@@ -218,30 +218,89 @@ function ProductsTab({ onSelect }: { onSelect: (p: Product) => void }) {
   );
 }
 
+/* 재고 정렬 (PASS 31, D-100) — 기본은 소진 빠른 순(지금까지와 같음), 이 브라우저에 기억 */
+type InvSort = "days" | "deadline" | "order" | "stock" | "name";
+const INV_SORTS: { key: InvSort; label: string }[] = [
+  { key: "days", label: "소진 빠른 순" },
+  { key: "deadline", label: "착수 마감 빠른 순" },
+  { key: "order", label: "추천 생산량 많은 순" },
+  { key: "stock", label: "재고 많은 순" },
+  { key: "name", label: "이름 순" },
+];
+const INV_SORT_KEY = "miryeo-inventory-sort";
+
+/** 재고가 버티는 기간 막대 — 0~90일 눈금(넘으면 꽉 참), 색은 재고 상태와 같음. 숫자는 옆 글자로 읽힘 */
+function DaysGauge({ mm }: { mm: ProductMetrics }) {
+  if (!Number.isFinite(mm.daysOfStock)) return null;
+  const pct = Math.max(3, Math.min(100, (mm.daysOfStock / 90) * 100));
+  const color = mm.stockStatus === "품절위험" ? "var(--danger)" : mm.stockStatus === "부족주의" ? "var(--warning)" : mm.stockStatus === "과잉" ? "var(--chart-2, var(--chart-1))" : "var(--success)";
+  return (
+    <span className="mt-1 block h-1.5 w-full max-w-[7.5rem] overflow-hidden rounded-full bg-surface-muted" aria-hidden data-days-gauge>
+      <span className="block h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+    </span>
+  );
+}
+
 function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
   const m = useModel();
   const { run } = useData();
   const { role } = useSession();
   const [status, setStatus] = useState("전체");
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState<InvSort>(() => { try { const v = localStorage.getItem(INV_SORT_KEY) as InvSort | null; return v && INV_SORTS.some((x) => x.key === v) ? v : "days"; } catch { return "days"; } });
   const [edit, setEdit] = useState<{ product: Product; inv: Inventory } | null>(null);
   const statuses = ["전체", "품절위험", "부족주의", "안정", "과잉", "데이터 없음"];
-  const rows = m.snapshot.products.map((p) => ({ p, mm: m.metrics.get(p.id)!, inv: m.snapshot.inventory.find((i) => i.productId === p.id) }))
-    .filter((r) => status === "전체" || r.mm.stockStatus === status)
-    .sort((a, b) => a.mm.daysOfStock - b.mm.daysOfStock);
+  const all = m.snapshot.products.map((p) => ({ p, mm: m.metrics.get(p.id)!, inv: m.snapshot.inventory.find((i) => i.productId === p.id) }));
+  const countOf = (st: string) => (st === "전체" ? all.length : all.filter((r) => r.mm.stockStatus === st).length);
+  const key = (r: (typeof all)[number]): number | string => {
+    switch (sort) {
+      case "deadline": return r.mm.daysToDeadline ?? Infinity; // 생산기간 미입력은 맨 뒤
+      case "order": return -r.mm.recommendedOrder;
+      case "stock": return -(r.inv?.currentStock ?? -1);
+      case "name": return r.p.name;
+      default: return r.mm.daysOfStock;
+    }
+  };
+  const rows = all
+    .filter((r) => (status === "전체" || r.mm.stockStatus === status) && matchesQuery(q, r.p.name, r.p.sku, r.p.category, r.p.line))
+    .sort((a, b) => { const x = key(a), y = key(b); return (typeof x === "string" ? x.localeCompare(String(y), "ko") : (x as number) - (y as number)) || a.p.name.localeCompare(b.p.name, "ko"); });
   const canEdit = can(role, "edit_operational");
   const narrow = useNarrow();
   const openEdit = (p: Product, inv?: Inventory) => setEdit({ product: p, inv: inv ?? { productId: p.id, currentStock: 0, safetyStock: 0, incomingStock: 0 } });
 
   return (
     <>
-      <DataCard title="재고 현황" action={
-        <div className="flex flex-wrap gap-1.5">
-          {statuses.map((s) => (
-            <button key={s} onClick={() => setStatus(s)} aria-pressed={status === s} className="pressable min-h-[40px] rounded-xl border px-3 text-[0.86rem] font-semibold" style={status === s ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : { borderColor: "var(--border)", color: "var(--text-secondary)" }}>{s}</button>
-          ))}
+      <DataCard title={<>재고 현황 <span className="tabular text-ink-soft">({rows.length === all.length ? all.length : `${rows.length} / ${all.length}`})</span></>}>
+        {/* 상태 칩 한 줄 + 개수 (PASS 31) — 좁은 화면은 옆으로 넘김, 0개는 숫자 없이 흐리게 */}
+        <div className="chip-rail relative -mx-4 mb-2.5 flex gap-1.5 overflow-x-auto px-4 pb-0.5 @md:mx-0 @md:flex-wrap @md:px-0" role="group" aria-label="재고 상태 필터" data-testid="inventory-status">
+          {statuses.map((st) => {
+            const on = status === st;
+            const n = countOf(st);
+            return (
+              <button key={st} onClick={() => setStatus(st)} aria-pressed={on} data-inv-status={st} className="pressable relative inline-flex min-h-[38px] shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 text-[0.84rem] font-semibold" style={on ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : { borderColor: "var(--border)", color: "var(--text-secondary)" }}>
+                {st}
+                {n > 0 || on ? <span className="tabular rounded-full px-1.5 text-[0.76rem]" style={on ? { background: "#fff", color: "var(--primary)" } : { background: "var(--surface-muted)" }}>{n}</span> : <span className="sr-only">0개</span>}
+              </button>
+            );
+          })}
         </div>
-      }>
-        {narrow ? (
+        <div className="mb-3 flex gap-2">
+          <label className="relative min-w-0 flex-1">
+            <span className="sr-only">재고 검색</span>
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" aria-hidden />
+            <input type="search" className="field !min-h-[42px] !pl-9 !pr-9" placeholder="이름·코드 검색" value={q} onChange={(e) => setQ(e.target.value)} data-testid="inventory-search" enterKeyHint="search" />
+            {q && <button type="button" className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-soft hover:bg-surface-muted" onClick={() => setQ("")} aria-label="검색어 지우기"><X size={15} aria-hidden /></button>}
+          </label>
+          <select className="field !min-h-[42px] !w-auto min-w-0 max-w-[44%] @md:max-w-none" value={sort} onChange={(e) => { const v = e.target.value as InvSort; setSort(v); try { localStorage.setItem(INV_SORT_KEY, v); } catch { /* 저장 안 돼도 동작 */ } }} aria-label="재고 정렬" data-testid="inventory-sort">
+            {INV_SORTS.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+          </select>
+        </div>
+        {rows.length === 0 ? (
+          <div className="rounded-xl bg-surface-muted px-4 py-6 text-center text-[0.92rem]" data-testid="inventory-empty">
+            <p className="font-semibold">{q ? <>&lsquo;{q}&rsquo;에 맞는 상품이 없습니다</> : `'${status}' 상품이 없습니다`}</p>
+            <button type="button" className="btn-secondary mt-3 !min-h-[40px] text-[0.86rem]" onClick={() => { setQ(""); setStatus("전체"); }}>검색·상태 지우기</button>
+          </div>
+        ) : narrow ? (
           <ul className="space-y-2.5" data-testid="inventory-cards">
             {rows.map(({ p, mm, inv }) => (
               <li key={p.id} className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }} data-inv-card={p.sku}>
@@ -251,7 +310,7 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
                 </div>
                 <dl className="tabular mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-[0.88rem]">
                   <div><dt className="text-[0.76rem] text-ink-soft">현재 재고</dt><dd className="font-semibold">{inv ? `${inv.currentStock.toLocaleString()}개` : "미입력"}</dd></div>
-                  <div><dt className="text-[0.76rem] text-ink-soft">예상 소진</dt><dd className="font-semibold">{Number.isFinite(mm.daysOfStock) && inv ? `약 ${Math.round(mm.daysOfStock)}일` : "-"}</dd></div>
+                  <div><dt className="text-[0.76rem] text-ink-soft">예상 소진</dt><dd className="font-semibold">{Number.isFinite(mm.daysOfStock) && inv ? `약 ${Math.round(mm.daysOfStock)}일` : "-"}</dd>{inv && <DaysGauge mm={mm} />}</div>
                   <div><dt className="text-[0.76rem] text-ink-soft">일 판매속도</dt><dd>{mm.dailyVelocity.toFixed(1)}개/일</dd></div>
                   <div><dt className="text-[0.76rem] text-ink-soft">입고 예정</dt><dd>{inv?.incomingStock ? `${inv.incomingStock.toLocaleString()}개` : "-"}</dd></div>
                   <div data-deadline={p.sku}><dt className="text-[0.76rem] text-ink-soft">생산 착수</dt><dd><DeadlineBadge mm={mm} /></dd></div>
@@ -272,10 +331,10 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
             <tbody>
               {rows.map(({ p, mm, inv }) => (
                 <tr key={p.id} className="row-hover border-b" style={{ borderColor: "var(--border)" }}>
-                  <td className="cursor-pointer py-3 pr-4" onClick={() => onSelect(p)}><div className="font-semibold">{p.name}</div><div className="text-[0.78rem] text-ink-soft">{p.sku}</div></td>
+                  <td className="py-3 pr-4"><button type="button" className="text-left font-semibold hover:underline" onClick={() => onSelect(p)}>{p.name}</button><div className="text-[0.78rem] text-ink-soft">{p.sku}</div></td>
                   <td className="tabular py-3 pr-4">{inv ? `${inv.currentStock.toLocaleString()}개` : "미입력"}</td>
                   <td className="tabular py-3 pr-4">{mm.dailyVelocity.toFixed(1)}개/일</td>
-                  <td className="tabular py-3 pr-4 font-semibold">{Number.isFinite(mm.daysOfStock) && inv ? `약 ${Math.round(mm.daysOfStock)}일` : "-"}</td>
+                  <td className="tabular py-3 pr-4 font-semibold">{Number.isFinite(mm.daysOfStock) && inv ? `약 ${Math.round(mm.daysOfStock)}일` : "-"}{inv && <DaysGauge mm={mm} />}</td>
                   <td className="tabular py-3 pr-4 text-ink-soft">{inv?.incomingStock ? `${inv.incomingStock.toLocaleString()}개 (${formatDateKR(inv.incomingDate)})` : "-"}</td>
                   <td className="py-3 pr-4" data-deadline={p.sku}><DeadlineBadge mm={mm} /></td>
                   <td className="tabular py-3 pr-4 font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}<div className="text-[0.72rem] font-normal text-ink-soft">{mm.planBasis}</div></td>

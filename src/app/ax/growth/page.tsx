@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Search, X } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { ACTION_STATUS_LABEL, ActionRow, DataCard, InsightCard, StatusBadge } from "@/components/ax/Cards";
 import { ActionDrawer } from "@/components/ax/ActionDrawer";
@@ -11,6 +11,7 @@ import { AiReadyButton, AI_SPECS } from "@/components/ax/AiReady";
 import { EmptyState } from "@/components/ax/States";
 import { useModel } from "@/components/providers/DataProvider";
 import { OPEN_STATUSES } from "@/lib/analytics";
+import { matchesQuery } from "@/lib/search";
 import type { ActionCategory, ActionStatus, GrowthAction } from "@/lib/types";
 
 type StatusFilter = "열린 Action" | ActionStatus;
@@ -28,6 +29,7 @@ function Inner() {
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("전체");
   const [open, setOpen] = useState<GrowthAction | null>(null);
   const [more, setMore] = useState(false);
+  const [q, setQ] = useState("");
 
   // 빠른 이동(?a=Action ID) → 해당 Action 처리 화면을 바로 연다
   const aid = params.get("a");
@@ -41,11 +43,11 @@ function Inner() {
   const count = (s: StatusFilter) => (s === "열린 Action" ? m.actions.filter((a) => OPEN_STATUSES.includes(a.status)).length : m.actions.filter((a) => a.status === s).length);
   const missionRank = new Map(m.missions.map((a, i) => [a.id, i + 1]));
   const list = useMemo(() => {
-    const l = m.actions.filter((a) => (status === "열린 Action" ? OPEN_STATUSES.includes(a.status) : a.status === status) && (category === "전체" || a.category === category));
+    const l = m.actions.filter((a) => (status === "열린 Action" ? OPEN_STATUSES.includes(a.status) : a.status === status) && (category === "전체" || a.category === category) && matchesQuery(q, a.title, a.judgement, a.category, a.assigneeName));
     // 열린 Action은 오늘의 Mission(우선순위 상위 3개)을 맨 위에
     return status === "열린 Action" ? [...l].sort((a, b) => (missionRank.get(a.id) ?? 99) - (missionRank.get(b.id) ?? 99)) : l;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [m.actions, m.missions, status, category]);
+  }, [m.actions, m.missions, status, category, q]);
   const proofs = m.snapshot.proofEvents;
   const label = (s: StatusFilter) => (s === "열린 Action" ? s : ACTION_STATUS_LABEL[s]);
 
@@ -78,8 +80,21 @@ function Inner() {
               );
             })}
           </div>
-          {list.length === 0 ? (
+          {/* Action 검색 (PASS 31, D-101) — 제목·근거·담당자, 초성 가능. 상태·카테고리와 함께 걸림 */}
+          <label className="relative mb-3 block">
+            <span className="sr-only">Action 검색</span>
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" aria-hidden />
+            <input type="search" className="field !min-h-[42px] !pl-9 !pr-9" placeholder="상품명·내용·담당자로 검색" value={q} onChange={(e) => setQ(e.target.value)} data-testid="action-search" enterKeyHint="search" />
+            {q && <button type="button" className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-soft hover:bg-surface-muted" onClick={() => setQ("")} aria-label="검색어 지우기"><X size={15} aria-hidden /></button>}
+          </label>
+          {list.length === 0 ? (q ? (
+            <div className="rounded-xl bg-surface-muted px-4 py-6 text-center text-[0.92rem]" data-testid="action-empty-search">
+              <p className="font-semibold">&lsquo;{q}&rsquo;에 맞는 Action이 없습니다</p>
+              <button type="button" className="btn-secondary mt-3 !min-h-[40px] text-[0.86rem]" onClick={() => setQ("")}>검색 지우기</button>
+            </div>
+          ) : (
             <EmptyState title="조건에 맞는 Action이 없습니다" desc={status === "열린 Action" ? "RULE이 새 위험·기회를 감지하면 자동으로 추가됩니다." : undefined} />
+          )
           ) : (
             <>
             <ul className="space-y-2">

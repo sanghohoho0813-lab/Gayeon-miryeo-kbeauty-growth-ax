@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Wallet } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Plus, Search, Wallet, X } from "lucide-react";
 import { DataCard, KpiCard, StatusBadge, type Tone } from "./Cards";
 import { EmptyState } from "./States";
 import { Modal } from "./Modal";
@@ -9,12 +10,14 @@ import { toast } from "./Toast";
 import { ExportButton } from "./ExportButton";
 import { Fold } from "./InfoTip";
 import { SettlementImport } from "./SettlementImport";
+import { AGING_COLOR } from "./AgingBar";
 import { ImportHistory } from "./ImportHistory";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { formatKRW, formatPrice } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
 import { useNarrow } from "@/lib/use-narrow";
-import { outstanding, overdueDays, SETTLEMENT_KIND_LABEL, SETTLEMENT_STATUS_LABEL, statusFor, summarizeReceivables } from "@/lib/settlements";
+import { AGING_LABEL, agingOf, outstanding, overdueDays, receivableAging, receivablesByCounterparty, SETTLEMENT_KIND_LABEL, SETTLEMENT_STATUS_LABEL, statusFor, summarizeReceivables, type AgingBucket } from "@/lib/settlements";
+import { matchesQuery } from "@/lib/search";
 import type { Settlement, SettlementKind } from "@/lib/types";
 
 /* 정산·미수금 (계약 별지 제1호 ①·③ — 받을 돈, 거래처 정산 상태) */
@@ -23,14 +26,26 @@ const FILTERS: [Filter, string][] = [["open", "미수금"], ["overdue", "연체"
 
 export function Settlements() {
   const m = useModel();
-  const [filter, setFilter] = useState<Filter>("open");
+  const [filter, setFilterState] = useState<Filter>("open");
+  const [bucket, setBucket] = useState<AgingBucket | null>(null);
+  // 빠른 이동에서 거래처를 고르면 ?q=거래처 로 열림 (PASS 31)
+  const qParam = useSearchParams().get("q") ?? "";
+  const [q, setQ] = useState(qParam);
+  useEffect(() => { if (qParam) setQ(qParam); }, [qParam]);
   const [edit, setEdit] = useState<Settlement | null>(null);
   const [pay, setPay] = useState<Settlement | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const narrow = useNarrow();
   const list = m.snapshot.settlements;
   const sum = summarizeReceivables(list, m.today);
+  const setFilter = (f: Filter) => { setFilterState(f); setBucket(null); };
+  // 연령 막대·거래처를 누르면 아래 목록을 그 조건으로 걸러 보여 줌 (PASS 31)
+  const focusList = () => window.setTimeout(() => listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  const pickBucket = (b: AgingBucket) => { if (bucket === b) { setBucket(null); return; } setFilterState("open"); setBucket(b); focusList(); };
+  const pickCounterparty = (name: string) => { setFilterState("open"); setBucket(null); setQ(name); focusList(); };
   const rows = [...list]
-    .filter((s) => filter === "all" || (filter === "open" && outstanding(s) > 0) || (filter === "overdue" && overdueDays(s, m.today) > 0) || (filter === "paid" && s.status === "PAID"))
+    .filter((s) => bucket ? agingOf(s, m.today) === bucket : filter === "all" || (filter === "open" && outstanding(s) > 0) || (filter === "overdue" && overdueDays(s, m.today) > 0) || (filter === "paid" && s.status === "PAID"))
+    .filter((s) => matchesQuery(q, s.counterparty, s.description, SETTLEMENT_KIND_LABEL[s.kind]))
     .sort((a, b) => (a.dueOn ?? "9999").localeCompare(b.dueOn ?? "9999"));
   const blank = (): Settlement => ({ id: `new-st-${Date.now()}`, kind: "B2B", counterparty: "", amount: 0, paidAmount: 0, issuedOn: m.today, dueOn: null, status: "OPEN" });
 
@@ -47,6 +62,14 @@ export function Settlements() {
         </DataCard>
       </div>
 
+      {sum.outstanding > 0 && (
+        <div className="grid gap-5 @4xl:grid-cols-2 [&>*]:min-w-0">
+          <AgingCard active={bucket} onPick={pickBucket} />
+          <CounterpartyCard onPick={pickCounterparty} />
+        </div>
+      )}
+
+      <div ref={listRef} className="scroll-mt-24">
       <DataCard
         title="정산 내역"
         action={
@@ -56,12 +79,31 @@ export function Settlements() {
           </div>
         }
       >
-        <div className="mb-3 flex flex-wrap gap-1.5" role="radiogroup" aria-label="정산 필터">
-          {FILTERS.map(([f, l]) => (
-            <button key={f} role="radio" aria-checked={filter === f} onClick={() => setFilter(f)} className="pressable min-h-[38px] rounded-xl border px-3 text-[0.86rem] font-semibold" style={filter === f ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : { borderColor: "var(--border)", color: "var(--text-secondary)" }}>{l}</button>
-          ))}
+        <div className="mb-3 flex flex-col gap-2 @xl:flex-row @xl:items-center">
+          <div className="chip-rail relative -mx-4 flex gap-1.5 overflow-x-auto px-4 @md:mx-0 @md:px-0" role="radiogroup" aria-label="정산 필터">
+            {FILTERS.map(([f, l]) => {
+              const on = !bucket && filter === f;
+              return <button key={f} role="radio" aria-checked={on} onClick={() => setFilter(f)} className="pressable relative min-h-[38px] shrink-0 whitespace-nowrap rounded-xl border px-3 text-[0.86rem] font-semibold" style={on ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : { borderColor: "var(--border)", color: "var(--text-secondary)" }}>{l}</button>;
+            })}
+            {bucket && (
+              <button type="button" onClick={() => setBucket(null)} className="pressable relative inline-flex min-h-[38px] shrink-0 items-center gap-1 whitespace-nowrap rounded-xl border px-3 text-[0.86rem] font-semibold" style={{ background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" }} data-testid="aging-filter-chip" aria-label={`${AGING_LABEL[bucket]}만 보기 해제`}>
+                {AGING_LABEL[bucket]}만 <X size={14} aria-hidden />
+              </button>
+            )}
+          </div>
+          <label className="relative min-w-0 @xl:ml-auto @xl:w-64">
+            <span className="sr-only">거래처·내용 검색</span>
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" aria-hidden />
+            <input type="search" className="field !min-h-[40px] !pl-9 !pr-9 text-[0.9rem]" placeholder="거래처·내용 검색" value={q} onChange={(e) => setQ(e.target.value)} data-testid="settlement-search" />
+            {q && <button type="button" className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-soft hover:bg-surface-muted" onClick={() => setQ("")} aria-label="검색어 지우기"><X size={15} aria-hidden /></button>}
+          </label>
         </div>
-        {rows.length === 0 ? <EmptyState title="해당하는 정산 내역이 없습니다" desc="B2B 납품·수출 선적·판매채널 월 정산처럼 받을 돈이 생기면 청구액과 입금 기한을 기록하세요." /> : narrow ? (
+        {rows.length === 0 ? (q ? (
+          <div className="rounded-xl bg-surface-muted px-4 py-6 text-center text-[0.92rem]" data-testid="settlement-empty-search">
+            <p className="font-semibold">&lsquo;{q}&rsquo;에 맞는 정산 내역이 없습니다</p>
+            <button type="button" className="btn-secondary mt-3 !min-h-[40px] text-[0.86rem]" onClick={() => setQ("")}>검색 지우기</button>
+          </div>
+        ) : <EmptyState title="해당하는 정산 내역이 없습니다" desc="B2B 납품·수출 선적·판매채널 월 정산처럼 받을 돈이 생기면 청구액과 입금 기한을 기록하세요." />) : narrow ? (
           <ul className="space-y-2.5" data-testid="settlement-cards">
             {rows.map((s) => {
               const od = overdueDays(s, m.today);
@@ -119,6 +161,7 @@ export function Settlements() {
         )}
         <p className="mt-3 text-[0.8rem] text-ink-soft">연체된 받을 돈은 AI Growth Center에 &lsquo;연체 미수금 회수&rsquo; Action으로 올라갑니다. 금액은 입력한 청구·입금 기록 기준입니다.</p>
       </DataCard>
+      </div>
 
       {/* 청구·입금 현황 파일로 한 번에 (PASS 27, D-087) — 정산 내역이 없을 때는 펼쳐 둔다 */}
       <Fold summary="청구·입금 현황을 파일로 한 번에 가져오기 (엑셀·CSV)" defaultOpen={list.length === 0} testId="settlement-import-fold">
@@ -129,6 +172,71 @@ export function Settlements() {
       {edit && <SettlementModal value={edit} onClose={() => setEdit(null)} />}
       {pay && <PaymentModal value={pay} onClose={() => setPay(null)} />}
     </div>
+  );
+}
+
+/* 받을 돈 연령 (PASS 31, D-099) — 입금 기한을 얼마나 넘겼는지 구간별 잔액. 막대·구간을 누르면 아래 목록이 그 구간만 */
+function AgingCard({ active, onPick }: { active: AgingBucket | null; onPick: (b: AgingBucket) => void }) {
+  const m = useModel();
+  const rows = receivableAging(m.snapshot.settlements, m.today);
+  const total = rows.reduce((a, r) => a + r.amount, 0);
+  const overdue = total - rows[0].amount;
+  return (
+    <DataCard title="받을 돈 연령" info="남은 잔액을 입금 기한 기준으로 나눴습니다. 기한이 없거나 아직 지나지 않은 청구는 '기한 전'입니다. 구간을 누르면 아래 정산 내역이 그 구간만 보입니다." testId="aging-card">
+      <p className="text-[0.88rem] text-ink-soft">받을 돈 <b className="tabular text-ink">{formatKRW(total)}</b> 중 기한을 넘긴 돈 <b className="tabular" style={{ color: overdue > 0 ? "var(--danger)" : "var(--success)" }}>{formatKRW(overdue)}</b>{total > 0 ? ` (${Math.round((overdue / total) * 100)}%)` : ""}</p>
+      <div className="mt-3 flex h-4 w-full overflow-hidden rounded-full bg-surface-muted" role="img" aria-label={`받을 돈 연령: ${rows.map((r) => `${AGING_LABEL[r.bucket]} ${formatKRW(r.amount)}`).join(", ")}`} data-testid="aging-bar">
+        {rows.filter((r) => r.amount > 0).map((r) => (
+          <span key={r.bucket} className="h-full border-r-2 last:border-r-0" style={{ width: `${Math.max(2, (r.amount / total) * 100)}%`, background: AGING_COLOR[r.bucket], borderColor: "var(--surface)", opacity: active && active !== r.bucket ? 0.35 : 1 }} data-bucket={r.bucket} />
+        ))}
+      </div>
+      <ul className="mt-3 grid grid-cols-2 gap-2">
+        {rows.map((r) => {
+          const on = active === r.bucket;
+          return (
+            <li key={r.bucket}>
+              <button type="button" disabled={r.count === 0} aria-pressed={on} onClick={() => onPick(r.bucket)} data-aging={r.bucket}
+                className="pressable flex w-full flex-col items-start rounded-xl border px-3 py-2 text-left disabled:opacity-50"
+                style={{ borderColor: on ? AGING_COLOR[r.bucket] : "var(--border)", background: on ? "var(--surface-muted)" : "var(--surface)", boxShadow: on ? `inset 0 0 0 1px ${AGING_COLOR[r.bucket]}` : undefined }}>
+                <span className="flex items-center gap-1.5 text-[0.8rem] font-semibold text-ink-soft"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: AGING_COLOR[r.bucket] }} aria-hidden />{AGING_LABEL[r.bucket]}</span>
+                <span className="tabular mt-0.5 text-[1rem] font-bold">{formatKRW(r.amount)}</span>
+                <span className="tabular text-[0.76rem] text-ink-soft">{r.count}건</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </DataCard>
+  );
+}
+
+/* 거래처별 받을 돈 — 같은 이름은 한 거래처로 합침. 누르면 아래 목록에서 그 거래처만 */
+function CounterpartyCard({ onPick }: { onPick: (name: string) => void }) {
+  const m = useModel();
+  const all = receivablesByCounterparty(m.snapshot.settlements, m.today);
+  const top = all.slice(0, 5);
+  const max = top[0]?.amount ?? 1;
+  return (
+    <DataCard title="거래처별 받을 돈" info="같은 거래처 이름의 남은 잔액을 합쳤습니다. 이름을 누르면 아래 정산 내역에서 그 거래처만 보입니다." testId="counterparty-card">
+      <ul className="space-y-1.5">
+        {top.map((c) => (
+          <li key={c.counterparty}>
+            <button type="button" onClick={() => onPick(c.counterparty)} className="row-hover w-full rounded-xl px-2.5 py-2 text-left" data-counterparty={c.counterparty}>
+              <span className="flex items-baseline justify-between gap-2">
+                <span className="min-w-0 truncate font-semibold">{c.counterparty}</span>
+                <span className="tabular shrink-0 font-bold">{formatKRW(c.amount)}</span>
+              </span>
+              <span className="mt-1 block h-1.5 w-full overflow-hidden rounded-full bg-surface-muted" aria-hidden>
+                <span className="block h-full rounded-full" style={{ width: `${Math.max(3, (c.amount / max) * 100)}%`, background: c.overdueAmount > 0 ? "var(--danger)" : "var(--chart-1)" }} />
+              </span>
+              <span className="tabular mt-1 block text-[0.78rem]" style={{ color: c.overdueAmount > 0 ? "var(--danger)" : "var(--text-secondary)" }}>
+                {c.count}건{c.overdueAmount > 0 ? ` · 연체 ${formatKRW(c.overdueAmount)} (최장 ${c.maxOverdueDays}일)` : " · 연체 없음"}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {all.length > top.length && <p className="mt-2 px-2.5 text-[0.8rem] text-ink-soft">그 외 {all.length - top.length}곳 · {formatKRW(all.slice(5).reduce((a, c) => a + c.amount, 0))}</p>}
+    </DataCard>
   );
 }
 

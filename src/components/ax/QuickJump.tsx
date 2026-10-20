@@ -2,21 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CornerDownLeft, FileText, Package, Search, Sparkles, X } from "lucide-react";
+import { CornerDownLeft, FileText, Package, Search, Sparkles, Wallet, X } from "lucide-react";
 import { AX_NAV } from "./nav";
 import { useData } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can, type Permission } from "@/lib/permissions";
-import { OPEN_STATUSES } from "@/lib/analytics";
+import { formatKRW, OPEN_STATUSES } from "@/lib/analytics";
+import { receivablesByCounterparty } from "@/lib/settlements";
 import { Layer } from "./Modal";
 import { chosung, isChosungQuery, normQuery } from "@/lib/search";
 
-/* 빠른 이동 (Ctrl/⌘+K, /) — 화면·상품·열린 Action을 이름·SKU·초성으로 찾아 바로 연다.
+/* 빠른 이동 (Ctrl/⌘+K, /) — 화면·상품·거래처(받을 돈)·열린 Action을 이름·SKU·초성으로 찾아 바로 연다.
    메뉴 13개 + 탭 20여 개를 기억하지 않아도 되게. 역할에 없는 화면은 보이지 않는다(메뉴와 같은 규칙). */
 
 export const OPEN_QUICK_JUMP = "miryeo-open-quick-jump";
 
-type Group = "화면" | "상품" | "Action";
+type Group = "화면" | "상품" | "거래처" | "Action";
+const GROUPS: Group[] = ["화면", "상품", "거래처", "Action"];
 interface Item { id: string; group: Group; label: string; hint?: string; href: string; keys: string; requires?: Permission }
 
 const SUB_PAGES: Omit<Item, "id" | "group">[] = [
@@ -105,19 +107,21 @@ export function QuickJump() {
     const subs: Item[] = SUB_PAGES.filter((s) => allowed(s.requires)).map((s) => ({ ...s, id: `s:${s.href}`, group: "화면" as const }));
     const products: Item[] = (model?.snapshot.products ?? []).map((p) => ({ id: `pr:${p.id}`, group: "상품" as const, label: p.name, hint: p.sku, href: `/ax/products?tab=inventory&p=${encodeURIComponent(p.id)}`, keys: `${p.sku} ${p.category} ${p.line ?? ""}` }));
     const actions: Item[] = (model?.actions ?? []).filter((a) => OPEN_STATUSES.includes(a.status)).map((a) => ({ id: `a:${a.id}`, group: "Action" as const, label: a.title, hint: `${a.priority} · ${a.category}`, href: `/ax/growth?a=${encodeURIComponent(a.id)}`, keys: a.judgement }));
-    return [...pages, ...subs, ...products, ...actions];
+    // 거래처 (PASS 31, D-099): 받을 돈이 남은 거래처 → 정산 목록을 그 거래처로 걸러 연다 (재무 권한)
+    const parties: Item[] = model && allowed("view_financials") ? receivablesByCounterparty(model.snapshot.settlements, model.today).map((c) => ({ id: `c:${c.counterparty}`, group: "거래처" as const, label: c.counterparty, hint: `받을 돈 ${formatKRW(c.amount)}${c.overdueAmount > 0 ? ` · 연체 ${c.maxOverdueDays}일` : ""}`, href: `/ax/channels?tab=settlements&q=${encodeURIComponent(c.counterparty)}`, keys: "거래처 정산 미수금 받을돈" })) : [];
+    return [...pages, ...subs, ...products, ...parties, ...actions];
   }, [model, role, roleReady]);
 
   const results = useMemo(() => {
     const nq = normQuery(q);
     const ranked = items.map((it) => ({ it, s: score(it, nq) })).filter((x) => x.s > 0);
-    const byGroup: Record<Group, Item[]> = { 화면: [], 상품: [], Action: [] };
-    for (const g of ["화면", "상품", "Action"] as Group[]) {
+    const byGroup: Record<Group, Item[]> = { 화면: [], 상품: [], 거래처: [], Action: [] };
+    for (const g of GROUPS) {
       byGroup[g] = ranked.filter((x) => x.it.group === g).sort((a, b) => b.s - a.s).slice(0, nq ? 8 : g === "화면" ? 8 : 4).map((x) => x.it);
     }
     return byGroup;
   }, [items, q]);
-  const flat = useMemo(() => [...results.화면, ...results.상품, ...results.Action], [results]);
+  const flat = useMemo(() => GROUPS.flatMap((g) => results[g]), [results]);
   useEffect(() => setActive(0), [q]);
 
   const go = (it: Item) => { close(); router.push(it.href); };
@@ -131,7 +135,7 @@ export function QuickJump() {
     else if (e.key === "Escape") { e.preventDefault(); close(); }
     else if (e.key === "Tab") { e.preventDefault(); } // 포커스는 입력칸에 고정 (목록은 화살표로)
   };
-  const icon = (g: Group) => (g === "상품" ? <Package size={16} aria-hidden /> : g === "Action" ? <Sparkles size={16} aria-hidden /> : <FileText size={16} aria-hidden />);
+  const icon = (g: Group) => (g === "상품" ? <Package size={16} aria-hidden /> : g === "Action" ? <Sparkles size={16} aria-hidden /> : g === "거래처" ? <Wallet size={16} aria-hidden /> : <FileText size={16} aria-hidden />);
   let idx = -1;
 
   // 헤더(@container) 안에 그려지므로 body 바로 아래(portal)로 — 그래야 화면 전체를 덮는다
@@ -159,9 +163,9 @@ export function QuickJump() {
           />
           <button onClick={close} aria-label="닫기" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-ink-soft hover:bg-surface-muted"><X size={19} /></button>
         </div>
-        {flat.length === 0 && <p className="px-3 py-6 text-center text-[0.92rem] text-ink-soft" role="status">&lsquo;{q}&rsquo;에 맞는 화면·상품·Action이 없습니다</p>}
+        {flat.length === 0 && <p className="px-3 py-6 text-center text-[0.92rem] text-ink-soft" role="status">&lsquo;{q}&rsquo;에 맞는 화면·상품·거래처·Action이 없습니다</p>}
         <ul id="qj-list" role="listbox" aria-label="검색 결과" className="min-h-0 flex-1 overflow-y-auto p-2" hidden={flat.length === 0}>
-          {(["화면", "상품", "Action"] as Group[]).map((g) =>
+          {GROUPS.map((g) =>
             results[g].length === 0 ? null : (
               <li key={g} role="presentation">
                 <div className="px-3 pb-1 pt-2.5 text-[0.75rem] font-semibold tracking-wide text-ink-soft" aria-hidden="true">{g === "Action" ? "열린 Action" : g}</div>

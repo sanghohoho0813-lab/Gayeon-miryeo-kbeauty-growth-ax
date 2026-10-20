@@ -30,7 +30,7 @@ export function useCountUp(target: number, duration = 650): number {
 
 /* ---------- KPI Card ---------- */
 export function KpiCard({
-  label, value, format, icon, iconTone = "var(--primary)", trend, trendLabel, sub, href, tourId, bare = false, spark,
+  label, value, format, icon, iconTone = "var(--primary)", trend, trendLabel, sub, href, tourId, bare = false, spark, foot,
 }: {
   label: string;
   value: number;
@@ -46,6 +46,8 @@ export function KpiCard({
   bare?: boolean;
   /** 값 옆 작은 추세선 (주 단위, 오래된 순) — 숫자 하나로는 안 보이는 흐름 (PASS 30, D-095) */
   spark?: { data: number[]; label: string };
+  /** 증감·보조 줄 아래 작은 시각 요소 (예: 받을 돈 연령 막대 — PASS 31) */
+  foot?: ReactNode;
 }) {
   const animated = useCountUp(value);
   const up = trend != null && trend >= 0;
@@ -82,6 +84,7 @@ export function KpiCard({
         )}
         {sub && <span className="text-ink-soft">{sub}</span>}
       </div>
+      {foot}
     </>
   );
   const cls = bare ? "group block min-w-0 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-muted" : "ax-card ax-card-hover group block min-w-0 p-4 @md:p-5";

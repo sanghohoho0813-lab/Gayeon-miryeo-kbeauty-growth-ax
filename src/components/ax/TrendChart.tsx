@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
-  Line,
-  LineChart,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -31,21 +32,35 @@ const tooltipStyle = {
   color: "var(--text-primary)",
 };
 
-/** 주간 판매 추세 라인 차트 */
+/** 주간 판매 추세 (PASS 31, D-102) — 면 채움 + 이번 주 점·값 강조. 가로축은 처음(8주 전)·끝(이번 주)만 적어
+ *  좁은 화면에서 라벨이 빠지거나 겹치지 않게 하고, 주별 값은 점을 누르면(호버) 보인다 */
 export function WeeklyTrend({ weekly, height = 200 }: { weekly: number[]; height?: number }) {
   const motion = useChartMotion();
-  const data = weekly.map((v, i) => ({ week: `${8 - i}주 전`.replace("0주 전", "이번 주"), units: v }));
-  data[data.length - 1].week = "이번 주";
+  const data = weekly.map((v, i) => ({ week: i === weekly.length - 1 ? "이번 주" : `${weekly.length - 1 - i}주 전`, units: v }));
+  const last = data.length - 1;
+  const gid = `wt${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   return (
-    <div style={{ height }}>
+    <div className="relative" style={{ height }} data-testid="weekly-trend">
+      {/* 화면 읽기용 주별 값 (차트 자체는 마우스·터치용) */}
+      <p className="sr-only">주간 판매 추세: {data.map((d) => `${d.week} ${d.units.toLocaleString()}개`).join(", ")}</p>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: -12 }}>
+        <AreaChart data={data} margin={{ top: 22, right: 18, bottom: 0, left: -12 }}>
+          <defs>
+            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.22} />
+              <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+            </linearGradient>
+          </defs>
           <CartesianGrid stroke="var(--border)" vertical={false} />
-          <XAxis dataKey="week" tick={{ fontSize: "0.75rem", fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-          <YAxis tick={{ fontSize: "0.75rem", fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} width={48} />
+          <XAxis dataKey="week" ticks={[data[0].week, data[last].week]} tick={{ fontSize: "0.75rem", fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} interval={0} padding={{ left: 6, right: 6 }} />
+          <YAxis tick={{ fontSize: "0.75rem", fill: "var(--text-secondary)" }} tickLine={false} axisLine={false} width={48} allowDecimals={false} />
           <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${Number(v).toLocaleString()}개`, "판매수량"]} />
-          <Line type="monotone" dataKey="units" stroke="var(--chart-1)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" dot={{ r: 4, fill: "var(--chart-1)", stroke: "var(--surface)", strokeWidth: 2 }} activeDot={{ r: 6, stroke: "var(--surface)", strokeWidth: 2 }} isAnimationActive={motion} />
-        </LineChart>
+          <Area type="monotone" dataKey="units" stroke="var(--chart-1)" strokeWidth={2} fill={`url(#${gid})`} strokeLinecap="round" strokeLinejoin="round"
+            dot={(p: { cx?: number; cy?: number; index?: number }) => <circle key={p.index} cx={p.cx} cy={p.cy} r={p.index === last ? 5 : 2.5} fill="var(--chart-1)" stroke="var(--surface)" strokeWidth={p.index === last ? 2 : 1} />}
+            activeDot={{ r: 6, stroke: "var(--surface)", strokeWidth: 2 }} isAnimationActive={motion}>
+            <LabelList dataKey="units" content={(p: { x?: number | string; y?: number | string; index?: number; value?: number | string }) => p.index === last ? <text x={Number(p.x)} y={Number(p.y) - 10} textAnchor="end" fontSize="0.78rem" fontWeight={700} fill="var(--text-primary)">{Number(p.value).toLocaleString()}개</text> : null} />
+          </Area>
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );
