@@ -66,6 +66,8 @@ if (PHASE === "A") {
   await page.screenshot({ path: `${OUT}/A_dashboard_empty.png`, fullPage: true });
   // PASS 11: 상품·채널이 하나도 없는 첫날에도 판매 파일로 시작 (D-042) · Live에는 샘플 연습 없음
   await page.goto(`${APP}/ax/data`, { waitUntil: "networkidle" });
+  // 로그인 확인·자료 불러오기가 끝난 뒤 판단 (networkidle 직후에는 아직 불러오는 중일 수 있음)
+  await page.getByTestId("sales-start-from-file").waitFor({ timeout: 15000 }).catch(() => {});
   ok("Live 첫날(상품·채널 0): 판매 파일 가져오기 바로 사용 가능", (await page.locator('[data-testid="sales-file"]').count()) === 1 && (await page.getByTestId("sales-start-from-file").isVisible()));
   await page.goto(`${APP}/ax/start`, { waitUntil: "networkidle" });
   ok("Live: 샘플 연습 카드·배너 없음", (await page.getByTestId("practice-card").count()) === 0 && (await page.getByTestId("practice-banner").count()) === 0);
