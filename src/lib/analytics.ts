@@ -69,13 +69,22 @@ const asOfRef = (a: SalesAsOf) => (typeof a === "string" ? () => a : a);
 
 /** 판매 행을 기준일 기준 주 단위 버킷(0 = 최근 7일)으로 집계 → 오래된 순 8칸 배열 */
 export function weeklyUnits(sales: SalesRecord[], filter: (s: SalesRecord) => boolean, today: SalesAsOf = todayISO()): number[] {
+  return weeklySum(sales, filter, today, (s) => s.units);
+}
+
+/** weeklyUnits와 같은 주 버킷의 매출 합 — 뒤 4칸 합 = '최근 4주' 매출 (대시보드 숫자 칸 추세선, PASS 30) */
+export function weeklyRevenue(sales: SalesRecord[], filter: (s: SalesRecord) => boolean, today: SalesAsOf = todayISO()): number[] {
+  return weeklySum(sales, filter, today, (s) => s.revenue);
+}
+
+function weeklySum(sales: SalesRecord[], filter: (s: SalesRecord) => boolean, today: SalesAsOf, pick: (s: SalesRecord) => number): number[] {
   const buckets = Array(8).fill(0) as number[];
   const ref = asOfRef(today);
   for (const s of sales) {
     if (!filter(s)) continue;
     const ago = daysBetween(s.saleDate, ref(s.channelId));
     if (ago < 0 || ago >= 56) continue;
-    buckets[7 - Math.floor(ago / 7)] += s.units;
+    buckets[7 - Math.floor(ago / 7)] += pick(s);
   }
   return buckets;
 }

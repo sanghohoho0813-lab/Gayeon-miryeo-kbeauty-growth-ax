@@ -63,14 +63,17 @@ function Inner() {
             {CATEGORIES.map((c) => <option key={c} value={c}>{c === "전체" ? "카테고리 전체" : c}</option>)}
           </select>
         }>
-          <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="상태 필터" data-testid="status-filter">
+          {/* 상태 칩 한 줄 (PASS 30): 좁은 화면은 옆으로 넘김(카드 끝까지, 오른쪽 흐림으로 더 있음 표시) — 3줄로 감기던 문제 */}
+          <div className="chip-rail relative -mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 pb-0.5 @md:mx-0 @md:flex-wrap @md:gap-1 @md:overflow-visible @md:px-0" role="group" aria-label="상태 필터" data-testid="status-filter">
             {STATUS_FILTERS.map((s) => {
               const on = status === s;
+              const n = count(s);
               return (
-                <button key={s} onClick={() => setStatus(s)} aria-pressed={on} data-status={s} className="pressable inline-flex min-h-[38px] shrink-0 items-center gap-1 rounded-full border px-3 text-[0.84rem] font-semibold @md:min-h-[40px] @md:gap-1.5 @md:px-3.5 @md:text-[0.88rem]"
+                <button key={s} onClick={() => setStatus(s)} aria-pressed={on} data-status={s} className="pressable relative inline-flex min-h-[38px] shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 text-[0.84rem] font-semibold @md:min-h-[40px] @md:gap-1.5 @md:px-2.5 @md:text-[0.86rem]"
                   style={on ? { background: "var(--primary)", borderColor: "var(--primary)", color: "#fff" } : { borderColor: "var(--border)", color: "var(--text-secondary)" }}>
                   {label(s)}
-                  <span className="tabular rounded-full px-1.5 text-[0.76rem]" style={on ? { background: "#fff", color: "var(--primary)" } : { background: "var(--surface-muted)" }}>{count(s)}</span>
+                  {/* 0건은 숫자 알약 없이 (덜 시끄럽게 · 한 줄에 들어가게, PASS 30) — 화면 읽기에는 '0건' (칩·줄이 relative라 숨긴 글자가 화면 밖으로 페이지를 넓히지 않음) */}
+                  {n > 0 || on ? <span className="tabular rounded-full px-1.5 text-[0.76rem]" style={on ? { background: "#fff", color: "var(--primary)" } : { background: "var(--surface-muted)" }}>{n}</span> : <span className="sr-only">0건</span>}
                 </button>
               );
             })}

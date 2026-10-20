@@ -65,6 +65,7 @@ export function BriefingCard({ compact = false, limit }: { compact?: boolean; li
         </div>
       )}
       tourId="briefing"
+      id="briefing"
     >
       <p className="text-[1.05rem] font-bold leading-snug" data-testid="briefing-headline">{b.headline}</p>
       {aiAllowed && (

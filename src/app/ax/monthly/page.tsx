@@ -56,7 +56,7 @@ function Inner() {
       {!hasData ? <EmptyState title="판매 데이터가 없습니다" action={<Link href="/ax/data" className="btn-primary">판매 입력</Link>} /> : (
         <>
 
-          <div className="stagger grid grid-cols-1 gap-4 @md:grid-cols-2 @4xl:grid-cols-4" data-testid="monthly-kpis">
+          <div className="stagger grid grid-cols-2 gap-3 @md:gap-4 @4xl:grid-cols-4" data-testid="monthly-kpis">
             <KpiCard label={`${monthLabel(sel.month)} 매출`} value={sel.revenue} format={formatKRW} trend={prev ? change(sel.revenue, prev.revenue) : null} trendLabel="전월 대비" />
             <KpiCard label="매출총이익" value={sel.grossProfit} format={formatKRW} sub={coverage == null ? "-" : `원가 입력 매출 ${Math.round(coverage * 100)}% 기준`} trend={prev ? change(sel.grossProfit, prev.grossProfit) : null} trendLabel="전월 대비" />
             <KpiCard label="매출총이익률" value={(mr ?? 0) * 100} format={(v) => (mr == null ? "원가 미입력" : `${v.toFixed(1)}%`)} sub="(매출 − 수량×원가) ÷ 매출" />

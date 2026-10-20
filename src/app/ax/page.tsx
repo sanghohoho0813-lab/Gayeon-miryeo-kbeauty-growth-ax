@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowUpRight, Banknote, ChevronRight, Globe2, Heart, Lightbulb, ListChecks, Tags, Users } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
@@ -13,6 +13,7 @@ import { ActionDrawer } from "@/components/ax/ActionDrawer";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { EmptyState } from "@/components/ax/States";
 import { BriefingCard } from "@/components/ax/BriefingCard";
+import { buildBriefing, type BriefTone } from "@/lib/briefing";
 import { buildStartGuide, guideProgress } from "@/lib/start-guide";
 import { CircleAlert, Rocket } from "lucide-react";
 import { buildWeeklyRoutine, routineProgress } from "@/lib/weekly-routine";
@@ -25,7 +26,7 @@ import { daysBetween, formatDateKR } from "@/lib/date";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { isLive } from "@/lib/config";
-import { formatKRW, formatPct, matrixZone, OPEN_STATUSES, productInsight } from "@/lib/analytics";
+import { formatKRW, formatPct, matrixZone, OPEN_STATUSES, productInsight, weeklyRevenue } from "@/lib/analytics";
 import type { GrowthAction } from "@/lib/types";
 
 export default function DashboardPage() {
@@ -46,6 +47,16 @@ export default function DashboardPage() {
   }
 
   const openActions = m.actions.filter((a) => OPEN_STATUSES.includes(a.status));
+  // 숫자 칸 추세선 — 최근 8주 매출 (뒤 4칸 합 = '최근 4주' 매출, 채널별 기준일 그대로 · PASS 30)
+  const spark = useMemo(() => {
+    const known = new Set(m.snapshot.channels.map((c) => c.id));
+    const be = new Set(m.snapshot.channels.filter((c) => c.type === "B2B" || c.type === "수출").map((c) => c.id));
+    return {
+      revenue: weeklyRevenue(m.snapshot.sales, (s) => known.has(s.channelId), m.asOfFor),
+      be: weeklyRevenue(m.snapshot.sales, (s) => be.has(s.channelId), m.asOfFor),
+    };
+  }, [m]);
+  const sparkLabel = (name: string, d: number[]) => `${name} 최근 8주 추세: 8주 전 ${formatKRW(d[0])} → 이번 주 ${formatKRW(d[7])}`;
 
   /* 화면 순서 (PASS 12): 핵심 숫자 → 오늘 먼저 할 일 + 브리핑 → 분석(탭 하나) — 길이 절반, 판단에 필요한 것부터 */
   return (
@@ -58,22 +69,23 @@ export default function DashboardPage() {
         </p>
       )}
       <LaggingChannels />
+      <TodayLine fin={fin} />
 
       {/* 핵심 숫자 7개를 한 패널로 묶음 — 최근 4주 | 이번 달 (PASS 21, D-075) */}
       <section aria-label="핵심 숫자" className="ax-card p-2 @md:p-2.5" data-tour="kpis">
         <div className="grid gap-y-1 @5xl:grid-cols-[minmax(0,4fr)_minmax(0,3fr)] @5xl:divide-x" style={{ borderColor: "var(--border)" }}>
         <div className="min-w-0">
-        <div className="px-3 pt-1 text-[0.76rem] font-bold tracking-wide text-ink-soft">최근 4주</div>
+        <div className="px-3 pt-1 text-[0.76rem] font-bold tracking-wide text-ink-soft">최근 4주<span className="font-semibold @md:hidden"> · 증감은 이전 4주 대비</span></div>
         <div className="grid grid-cols-2 @3xl:grid-cols-4">
           {fin ? (
-            <KpiCard bare label="매출" value={kpis.revenue28} format={formatKRW} icon={<Banknote />} iconTone="#3B82F6" trend={kpis.revenueGrowth} trendLabel="이전 4주 대비" href="/ax/channels" />
+            <KpiCard bare label="매출" value={kpis.revenue28} format={formatKRW} icon={<Banknote />} iconTone="#3B82F6" trend={kpis.revenueGrowth} trendLabel="이전 4주 대비" href="/ax/channels" spark={{ data: spark.revenue, label: sparkLabel("매출", spark.revenue) }} />
           ) : (
             <KpiCard bare label="처리할 Action" value={openActions.length} format={(v) => `${Math.round(v)}건`} icon={<ListChecks />} iconTone="#5965D8" sub="오늘의 Mission 포함" href="/ax/growth" />
           )}
           <KpiCard bare label="판매 중 SKU" value={kpis.totalSku} format={(v) => `${Math.round(v)}개`} icon={<Tags />} iconTone="#7C5CE7" sub={`성장 ${kpis.growingSku} · 부진 ${kpis.decliningSku}`} href="/ax/products" />
           <KpiCard bare label="재고 위험 SKU" value={kpis.stockRiskSku} format={(v) => `${Math.round(v)}개`} icon={<AlertTriangle />} iconTone="#D99016" sub={`과잉 ${kpis.overStockSku}개 별도`} href="/ax/products?tab=inventory" />
           {fin ? (
-            <KpiCard bare label="B2B·수출" value={kpis.b2bExportRevenue28} format={formatKRW} icon={<Globe2 />} iconTone="#148C8C" trend={kpis.b2bExportGrowth} trendLabel="이전 4주 대비" href="/ax/channels?tab=b2b" />
+            <KpiCard bare label="B2B·수출" value={kpis.b2bExportRevenue28} format={formatKRW} icon={<Globe2 />} iconTone="#148C8C" trend={kpis.b2bExportGrowth} trendLabel="이전 4주 대비" href="/ax/channels?tab=b2b" spark={{ data: spark.be, label: sparkLabel("B2B·수출", spark.be) }} />
           ) : (
             <KpiCard bare label="Finder 완료 (7일)" value={customer.recent.finder_complete} format={(v) => `${Math.round(v)}건`} icon={<Users />} iconTone="#C76C86" sub="고객 화면 행동" href="/ax/customers" />
           )}
@@ -276,10 +288,37 @@ function FinanceRow() {
     <div className="px-3 pt-1 text-[0.76rem] font-bold tracking-wide text-ink-soft">이번 달 ({day}일까지)</div>
     <div className="grid grid-cols-2 @3xl:grid-cols-3 [&>*:last-child]:col-span-2 @3xl:[&>*:last-child]:col-span-1" data-testid="finance-row">
       <KpiCard bare label="이번 달 매출" value={cur.revenue} format={formatKRW} icon={<CalendarRange />} iconTone="#2563EB" sub={tp.rate != null ? `목표 대비 ${Math.round(tp.rate * 100)}% · 월 경과 ${Math.round(tp.elapsed * 100)}%` : `지난달 전체 ${formatKRW(prev.revenue)} · 목표 미입력`} href="/ax/monthly" />
-      <KpiCard bare label="매출총이익" value={cur.grossProfit} format={formatKRW} icon={<Banknote />} iconTone="#16A34A" sub={mr == null ? "원가 미입력" : `이익률 ${Math.round(mr * 100)}% · 원가 입력 제품 기준`} trend={change(cur.grossProfit, prev.grossProfit) != null && day >= 28 ? change(cur.grossProfit, prev.grossProfit) : null} href="/ax/monthly" />
+      <KpiCard bare label="매출총이익" value={cur.grossProfit} format={formatKRW} icon={<Banknote />} iconTone="#16A34A" sub={mr == null ? "원가 미입력" : <>이익률 {Math.round(mr * 100)}%<span className="hidden @md:inline"> · 원가 입력 제품 기준</span></>} trend={change(cur.grossProfit, prev.grossProfit) != null && day >= 28 ? change(cur.grossProfit, prev.grossProfit) : null} href="/ax/monthly" />
       <KpiCard bare label="받을 돈 (미수금)" value={rs.outstanding} format={formatKRW} icon={<Wallet />} iconTone={rs.overdueCount ? "#DC2626" : "#0F766E"} sub={rs.overdueCount ? `연체 ${rs.overdueCount}건 · ${formatKRW(rs.overdueAmount)}` : `${rs.openCount}건 · 연체 없음`} href="/ax/channels?tab=settlements" />
     </div>
     </div>
+  );
+}
+
+/* 오늘의 한 줄 (PASS 30, D-096) — 좁은 화면에서는 브리핑이 '오늘 먼저 할 일' 아래로 내려가 첫 화면에 결론이 없다.
+   브리핑 헤드라인(같은 RULE 문장)을 맨 위에 한 줄로 두고 누르면 브리핑으로 이동. 넓은 화면은 브리핑이 첫 화면에 보이므로 숨김 */
+const LINE_TONE: Record<BriefTone, { bg: string; fg: string }> = {
+  risk: { bg: "var(--danger-soft)", fg: "var(--danger)" },
+  warn: { bg: "var(--warning-soft)", fg: "var(--warning)" },
+  good: { bg: "var(--success-soft)", fg: "var(--success)" },
+  info: { bg: "var(--surface)", fg: "var(--text-secondary)" },
+};
+function TodayLine({ fin }: { fin: boolean }) {
+  const m = useModel();
+  const b = buildBriefing(m, { financial: fin });
+  if (b.lines.length === 0) return null;
+  const order: BriefTone[] = ["risk", "warn", "good", "info"];
+  const tone = [...b.lines].sort((x, y) => order.indexOf(x.tone) - order.indexOf(y.tone))[0].tone;
+  const t = LINE_TONE[tone];
+  return (
+    <a href="#briefing" className="mb-3 flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 @4xl:hidden" style={{ background: t.bg, borderColor: `color-mix(in srgb, ${t.fg} 22%, transparent)` }} data-testid="today-line" data-tone={tone}>
+      {tone === "risk" || tone === "warn" ? <CircleAlert size={18} className="shrink-0" style={{ color: t.fg }} aria-hidden /> : <Lightbulb size={18} className="shrink-0" style={{ color: t.fg }} aria-hidden />}
+      <span className="min-w-0 flex-1">
+        <span className="block text-[0.74rem] font-bold" style={{ color: t.fg }}>오늘의 한 줄</span>
+        <span className="block text-[0.95rem] font-bold leading-snug">{b.headline}</span>
+      </span>
+      <span className="shrink-0 text-[0.8rem] font-semibold text-ink-soft">브리핑 <ChevronRight size={14} className="inline rotate-90" aria-hidden /></span>
+    </a>
   );
 }
 

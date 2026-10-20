@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronRight, Pencil } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Search, X } from "lucide-react";
 import { useNarrow } from "@/lib/use-narrow";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, InsightCard, StatusBadge, saleStatusTone, stockStatusTone } from "@/components/ax/Cards";
@@ -22,6 +22,7 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { formatKRW, formatPct, formatPrice, productInsight, type ProductMetrics } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
+import { matchesQuery } from "@/lib/search";
 import type { Inventory, Product } from "@/lib/types";
 
 const TABS = [
@@ -61,43 +62,117 @@ export default function ProductsPage() {
   return <Suspense><Inner /></Suspense>;
 }
 
+/* 상품 목록 — 검색(이름·SKU·초성)·정렬 (PASS 30, D-097). 정렬은 이 브라우저에 기억, 검색어는 화면을 떠나면 지움 */
+type SortKey = "default" | "units" | "growth" | "stock" | "margin" | "price" | "cost" | "name";
+const SORTS: { key: SortKey; label: string; dir: 1 | -1; fin?: boolean }[] = [
+  { key: "default", label: "기본 순서", dir: 1 },
+  { key: "units", label: "4주 판매 많은 순", dir: -1 },
+  { key: "growth", label: "판매 증가율 높은 순", dir: -1 },
+  { key: "stock", label: "재고 적은 순", dir: 1 },
+  { key: "margin", label: "마진율 높은 순", dir: -1, fin: true },
+  { key: "price", label: "판매가 높은 순", dir: -1 },
+  { key: "name", label: "이름 순", dir: 1 },
+];
+const SORT_KEY = "miryeo-products-sort";
+
 function ProductsTab({ onSelect }: { onSelect: (p: Product) => void }) {
   const m = useModel();
   const { role } = useSession();
   const fin = can(role, "view_financials");
   const [category, setCategory] = useState("전체");
+  const [q, setQ] = useState("");
+  const [sort, setSortState] = useState<{ key: SortKey; dir: 1 | -1 }>(() => {
+    try { const v = JSON.parse(localStorage.getItem(SORT_KEY) ?? "null"); if (v && SORTS.some((x) => x.key === v.key) && (v.dir === 1 || v.dir === -1)) return v; } catch { /* 기본값 */ }
+    return { key: "default", dir: 1 };
+  });
+  const setSort = (v: { key: SortKey; dir: 1 | -1 }) => { setSortState(v); try { localStorage.setItem(SORT_KEY, JSON.stringify(v)); } catch { /* 저장 안 돼도 동작 */ } };
   const narrow = useNarrow();
   const products = m.snapshot.products;
   if (products.length === 0) return <EmptyState title="상품이 없습니다" action={<Link href="/ax/data" className="btn-primary">상품 등록</Link>} />;
   const categories = ["전체", ...Array.from(new Set(products.map((p) => p.category)))];
-  const list = products.filter((p) => category === "전체" || p.category === category);
+  const key = sort.key === "margin" && !fin ? "default" : sort.key; // 재무 권한 없으면 마진 정렬 무시
+  const val = (p: Product): number | string => {
+    const mm = m.metrics.get(p.id)!;
+    switch (key) {
+      case "units": return mm.recent4wUnits;
+      case "growth": return mm.prev4wUnits > 0 ? mm.growthRate : -Infinity; // 이전 판매 없는 신규는 맨 뒤
+      case "stock": return mm.currentStock;
+      case "margin": return mm.marginRate ?? -Infinity;
+      case "price": return p.price;
+      case "cost": return p.cost ?? -Infinity;
+      case "name": return p.name;
+      default: return 0;
+    }
+  };
+  const filtered = products.filter((p) => (category === "전체" || p.category === category) && matchesQuery(q, p.name, p.sku, p.category, p.line));
+  const list = key === "default" ? filtered : [...filtered].sort((a, b) => {
+    const x = val(a), y = val(b);
+    const c = typeof x === "string" ? x.localeCompare(String(y), "ko") : (x as number) - (y as number);
+    return c * sort.dir || a.name.localeCompare(b.name, "ko");
+  });
+  // 표 머리 누르기: 같은 열이면 방향 바꾸기, 다른 열이면 그 열의 기본 방향
+  const header = (k: SortKey, label: string) => {
+    const active = key === k;
+    const def = SORTS.find((x) => x.key === k)?.dir ?? (k === "cost" ? -1 : 1);
+    return (
+      <th className="py-1.5 pr-2 font-semibold" aria-sort={active ? (sort.dir === 1 ? "ascending" : "descending") : "none"}>
+        <button type="button" className="inline-flex min-h-[36px] items-center gap-1 rounded-lg px-2 -mx-2 hover:bg-surface-muted hover:text-ink" style={active ? { color: "var(--text-primary)" } : undefined} onClick={() => setSort(active ? { key: k, dir: sort.dir === 1 ? -1 : 1 } : { key: k, dir: def })} data-sort={k}>
+          {label}
+          {active ? (sort.dir === 1 ? <ArrowUp size={13} aria-hidden /> : <ArrowDown size={13} aria-hidden />) : <ArrowUpDown size={13} className="opacity-40" aria-hidden />}
+        </button>
+      </th>
+    );
+  };
+  const growth = (mm: ProductMetrics) => <b className="font-semibold" style={{ color: mm.growthRate >= 0 ? "var(--success)" : "var(--danger)" }}>{formatPct(mm.growthRate)}</b>;
+  const demo = (p: Product) => p.isDemo && <span className="badge !px-1.5 !py-0 align-middle text-[0.68rem]" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>DEMO</span>;
+  const filteredOut = q || category !== "전체";
   return (
-    <DataCard title={`상품 목록 (${list.length})`} action={
-      <select className="field !min-h-[42px] !w-auto" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="카테고리">
-        {categories.map((c) => <option key={c}>{c}</option>)}
-      </select>
-    }>
-      {narrow ? (
-        // 모바일: 표(9열) 대신 상품 카드 — 이름이 단어마다 끊기던 문제 해결 (PASS 13)
-        <ul className="space-y-2.5" data-testid="product-cards">
+    <DataCard title={<>상품 목록 <span className="tabular text-ink-soft">({filteredOut ? `${list.length} / ${products.length}` : products.length})</span></>}>
+      <div className="mb-3 flex flex-col gap-2 @xl:flex-row @xl:items-center" data-testid="product-toolbar">
+        <label className="relative min-w-0 flex-1">
+          <span className="sr-only">상품 검색</span>
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" aria-hidden />
+          <input type="search" className="field !min-h-[42px] !pl-9 !pr-9" placeholder="이름·상품코드 검색 (초성 가능: ㅇㅍ)" value={q} onChange={(e) => setQ(e.target.value)} data-testid="product-search" enterKeyHint="search" />
+          {q && <button type="button" className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-soft hover:bg-surface-muted" onClick={() => setQ("")} aria-label="검색어 지우기"><X size={15} aria-hidden /></button>}
+        </label>
+        <div className="flex gap-2">
+          <select className="field !min-h-[42px] min-w-0 flex-1 @xl:!w-auto @xl:flex-none" value={category} onChange={(e) => setCategory(e.target.value)} aria-label="카테고리">
+            {categories.map((c) => <option key={c} value={c}>{c === "전체" ? "카테고리 전체" : c}</option>)}
+          </select>
+          <select className="field !min-h-[42px] min-w-0 flex-1 @xl:!w-auto @xl:flex-none" value={SORTS.some((x) => x.key === key) ? key : "default"} onChange={(e) => { const s2 = SORTS.find((x) => x.key === e.target.value)!; setSort({ key: s2.key, dir: s2.dir }); }} aria-label="정렬" data-testid="product-sort">
+            {SORTS.filter((x) => !x.fin || fin).map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+          </select>
+        </div>
+      </div>
+      {list.length === 0 ? (
+        <div className="rounded-xl bg-surface-muted px-4 py-6 text-center text-[0.92rem]" data-testid="product-empty-search">
+          <p className="font-semibold">{q ? <>&lsquo;{q}&rsquo;에 맞는 상품이 없습니다</> : "이 카테고리에 상품이 없습니다"}</p>
+          <button type="button" className="btn-secondary mt-3 !min-h-[40px] text-[0.86rem]" onClick={() => { setQ(""); setCategory("전체"); }}>검색·카테고리 지우기</button>
+        </div>
+      ) : narrow ? (
+        // 모바일: 표 대신 상품 카드 (PASS 13) → 판매가는 이름 줄 오른쪽(쇼핑 목록처럼), 숫자는 두 줄(마진·재고 / 4주 판매·상태), 공개는 기본이라 비공개만 표시 (PASS 30)
+        <ul className="space-y-2" data-testid="product-cards">
           {list.map((p) => {
             const mm = m.metrics.get(p.id)!;
             return (
               <li key={p.id}>
-                <button onClick={() => onSelect(p)} className="row-hover flex w-full items-start gap-3 rounded-xl border p-3 text-left" style={{ borderColor: "var(--border)" }} data-product-card={p.sku}>
+                <button onClick={() => onSelect(p)} className="row-hover flex w-full items-start gap-2.5 rounded-xl border p-3 text-left" style={{ borderColor: "var(--border)" }} data-product-card={p.sku}>
                   <span className="h-14 w-11 shrink-0 rounded-lg bg-surface-muted p-1" aria-hidden><ProductVisual category={p.category} variant={p.id.length} productId={p.id} className="h-full" /></span>
                   <span className="min-w-0 flex-1">
-                    <span className="flex flex-wrap items-center gap-1.5"><span className="font-semibold leading-snug">{p.name}</span>{p.isDemo && <span className="badge" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>DEMO</span>}</span>
-                    <span className="block text-[0.78rem] text-ink-soft">{p.sku} · {p.category}</span>
-                    <span className="tabular mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.85rem]">
-                      <span>{formatPrice(p.price)}</span>
-                      {fin && <span className="text-ink-soft">마진 {mm.marginRate != null ? `${Math.round(mm.marginRate * 100)}%` : "-"}</span>}
-                      <span>재고 {mm.currentStock.toLocaleString()}</span>
-                      <span>4주 {mm.recent4wUnits.toLocaleString()} <b className="font-semibold" style={{ color: mm.growthRate >= 0 ? "var(--success)" : "var(--danger)" }}>{formatPct(mm.growthRate)}</b></span>
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="min-w-0 leading-snug"><span className="font-semibold">{p.name}</span> {demo(p)}</span>
+                      <span className="tabular shrink-0 text-[0.9rem] font-bold">{formatPrice(p.price)}</span>
                     </span>
-                    <span className="mt-1.5 flex flex-wrap gap-1.5"><StatusBadge tone={saleStatusTone(p.status)}>{p.status}</StatusBadge>{p.isPublished ? <StatusBadge tone="success">공개</StatusBadge> : <StatusBadge tone="neutral">비공개</StatusBadge>}</span>
+                    <span className="block truncate text-[0.78rem] text-ink-soft">{p.sku} · {p.category}</span>
+                    <span className="tabular mt-1 block text-[0.82rem]">
+                      {fin && <><span className="text-ink-soft">마진 </span>{mm.marginRate != null ? `${Math.round(mm.marginRate * 100)}%` : "-"}<span className="text-ink-soft"> · </span></>}<span className="text-ink-soft">재고 </span>{mm.currentStock.toLocaleString()}
+                    </span>
+                    <span className="tabular mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[0.82rem]">
+                      <span><span className="text-ink-soft">4주 판매 </span>{mm.recent4wUnits.toLocaleString()} {growth(mm)}</span>
+                      <StatusBadge tone={saleStatusTone(p.status)}>{p.status}</StatusBadge>
+                      {!p.isPublished && <StatusBadge tone="neutral">비공개</StatusBadge>}
+                    </span>
                   </span>
-                  <ChevronRight size={18} className="mt-1 shrink-0 text-ink-soft" aria-hidden />
                 </button>
               </li>
             );
@@ -108,9 +183,9 @@ function ProductsTab({ onSelect }: { onSelect: (p: Product) => void }) {
         <table className="text-[0.93rem]">
           <thead>
             <tr className="border-b text-left text-[0.82rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>
-              <th className="py-2.5 pr-4 font-semibold">제품</th><th className="py-2.5 pr-4 font-semibold">카테고리</th><th className="py-2.5 pr-4 font-semibold">판매가</th>
-              {fin && <><th className="py-2.5 pr-4 font-semibold">원가</th><th className="py-2.5 pr-4 font-semibold">마진율</th></>}
-              <th className="py-2.5 pr-4 font-semibold">재고</th><th className="py-2.5 pr-4 font-semibold">4주 판매</th><th className="py-2.5 pr-4 font-semibold">상태</th><th className="py-2.5 font-semibold">고객 노출</th>
+              {header("name", "제품")}<th className="py-2.5 pr-4 font-semibold">카테고리</th>{header("price", "판매가")}
+              {fin && <>{header("cost", "원가")}{header("margin", "마진율")}</>}
+              {header("stock", "재고")}{header("units", "4주 판매")}<th className="py-2.5 pr-4 font-semibold">상태</th><th className="py-2.5 font-semibold">고객 노출</th>
             </tr>
           </thead>
           <tbody>
@@ -121,14 +196,15 @@ function ProductsTab({ onSelect }: { onSelect: (p: Product) => void }) {
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-3">
                       <div className="h-11 w-9 shrink-0 rounded-lg bg-surface-muted p-1"><ProductVisual category={p.category} variant={p.id.length} productId={p.id} className="h-full" /></div>
-                      <div><div className="font-semibold">{p.name} {p.isDemo && <span className="badge ml-1" style={{ background: "var(--warning-soft)", color: "var(--warning)" }}>DEMO</span>}</div><div className="text-[0.78rem] text-ink-soft">{p.sku}</div></div>
+                      {/* 키보드로도 상세를 열 수 있게 이름을 버튼으로 (행 클릭은 마우스용 — PASS 30) */}
+                      <div><button type="button" className="text-left font-semibold hover:underline" onClick={(e) => { e.stopPropagation(); onSelect(p); }}>{p.name}</button> {demo(p)}<div className="text-[0.78rem] text-ink-soft">{p.sku}</div></div>
                     </div>
                   </td>
                   <td className="py-3 pr-4">{p.category}</td>
                   <td className="tabular py-3 pr-4">{formatPrice(p.price)}</td>
                   {fin && <><td className="tabular py-3 pr-4 text-ink-soft">{p.cost != null ? formatPrice(p.cost) : "미입력"}</td><td className="tabular py-3 pr-4 font-semibold">{mm.marginRate != null ? `${Math.round(mm.marginRate * 100)}%` : "-"}</td></>}
                   <td className="tabular py-3 pr-4">{mm.currentStock.toLocaleString()}</td>
-                  <td className="tabular py-3 pr-4">{mm.recent4wUnits.toLocaleString()} <span className="font-semibold" style={{ color: mm.growthRate >= 0 ? "var(--success)" : "var(--danger)" }}>{formatPct(mm.growthRate)}</span></td>
+                  <td className="tabular py-3 pr-4">{mm.recent4wUnits.toLocaleString()} {growth(mm)}</td>
                   <td className="py-3 pr-4"><StatusBadge tone={saleStatusTone(p.status)}>{p.status}</StatusBadge></td>
                   <td className="py-3">{p.isPublished ? <StatusBadge tone="success">공개</StatusBadge> : <StatusBadge tone="neutral">비공개</StatusBadge>}</td>
                 </tr>

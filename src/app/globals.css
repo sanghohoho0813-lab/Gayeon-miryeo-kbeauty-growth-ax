@@ -237,6 +237,10 @@ body {
 }
 /* #앵커로 이동할 때 제목이 고정 헤더 뒤로 숨지 않게 */
 .ax-card[id] { scroll-margin-top: 5.5rem; }
+/* 옆으로 넘기는 칩 한 줄 (PASS 30) — 스크롤 막대 숨김 + 오른쪽 끝 흐림(더 있음). 넓은 화면(@md 이상)에서는 줄바꿈이라 흐림 없음 */
+.chip-rail { scrollbar-width: none; overscroll-behavior-x: contain; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent); }
+.chip-rail::-webkit-scrollbar { display: none; }
+@container (min-width: 28rem) { .chip-rail { -webkit-mask-image: none; mask-image: none; } }
 .ax-card-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
 .ax-card-hover:active { transform: translateY(0); }
 

@@ -9,6 +9,7 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { can, type Permission } from "@/lib/permissions";
 import { OPEN_STATUSES } from "@/lib/analytics";
 import { Layer } from "./Modal";
+import { chosung, isChosungQuery, normQuery } from "@/lib/search";
 
 /* 빠른 이동 (Ctrl/⌘+K, /) — 화면·상품·열린 Action을 이름·SKU·초성으로 찾아 바로 연다.
    메뉴 13개 + 탭 20여 개를 기억하지 않아도 되게. 역할에 없는 화면은 보이지 않는다(메뉴와 같은 규칙). */
@@ -38,27 +39,14 @@ const SUB_PAGES: Omit<Item, "id" | "group">[] = [
   { label: "고객 화면 (MIRYEO AI Beauty)", hint: "고객용", href: "/beauty", keys: "고객 화면 beauty 파인더 추천" },
 ];
 
-/* 한글 초성 검색: "ㅈㄱ" → 재고 */
-const CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
-function chosung(s: string) {
-  let out = "";
-  for (const ch of s) {
-    const c = ch.charCodeAt(0) - 0xac00;
-    out += c >= 0 && c < 11172 ? CHO[Math.floor(c / 588)] : ch;
-  }
-  return out;
-}
-const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "");
-const isCho = (s: string) => s.length > 0 && [...s].every((c) => CHO.includes(c));
-
 function score(item: Item, q: string): number {
   if (!q) return 1;
-  const label = norm(item.label);
-  const all = norm(`${item.label} ${item.keys} ${item.hint ?? ""}`);
+  const label = normQuery(item.label);
+  const all = normQuery(`${item.label} ${item.keys} ${item.hint ?? ""}`);
   if (label.startsWith(q)) return 4;
   if (label.includes(q)) return 3;
   if (all.includes(q)) return 2;
-  if (isCho(q) && norm(chosung(item.label)).includes(q)) return 1.5;
+  if (isChosungQuery(q) && normQuery(chosung(item.label)).includes(q)) return 1.5;
   return 0;
 }
 
@@ -121,7 +109,7 @@ export function QuickJump() {
   }, [model, role, roleReady]);
 
   const results = useMemo(() => {
-    const nq = norm(q);
+    const nq = normQuery(q);
     const ranked = items.map((it) => ({ it, s: score(it, nq) })).filter((x) => x.s > 0);
     const byGroup: Record<Group, Item[]> = { 화면: [], 상품: [], Action: [] };
     for (const g of ["화면", "상품", "Action"] as Group[]) {

@@ -30,7 +30,7 @@ export function useCountUp(target: number, duration = 650): number {
 
 /* ---------- KPI Card ---------- */
 export function KpiCard({
-  label, value, format, icon, iconTone = "var(--primary)", trend, trendLabel, sub, href, tourId, bare = false,
+  label, value, format, icon, iconTone = "var(--primary)", trend, trendLabel, sub, href, tourId, bare = false, spark,
 }: {
   label: string;
   value: number;
@@ -44,22 +44,30 @@ export function KpiCard({
   tourId?: string;
   /** 묶음 패널 안의 숫자 칸 (테두리·그림자 없음, 조금 작게) — 대시보드 핵심 숫자 (PASS 21, D-075) */
   bare?: boolean;
+  /** 값 옆 작은 추세선 (주 단위, 오래된 순) — 숫자 하나로는 안 보이는 흐름 (PASS 30, D-095) */
+  spark?: { data: number[]; label: string };
 }) {
   const animated = useCountUp(value);
   const up = trend != null && trend >= 0;
+  const sparkTone = trend == null ? "var(--chart-1)" : up ? "var(--success)" : "var(--danger)";
   // 컴팩트 stat tile: 라벨·아이콘 한 줄 → 값(비례 숫자, 큰 글씨) → 증감·보조. 카드 전체가 링크면 우상단 화살표로 표시
   const body = (
     <>
-      <div className="flex items-center gap-2.5">
+      <div className={`flex items-center ${spark ? "gap-2 @md:gap-2.5" : "gap-2.5"}`}>
         {icon && !bare && (
           <span className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg @md:flex [&>svg]:h-[18px] [&>svg]:w-[18px]" style={{ background: `color-mix(in srgb, ${iconTone} 13%, #fff)`, color: iconTone }} aria-hidden>
             {icon}
           </span>
         )}
-        <span className="min-w-0 text-[0.86rem] font-semibold leading-snug text-ink-soft @md:text-[0.9rem]">{label}</span>
-        {href && <ChevronRight size={16} className="ml-auto shrink-0 text-ink-soft opacity-50 transition-opacity group-hover:opacity-100" aria-hidden />}
+        <span className={`min-w-0 text-[0.86rem] font-semibold leading-snug text-ink-soft @md:text-[0.9rem] ${spark ? "whitespace-nowrap" : ""}`}>{label}</span>
+        {/* 좁은 칸: 값이 두 줄로 끊기지 않게 추세선은 라벨 줄 오른쪽 (한 번에 하나만 보여 화면 읽기도 한 번 — PASS 30) */}
+        {spark && <span className="ml-auto @md:hidden"><Sparkline data={spark.data} label={spark.label} tone={sparkTone} width={44} height={20} /></span>}
+        {href && <ChevronRight size={16} className={`${spark ? "@md:ml-auto" : "ml-auto"} shrink-0 text-ink-soft opacity-50 transition-opacity group-hover:opacity-100`} aria-hidden />}
       </div>
-      <div className={`tabular ${bare ? "mt-1 text-[1.2rem] font-extrabold leading-tight tracking-[-0.03em] @md:text-[1.5rem]" : "mt-1.5 text-[1.3rem] font-extrabold leading-tight tracking-[-0.03em] @md:mt-2 @md:text-[1.7rem] @4xl:text-[1.9rem]"}`}>{format(animated)}</div>
+      <div className="flex items-end justify-between gap-2">
+        <div className={`tabular min-w-0 whitespace-nowrap ${bare ? "mt-1 text-[1.2rem] font-extrabold leading-tight tracking-[-0.03em] @md:text-[1.5rem]" : "mt-1.5 text-[1.3rem] font-extrabold leading-tight tracking-[-0.03em] @md:mt-2 @md:text-[1.7rem] @4xl:text-[1.9rem]"}`}>{format(animated)}</div>
+        {spark && <span className="hidden @md:block"><Sparkline data={spark.data} label={spark.label} tone={sparkTone} /></span>}
+      </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[0.8rem] leading-snug @md:text-[0.85rem]">
         {trend != null && (
           <span className="inline-flex flex-wrap items-center gap-x-1.5">
@@ -68,7 +76,8 @@ export function KpiCard({
               {up ? <ArrowUpRight size={15} aria-hidden /> : <ArrowDownRight size={15} aria-hidden />}
               {up ? "+" : ""}{Math.round(trend * 1000) / 10}%
             </span>
-            {trendLabel && <span className="font-semibold" style={{ color: up ? "var(--success)" : "var(--danger)" }}>{trendLabel}</span>}
+            {/* 묶음 패널의 좁은 칸(모바일)은 비교 기준을 패널 제목 줄에 한 번만 — 칸마다 두 줄로 감기지 않게 (PASS 30) */}
+            {trendLabel && <span className={`font-semibold ${bare ? "hidden @md:inline" : ""}`} style={{ color: up ? "var(--success)" : "var(--danger)" }}>{trendLabel}</span>}
           </span>
         )}
         {sub && <span className="text-ink-soft">{sub}</span>}
@@ -80,6 +89,33 @@ export function KpiCard({
     <Link href={href} data-tour={tourId} className={cls}>{body}</Link>
   ) : (
     <div data-tour={tourId} className={bare ? "min-w-0 px-3 py-2.5" : "ax-card min-w-0 p-4 @md:p-5"}>{body}</div>
+  );
+}
+
+/* ---------- Sparkline (PASS 30, D-095) ---------- */
+/** 작은 추세선 — 축·숫자 없이 모양만. 마지막 점 강조. 화면 읽기 프로그램에는 처음·마지막 값을 글로 알림 */
+export function Sparkline({ data, label, tone = "var(--chart-1)", width = 76, height = 26 }: { data: number[]; label: string; tone?: string; width?: number; height?: number }) {
+  // useId 값의 특수문자는 url(#…) 참조에서 깨질 수 있어 영문·숫자만
+  const gid = `spark${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
+  if (data.length < 2 || data.every((v) => v === 0)) return null;
+  const max = Math.max(...data), min = Math.min(0, ...data);
+  const span = max - min || 1;
+  const pad = 3;
+  const pts = data.map((v, i) => [pad + (i * (width - pad * 2)) / (data.length - 1), pad + (1 - (v - min) / span) * (height - pad * 2)] as const);
+  const line = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const [lx, ly] = pts[pts.length - 1];
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="mb-0.5 shrink-0 overflow-visible" role="img" aria-label={label} data-testid="sparkline">
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={tone} stopOpacity="0.22" />
+          <stop offset="100%" stopColor={tone} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={`${pts[0][0]},${height} ${line} ${lx},${height}`} fill={`url(#${gid})`} />
+      <polyline points={line} fill="none" stroke={tone} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lx} cy={ly} r="2.6" fill={tone} stroke="var(--surface)" strokeWidth="1.2" />
+    </svg>
   );
 }
 
@@ -194,8 +230,10 @@ export function ActionRow({ action, onOpen, rank, today = false }: { action: Gro
           <StatusBadge tone={PRIORITY_TONE[action.priority]}>{action.priority}</StatusBadge>
           <StatusBadge tone="neutral">{action.category}</StatusBadge>
           <StatusBadge tone={ACTION_STATUS_TONE[action.status]}>{ACTION_STATUS_LABEL[action.status]}</StatusBadge>
-          {today && <StatusBadge tone="primary">오늘 먼저</StatusBadge>}
-          <span className="text-[0.78rem] text-ink-soft">{action.assigneeName ? `담당 ${action.assigneeName}` : "담당 미지정"}</span>
+          {/* 좁은 화면은 순위 동그라미(1~3)가 '오늘 먼저'를 뜻하므로 꼬리표 생략 — 한 줄에 들어가게 (PASS 30) */}
+          {today && <span className={rank ? "hidden @md:inline-flex" : "inline-flex"}><StatusBadge tone="primary">오늘 먼저</StatusBadge></span>}
+          {/* 좁은 화면: '담당 미지정'은 숨겨 꼬리표가 한 줄에 들어가게 (담당자가 있으면 표시, 처리 창에서는 항상 보임 — PASS 30) */}
+          <span className={`text-[0.78rem] text-ink-soft ${action.assigneeName ? "" : "hidden @md:inline"}`}>{action.assigneeName ? `담당 ${action.assigneeName}` : "담당 미지정"}</span>
         </span>
         <span className="mt-1 block text-[0.98rem] font-bold leading-snug">{action.title}</span>
         <span className="mt-0.5 line-clamp-1 text-[0.86rem] leading-relaxed text-ink-soft" title={action.judgement}>{action.judgement}</span>
