@@ -45,20 +45,26 @@ function CustomerFunnel() {
             {steps.map((st, i) => {
               const { rate, delta } = st;
               return (
-                <li key={st.key} className="min-w-0" data-funnel-step={st.key}>
+                <li key={st.key} className="min-w-0" data-funnel-step={st.key} data-funnel-n={st.n}>
                   {i > 0 && (
-                    <p className="tabular mb-1 flex items-center gap-1 text-[0.78rem] font-semibold text-ink-soft @3xl:hidden" aria-hidden>
+                    <p className="tabular mb-1 flex items-center gap-1 pl-1 text-[0.76rem] font-semibold text-ink-soft @3xl:hidden" aria-hidden>
                       <span>↓</span> {rate == null ? "-" : `${Math.round(rate * 100)}%`} 이어짐
                     </p>
                   )}
-                  <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
+                  {/* 모바일은 머리 한 줄(이름 · 건수)로 줄여 4단계가 한 화면에 가깝게 (PC는 숫자를 크게) */}
+                  <div className="rounded-xl border px-3 py-2.5 @3xl:p-3" style={{ borderColor: "var(--border)" }}>
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[0.84rem] font-semibold text-ink-soft">{i + 1}. {st.label}</span>
-                      {delta != null && <span className="tabular text-[0.76rem] font-semibold" style={{ color: delta >= 0 ? "var(--success)" : "var(--danger)" }}>{delta >= 0 ? "+" : ""}{Math.round(delta * 100)}%</span>}
+                      <span className="min-w-0 truncate text-[0.84rem] font-semibold text-ink-soft">{i + 1}. {st.label}</span>
+                      <span className="tabular shrink-0 @3xl:hidden"><b className="text-[1.1rem] font-extrabold">{st.n.toLocaleString()}</b><span className="ml-0.5 text-[0.8rem] font-semibold text-ink-soft">건</span></span>
+                      {delta != null && <span className="tabular hidden text-[0.76rem] font-semibold @3xl:inline" style={{ color: delta >= 0 ? "var(--success)" : "var(--danger)" }}>{delta >= 0 ? "+" : ""}{Math.round(delta * 100)}%</span>}
                     </div>
-                    <div className="tabular mt-1 text-[1.35rem] font-extrabold leading-tight">{st.n.toLocaleString()}<span className="ml-0.5 text-[0.85rem] font-semibold text-ink-soft">건</span></div>
-                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface-muted" aria-hidden><div className="h-full rounded-full" style={{ width: `${Math.max(3, (st.n / top) * 100)}%`, background: `color-mix(in srgb, var(--chart-1) ${100 - i * 18}%, var(--chart-3))` }} /></div>
-                    <p className="tabular mt-1.5 text-[0.76rem] text-ink-soft">{i === 0 ? `이전 7일 ${st.prev.toLocaleString()}건` : <>앞 단계의 <b className="text-ink">{rate == null ? "-" : `${Math.round(rate * 100)}%`}</b> · 이전 7일 {st.prev.toLocaleString()}건</>}</p>
+                    <div className="tabular mt-1 hidden text-[1.35rem] font-extrabold leading-tight @3xl:block">{st.n.toLocaleString()}<span className="ml-0.5 text-[0.85rem] font-semibold text-ink-soft">건</span></div>
+                    <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-muted @3xl:mt-2" aria-hidden><div className="h-full rounded-full" style={{ width: `${Math.max(3, (st.n / top) * 100)}%`, background: `color-mix(in srgb, var(--chart-1) ${100 - i * 18}%, var(--chart-3))` }} /></div>
+                    <p className="tabular mt-1 text-[0.76rem] text-ink-soft @3xl:mt-1.5">
+                      {i > 0 && <span className="hidden @3xl:inline">앞 단계의 <b className="text-ink">{rate == null ? "-" : `${Math.round(rate * 100)}%`}</b> · </span>}
+                      이전 7일 {st.prev.toLocaleString()}건
+                      {delta != null && <span className="font-semibold @3xl:hidden" style={{ color: delta >= 0 ? "var(--success)" : "var(--danger)" }}> · {delta >= 0 ? "+" : ""}{Math.round(delta * 100)}%</span>}
+                    </p>
                   </div>
                 </li>
               );

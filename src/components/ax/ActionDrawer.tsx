@@ -62,7 +62,7 @@ export function ActionDrawer({ action, onClose, nav }: { action: GrowthAction | 
     if (!action || !nav || pos < 0) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
-      const t = e.target as HTMLElement | null;
+      const t = e.target instanceof Element ? e.target : null; // window·document에서 온 키도 있음
       if (t?.closest("input, textarea, select, [contenteditable='true']")) return;
       if (document.querySelectorAll("[data-overlay]").length > 1) return; // 위에 다른 창(조건 바꿔 보기 등)이 열려 있으면 무시
       // 한글 입력 상태에서도 같은 자리 키(ㅓ·ㅏ)로 동작하도록 e.code로 판단

@@ -166,33 +166,36 @@ function ManualSaleCard() {
   return (
       <DataCard title="판매 1건 입력">
         <form onSubmit={submit} data-testid="manual-sale-form">
+        {/* 순서: 언제·어디서 → 무엇 → 몇 개·얼마 (PASS 32) — 저장 뒤에는 수량 칸으로 돌아감 */}
         <div className="grid gap-3 @xl:grid-cols-2">
           <div><label className="field-label" htmlFor="s-date">판매일 (또는 집계일)</label><input id="s-date" type="date" className="field" value={f.saleDate} onChange={(e) => setF({ ...f, saleDate: e.target.value })} /></div>
+          <div><label className="field-label" htmlFor="s-ch">채널</label><select id="s-ch" className="field" value={f.channelId} onChange={(e) => setF({ ...f, channelId: e.target.value })}>{channels.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
+          <div className="@xl:col-span-2">
+            <div className="flex items-end justify-between gap-2"><label className="field-label" htmlFor="s-prod">상품</label>{products.length > 6 && <span className="mb-1 text-[0.76rem] text-ink-soft tabular" aria-hidden>{pq ? `${shown.length}개 찾음` : `전체 ${products.length}개`}</span>}</div>
+            <div className="flex flex-col gap-1.5 @xl:flex-row">
+              {products.length > 6 && (
+                <input type="search" className="field @xl:!w-[42%] @xl:shrink-0" placeholder="이름·코드로 찾기" value={pq} onChange={(e) => pickQuery(e.target.value)} aria-label="상품 찾기" aria-controls="s-prod" data-testid="manual-sale-product-search" />
+              )}
+              <select id="s-prod" className="field min-w-0 flex-1" value={f.productId} onChange={(e) => setF({ ...f, productId: e.target.value })}>
+                {(shown.length ? shown : products).map((x) => <option key={x.id} value={x.id}>{x.name} ({x.sku})</option>)}
+              </select>
+            </div>
+            {pq && shown.length === 0 && <p className="mt-1 text-[0.8rem] text-ink-soft" data-testid="manual-sale-product-none">&lsquo;{pq}&rsquo;에 맞는 상품이 없어 전체를 보여 줍니다</p>}
+          </div>
           <div><label className="field-label" htmlFor="s-units">수량</label><input id="s-units" className="field tabular" inputMode="numeric" enterKeyHint="done" placeholder="예: 3" aria-invalid={f.units !== "" && !unitsOk} aria-describedby={f.units !== "" && !unitsOk ? "s-units-err" : undefined} value={f.units} onChange={(e) => setF({ ...f, units: e.target.value.trim() })} />
             {f.units !== "" && !unitsOk && <p id="s-units-err" className="mt-1 text-[0.8rem] font-semibold" style={{ color: "var(--danger)" }}>0 이상의 정수로 입력하세요</p>}
           </div>
           <div>
-            <div className="flex items-end justify-between gap-2"><label className="field-label" htmlFor="s-prod">상품</label>{products.length > 6 && <span className="mb-1 text-[0.76rem] text-ink-soft tabular" aria-hidden>{pq ? `${shown.length}개 찾음` : `${products.length}개`}</span>}</div>
-            {products.length > 6 && (
-              <input type="search" className="field mb-1.5 !min-h-[40px] text-[0.88rem]" placeholder="상품 찾기 — 이름·코드 (초성 가능)" value={pq} onChange={(e) => pickQuery(e.target.value)} aria-label="상품 찾기" aria-controls="s-prod" data-testid="manual-sale-product-search" />
-            )}
-            <select id="s-prod" className="field" value={f.productId} onChange={(e) => setF({ ...f, productId: e.target.value })}>
-              {(shown.length ? shown : products).map((x) => <option key={x.id} value={x.id}>{x.name} ({x.sku})</option>)}
-            </select>
-            {pq && shown.length === 0 && <p className="mt-1 text-[0.8rem] text-ink-soft" data-testid="manual-sale-product-none">&lsquo;{pq}&rsquo;에 맞는 상품이 없어 전체를 보여 줍니다</p>}
-          </div>
-          <div><label className="field-label" htmlFor="s-ch">채널</label><select id="s-ch" className="field" value={f.channelId} onChange={(e) => setF({ ...f, channelId: e.target.value })}>{channels.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
-          <div className="@xl:col-span-2">
             <label className="field-label" htmlFor="s-rev">매출 (비우면 자동 계산)</label>
-            <input id="s-rev" className="field tabular" inputMode="numeric" enterKeyHint="done" aria-describedby="s-rev-calc" aria-invalid={!revOk} placeholder={unitsOk ? String(computeRevenue(Number(f.units))) : "수량을 넣으면 자동 계산"} value={f.revenue} onChange={(e) => setF({ ...f, revenue: e.target.value.replace(/[,\s원₩]/g, "") })} />
-            {/* 자동 계산식 — 숫자가 어디서 나왔는지 바로 보이게 */}
-            <p id="s-rev-calc" className="tabular mt-1 text-[0.8rem] text-ink-soft" aria-live="polite" data-testid="manual-sale-calc">
-              {!revOk ? <span className="font-semibold" style={{ color: "var(--danger)" }}>매출은 0 이상의 숫자로 입력하세요</span>
-                : f.revenue ? "입력한 매출로 저장합니다"
-                : p && unitsOk ? <>판매가 {formatPrice(p.price)} × {Number(f.units).toLocaleString()}개{rate ? ` × (1 − ${c?.name} 할인 ${Math.round(rate * 1000) / 10}%)` : ""} = <b className="text-ink">{formatPrice(computeRevenue(Number(f.units)))}</b></>
-                : "판매가 × 수량 × (1 − 채널 평균 할인율)"}
-            </p>
+            <input id="s-rev" className="field tabular" inputMode="numeric" enterKeyHint="done" aria-describedby="s-rev-calc" aria-invalid={!revOk} placeholder={unitsOk ? computeRevenue(Number(f.units)).toLocaleString() : "수량을 넣으면 자동 계산"} value={f.revenue} onChange={(e) => setF({ ...f, revenue: e.target.value.replace(/[,\s원₩]/g, "") })} />
           </div>
+          {/* 자동 계산식 — 숫자가 어디서 나왔는지 바로 보이게 */}
+          <p id="s-rev-calc" className="tabular -mt-1 text-[0.8rem] text-ink-soft @xl:col-span-2" aria-live="polite" data-testid="manual-sale-calc">
+            {!revOk ? <span className="font-semibold" style={{ color: "var(--danger)" }}>매출은 0 이상의 숫자로 입력하세요</span>
+              : f.revenue ? "입력한 매출로 저장합니다"
+              : p && unitsOk ? <>판매가 {formatPrice(p.price)} × {Number(f.units).toLocaleString()}개{rate ? ` × (1 − ${c?.name} 할인 ${Math.round(rate * 1000) / 10}%)` : ""} = <b className="text-ink">{formatPrice(computeRevenue(Number(f.units)))}</b></>
+              : "매출을 비우면 판매가 × 수량 × (1 − 채널 평균 할인율)로 계산합니다"}
+          </p>
         </div>
         <button type="submit" className="btn-primary mt-4" disabled={busy || !unitsOk || !revOk} data-testid="manual-sale-save">
           <Plus size={17} aria-hidden /> 저장 <span className="hidden text-[0.78rem] font-medium opacity-80 @md:inline">(Enter)</span>

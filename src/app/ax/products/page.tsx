@@ -279,7 +279,7 @@ function InventoryTab({ onSelect, initialStatus }: { onSelect: (p: Product) => v
         {/* 상태 칩 한 줄 + 개수 (PASS 31) — 좁은 화면은 옆으로 넘김, 0개는 숫자 없이 흐리게 */}
         <div className="chip-rail relative -mx-4 mb-2.5 flex gap-1.5 overflow-x-auto px-4 pb-0.5 @md:mx-0 @md:flex-wrap @md:px-0" role="group" aria-label="재고 상태 필터" data-testid="inventory-status">
           {status === RISK && (
-            <button type="button" onClick={() => setStatus("전체")} className="pressable relative inline-flex min-h-[38px] shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 text-[0.84rem] font-semibold" style={{ background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" }} data-testid="inventory-risk-chip" aria-label="품절위험·부족주의만 보기 해제">
+            <button type="button" onClick={() => setStatus("전체")} className="pressable relative inline-flex min-h-[38px] shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 text-[0.84rem] font-semibold" style={{ background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" }} data-testid="inventory-risk-chip" aria-label={`품절위험·부족주의 ${countOf(RISK)} — 누르면 전체 보기`}>
               품절위험·부족주의 <span className="tabular rounded-full px-1.5 text-[0.76rem]" style={{ background: "#fff", color: "var(--primary)" }}>{countOf(RISK)}</span> <X size={14} aria-hidden />
             </button>
           )}

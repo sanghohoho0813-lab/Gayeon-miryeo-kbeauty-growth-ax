@@ -233,7 +233,8 @@ export function ActionRow({ action, onOpen, rank, today = false, waitDays }: { a
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-1.5">
           <StatusBadge tone={PRIORITY_TONE[action.priority]}>{action.priority}</StatusBadge>
-          <StatusBadge tone="neutral">{action.category}</StatusBadge>
+          {/* 대기 꼬리표가 붙으면 좁은 화면은 카테고리를 숨겨 꼬리표 한 줄 유지 (처리 창에는 항상 보임) */}
+          <span className={waiting ? "hidden @md:inline-flex" : "inline-flex"}><StatusBadge tone="neutral">{action.category}</StatusBadge></span>
           <StatusBadge tone={ACTION_STATUS_TONE[action.status]}>{ACTION_STATUS_LABEL[action.status]}</StatusBadge>
           {/* 오래 기다린 Action (PASS 32, D-107) — 새 추천·검토 완료로 3일 이상 머물면 표시 */}
           {waiting && <span data-wait-days={waitDays}><StatusBadge tone="warning">{waitDays}일째 대기</StatusBadge></span>}

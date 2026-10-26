@@ -345,6 +345,7 @@ function Month() {
   const aging = receivableAging(m.snapshot.settlements, m.today);
   const max = Math.max(1, ...rows.map((r) => r.revenue));
   const day = Number(m.today.slice(8, 10));
+  const narrow = useNarrow(); // 좁은 화면은 월 라벨 12개가 붙어 읽히지 않음 → 3개월마다(끝 = 이번 달) 하나씩 (PASS 32)
   return (
     <div className="flex h-full flex-col gap-[0.9em]">
       <div className="grid grid-cols-2 gap-[0.6em] @3xl:grid-cols-4">
@@ -356,12 +357,13 @@ function Month() {
       <div className="min-h-0 flex-1 rounded-[0.7em] border p-[0.8em]" style={{ borderColor: "var(--border)" }}>
         <div className="text-[0.78em] font-semibold text-ink-soft">월별 매출 (12개월){change(cur.revenue, prev.revenue) != null && day >= 28 ? ` · 전월 대비 ${formatPct(change(cur.revenue, prev.revenue))}` : ""}</div>
         <ol className="mt-[0.5em] flex h-[7.5em] items-end gap-[0.4em]" aria-label="월별 매출 12개월">
-          {rows.map((r) => {
+          {rows.map((r, i) => {
             const inProgress = r.month === cur.month;
+            const showLabel = !narrow || (rows.length - 1 - i) % 3 === 0;
             return (
               <li key={r.month} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-[0.25em]">
                 <span className="block w-full max-w-[2.6em] rounded-t-[4px]" style={{ height: `${Math.max(2, (r.revenue / max) * 100)}%`, background: inProgress ? "color-mix(in srgb, var(--chart-1) 45%, transparent)" : "var(--chart-1)", outline: inProgress ? "1.5px dashed var(--chart-1)" : undefined }} aria-hidden />
-                <span className="tabular text-[0.58em] text-ink-soft">{r.month.slice(2).replace("-", ".")}</span>
+                <span className={`tabular text-[0.58em] text-ink-soft ${showLabel ? "" : "invisible"}`} aria-hidden={!showLabel || undefined}>{r.month.slice(2).replace("-", ".")}</span>
                 <span className="sr-only">{r.month} {formatKRW(r.revenue)}{inProgress ? " (진행 중)" : ""}</span>
               </li>
             );
