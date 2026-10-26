@@ -621,6 +621,34 @@ if (PHASE === "B") {
   await owner.waitForTimeout(1500);
   ok("Live 품질 정리: 미래 날짜 판매 삭제 (DB) · 다른 판매 유지", (await count("select count(*) n from sales_records where organization_id = $1 and source = 'e2e-future'", [orgId])) === 0 && (await count("select count(*) n from sales_records where organization_id = $1", [orgId])) === salesAfter && (await owner.locator('[data-issue="future-sale"]').count()) === 0);
 
+  // 10-1d. PASS 33 (D-114) — 직접 입력한 판매 고치기: Live sales_records update (대표) · STAFF는 RLS로 0행 · 지우기
+  await owner.goto(`${APP}/ax/data`, { waitUntil: "networkidle" });
+  await owner.getByTestId("manual-sale-form").waitFor({ timeout: 10000 });
+  await owner.locator("#s-units").fill("2");
+  await owner.locator("#s-units").press("Enter");
+  let mRow = null;
+  for (let i = 0; i < 20 && !mRow; i++) { await owner.waitForTimeout(500); mRow = await one("select id, units, revenue from sales_records where organization_id = $1 and source = 'manual' order by created_at desc limit 1", [orgId]); }
+  ok("Live 판매 1건 입력 → sales_records (manual)", mRow?.units === 2, JSON.stringify(mRow));
+  const mLi = owner.locator(`[data-sale-row="${mRow?.id}"]`);
+  await mLi.getByTestId("manual-sale-edit").click();
+  await owner.getByTestId("edit-units").fill("4");
+  await owner.getByTestId("edit-revenue").fill("12345");
+  await owner.getByTestId("edit-save").click();
+  let mAfter = null;
+  for (let i = 0; i < 20; i++) { await owner.waitForTimeout(500); mAfter = await one("select units, revenue, source from sales_records where id = $1", [mRow.id]); if (mAfter?.units === 4) break; }
+  ok("Live 판매 고치기 → 같은 행 수량 4 · 매출 12,345 (DB) · 출처 manual 유지", mAfter?.units === 4 && Number(mAfter?.revenue) === 12345 && mAfter?.source === "manual", JSON.stringify(mAfter));
+  const staffEdit = await staff.evaluate(async ({ gw, id }) => {
+    const key = Object.keys(localStorage).find((k) => k.includes("auth-token"));
+    const tok = JSON.parse(localStorage.getItem(key)).access_token;
+    const r = await fetch(`${gw}/rest/v1/sales_records?id=eq.${id}`, { method: "PATCH", headers: { authorization: `Bearer ${tok}`, apikey: "x", "content-type": "application/json", prefer: "return=representation" }, body: JSON.stringify({ units: 99 }) });
+    return [r.status, r.ok ? (await r.json()).length : -1];
+  }, { gw: GW, id: mRow.id });
+  ok("STAFF: API로 판매 고치기 → 0행 (RLS sales_modify) · 값 그대로", (staffEdit[0] >= 400 || staffEdit[1] === 0) && (await one("select units from sales_records where id = $1", [mRow.id]))?.units === 4, JSON.stringify(staffEdit));
+  await owner.locator(`[data-sale-row="${mRow.id}"]`).getByTestId("manual-sale-delete").click();
+  await owner.locator(`[data-sale-row="${mRow.id}"]`).getByTestId("manual-sale-delete").click();
+  for (let i = 0; i < 20 && (await count("select count(*) n from sales_records where id = $1", [mRow.id])) > 0; i++) await owner.waitForTimeout(500);
+  ok("Live 직접 입력 판매 지우기 → DB 삭제 · 다른 판매 유지", (await count("select count(*) n from sales_records where id = $1", [mRow.id])) === 0 && (await count("select count(*) n from sales_records where organization_id = $1", [orgId])) === salesAfter);
+
   // 10-1e. PASS 11 — 연습용 샘플 자료가 Live에 섞이면 품질 점검 오류
   const sp = await one("insert into products (organization_id, sku, name, category, price) values ($1, 'SAMPLE-ESS-01', '샘플 수분 에센스', '에센스/앰플', 32000) returning id", [orgId]);
   await owner.goto(`${APP}/ax/data?tab=quality`, { waitUntil: "networkidle" });
