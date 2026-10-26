@@ -299,6 +299,14 @@ if (PHASE === "B") {
   await owner.goto(`${APP}/ax/growth`, { waitUntil: "networkidle" });
   await owner.waitForTimeout(1500);
   ok("연체 미수금 RULE → growth_actions (정산)", (await count("select count(*) n from growth_actions where organization_id = $1 and rule_key = 'settlement-overdue' and category = '정산'", [orgId])) === 1);
+  // PASS 34 (D-119): 연체 거래처 입금 확인 요청 글 — Live는 Demo 표시 없이, 남은 금액은 DB 정산 그대로
+  await owner.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: APP });
+  await owner.goto(`${APP}/ax/channels?tab=settlements`, { waitUntil: "networkidle" });
+  await owner.getByTestId("notice-copy").first().click();
+  await owner.waitForTimeout(400);
+  const notice = await owner.evaluate(() => navigator.clipboard.readText());
+  const stRow = await one("select amount::bigint a, paid_amount::bigint p from settlements where id = $1", [st1.id]);
+  ok("Live 입금 확인 요청 글: Demo 표시 없음 · 자사몰 · 합계 = DB 남은 금액", !notice.includes("시연용") && notice.includes("자사몰 담당자님") && notice.includes(`합계 ${(Number(stRow.a) - Number(stRow.p)).toLocaleString("ko-KR")}원`), notice.split("\n").slice(0, 3).join(" / "));
 
   // 7-3b. 청구·입금 파일 가져오기 (PASS 27) — Live 저장 · 같은 파일 다시 올리면 중복 의심으로 제외
   const stCsv = `${OUT}/settlements_import.csv`;

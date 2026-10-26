@@ -3,9 +3,11 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, StatusBadge } from "@/components/ax/Cards";
+import { Drawer } from "@/components/ax/Modal";
+import { useContainerBelow } from "@/lib/use-narrow";
 import { Tabs } from "@/components/ax/Tabs";
 import { SalesImport } from "@/components/ax/SalesImport";
 import { ImportHistory } from "@/components/ax/ImportHistory";
@@ -270,32 +272,66 @@ function ProductsTab() {
   const { role } = useSession();
   const { busy, save } = useSave();
   const [edit, setEdit] = useState<Product | null>(null);
+  const [q, setQ] = useState("");
+  // 두 칸(@4xl)이 풀리는 폭에서는 편집 칸이 목록 아래 멀리 열리므로 서랍으로 연다 (PASS 34, D-118)
+  const [gridRef, single] = useContainerBelow<HTMLDivElement>(56);
   if (!can(role, "edit_master")) return <NeedRole perm="상품 등록·수정" />;
+  const all = m.snapshot.products;
+  const shown = all.filter((p) => matchesQuery(q, p.name, p.sku, p.category, p.line));
+  const title = edit ? (edit.id.startsWith("new-") ? "새 상품 등록" : `수정 — ${edit.name}`) : "상품 선택";
+  const form = edit && <ProductForm key={edit.id} value={edit} busy={busy} channels={m.snapshot.channels} onCancel={() => setEdit(null)} onSave={async (p) => { if (await save("상품을 저장했습니다", (s) => s.upsertProduct(p))) setEdit(null); }} skuTaken={(sku) => all.some((x) => x.sku === sku && x.id !== edit.id)} stickyActions={single} />;
   return (
     <>
-    <div className="grid gap-6 @4xl:grid-cols-5">
-      <DataCard title={`상품 (${m.snapshot.products.length})`} className="@4xl:col-span-2" action={<button className="btn-primary !min-h-[40px] text-[0.86rem]" onClick={() => setEdit(emptyProduct())}><Plus size={16} aria-hidden /> 새 상품</button>}>
-        <ul className="max-h-[520px] space-y-1.5 overflow-y-auto">
-          {m.snapshot.products.map((p) => (
-            <li key={p.id}><button onClick={() => setEdit(structuredClone(p))} className="row-hover flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left text-[0.92rem]" style={{ borderColor: edit?.id === p.id ? "var(--primary)" : "var(--border)" }}>
-              <span className="min-w-0"><span className="block truncate font-semibold">{p.name}</span><span className="text-[0.78rem] text-ink-soft">{p.sku}</span></span>
-              {p.isDemo ? <StatusBadge tone="warning">DEMO</StatusBadge> : <StatusBadge tone="success">실데이터</StatusBadge>}
-            </button></li>
-          ))}
-        </ul>
-      </DataCard>
-      <DataCard title={edit ? (edit.id.startsWith("new-") ? "새 상품 등록" : `수정 — ${edit.name}`) : "상품 선택"} className="@4xl:col-span-3">
-        {!edit ? <EmptyState title="왼쪽에서 상품을 선택하거나 새 상품을 등록하세요" /> : (
-          <ProductForm key={edit.id} value={edit} busy={busy} channels={m.snapshot.channels} onCancel={() => setEdit(null)} onSave={async (p) => { if (await save("상품을 저장했습니다", (s) => s.upsertProduct(p))) setEdit(null); }} skuTaken={(sku) => m.snapshot.products.some((x) => x.sku === sku && x.id !== edit.id)} />
+    <div ref={gridRef} className="grid gap-6 @4xl:grid-cols-5" data-testid="master-products" data-edit-mode={single ? "drawer" : "side"}>
+      <DataCard title={<>상품 <ListCount shown={shown.length} total={all.length} filtered={!!q} /></>} className="@4xl:col-span-2" action={<button className="btn-primary !min-h-[40px] text-[0.86rem]" onClick={() => setEdit(emptyProduct())} data-testid="master-new"><Plus size={16} aria-hidden /> 새 상품</button>}>
+        <MasterSearch q={q} setQ={setQ} label="상품 검색" placeholder="이름·상품코드 (초성 가능)" />
+        {shown.length === 0 ? <NoMatch q={q} onClear={() => setQ("")} /> : (
+          <ul className={single ? "space-y-1.5" : "max-h-[520px] space-y-1.5 overflow-y-auto"} data-testid="master-list">
+            {shown.map((p) => (
+              <li key={p.id}><button onClick={() => setEdit(structuredClone(p))} data-master-item={p.id} className="row-hover flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-[0.92rem]" style={{ borderColor: edit?.id === p.id ? "var(--primary)" : "var(--border)" }}>
+                <span className="min-w-0"><span className="block truncate font-semibold">{p.name}</span><span className="text-[0.78rem] text-ink-soft">{p.sku} · {p.category}</span></span>
+                {p.isDemo ? <StatusBadge tone="warning">DEMO</StatusBadge> : <StatusBadge tone="success">실데이터</StatusBadge>}
+              </button></li>
+            ))}
+          </ul>
         )}
       </DataCard>
+      {!single && (
+        <DataCard title={title} className="@4xl:col-span-3">
+          {form || <EmptyState title="왼쪽에서 상품을 선택하거나 새 상품을 등록하세요" />}
+        </DataCard>
+      )}
     </div>
+    {single && <Drawer open={!!edit} onClose={() => setEdit(null)} title={title}>{form}</Drawer>}
     <ProductImport />
     </>
   );
 }
 
-function ProductForm({ value, busy, channels, onSave, onCancel, skuTaken }: { value: Product; busy: boolean; channels: Channel[]; onSave: (p: Product) => void; onCancel: () => void; skuTaken: (sku: string) => boolean }) {
+/* 목록 검색·개수·빈 결과 — 상품·채널·거래처 목록 공통 (PASS 34) */
+function ListCount({ shown, total, filtered }: { shown: number; total: number; filtered: boolean }) {
+  return <span className="tabular text-ink-soft" data-testid="master-count">({filtered ? `${shown} / ${total}` : total})</span>;
+}
+function MasterSearch({ q, setQ, label, placeholder }: { q: string; setQ: (v: string) => void; label: string; placeholder: string }) {
+  return (
+    <label className="relative mb-3 block">
+      <span className="sr-only">{label}</span>
+      <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" aria-hidden />
+      <input type="search" className="field !min-h-[42px] !pl-9 !pr-9" placeholder={placeholder} value={q} onChange={(e) => setQ(e.target.value)} data-testid="master-search" enterKeyHint="search" />
+      {q && <button type="button" className="absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-ink-soft hover:bg-surface-muted" onClick={() => setQ("")} aria-label="검색어 지우기"><X size={15} aria-hidden /></button>}
+    </label>
+  );
+}
+function NoMatch({ q, onClear }: { q: string; onClear: () => void }) {
+  return (
+    <div className="rounded-xl bg-surface-muted px-4 py-6 text-center text-[0.92rem]" data-testid="master-empty">
+      <p>‘{q}’에 맞는 항목이 없습니다.</p>
+      <button type="button" className="btn-secondary mt-3 !min-h-[38px] text-[0.86rem]" onClick={onClear}>검색어 지우기</button>
+    </div>
+  );
+}
+
+function ProductForm({ value, busy, channels, onSave, onCancel, skuTaken, stickyActions }: { value: Product; busy: boolean; channels: Channel[]; onSave: (p: Product) => void; onCancel: () => void; skuTaken: (sku: string) => boolean; stickyActions?: boolean }) {
   const [p, setP] = useState<Product>(value);
   const [links, setLinks] = useState(value.purchaseLinks.map((l) => `${l.label}|${l.url}`).join("\n"));
   const errors = [!p.sku.trim() && "SKU 필수", skuTaken(p.sku.trim()) && "이미 있는 SKU", !p.name.trim() && "제품명 필수", !(p.price > 0) && "판매가 필수"].filter(Boolean) as string[];
@@ -326,7 +362,8 @@ function ProductForm({ value, busy, channels, onSave, onCancel, skuTaken }: { va
       <div><label className="field-label" htmlFor="p-links">고객용 구매채널 (한 줄에 하나: 이름|URL)</label><textarea id="p-links" className="field font-mono text-[0.85rem]" placeholder="직영몰|https://..." value={links} onChange={(e) => setLinks(e.target.value)} /></div>
       <label className="flex items-center gap-2 text-[0.92rem]"><input type="checkbox" className="h-4 w-4" checked={p.isPublished} onChange={(e) => setP({ ...p, isPublished: e.target.checked })} /> 고객 화면(MIRYEO AI Beauty)에 공개</label>
       {errors.length > 0 && <p className="text-[0.85rem]" style={{ color: "var(--danger)" }}>{errors.join(" · ")}</p>}
-      <div className="flex gap-2 pt-1">
+      {/* 서랍 안에서는 긴 입력칸 아래로 내려가지 않아도 저장할 수 있게 아래에 붙여 둔다 (PASS 34) */}
+      <div className={stickyActions ? "sticky -bottom-5 z-10 -mx-6 -mb-5 flex gap-2 border-t bg-surface px-6 py-3" : "flex gap-2 pt-1"} style={stickyActions ? { borderColor: "var(--border)" } : undefined} data-testid="product-form-actions">
         <button className="btn-primary" disabled={busy || errors.length > 0} onClick={() => onSave({ ...p, sku: p.sku.trim(), name: p.name.trim(), isDemo: false, purchaseLinks: links.split("\n").map((l) => l.split("|")).filter(([a]) => a?.trim()).map(([label, url]) => ({ label: label.trim(), url: (url ?? "").trim() })) })}>저장</button>
         <button className="btn-secondary" onClick={onCancel}>취소</button>
       </div>
@@ -335,37 +372,62 @@ function ProductForm({ value, busy, channels, onSave, onCancel, skuTaken }: { va
 }
 
 /* ---------- 채널 ---------- */
+const blankChannel = (): Channel => ({ id: `new-ch-${Date.now()}`, name: "", type: "온라인몰", avgDiscountRate: 0, active: true });
 function ChannelsTab() {
   const m = useModel();
   const { role } = useSession();
   const { busy, save } = useSave();
-  const [c, setC] = useState<Channel>({ id: `new-ch-${Date.now()}`, name: "", type: "온라인몰", avgDiscountRate: 0, active: true });
+  const [c, setC] = useState<Channel>(blankChannel);
+  const [open, setOpen] = useState(false); // 좁은 폭에서 편집 서랍
+  const [q, setQ] = useState("");
+  const [gridRef, single] = useContainerBelow<HTMLDivElement>(56);
   if (!can(role, "edit_master")) return <NeedRole perm="채널 등록·수정" />;
+  const all = m.snapshot.channels;
+  const shown = all.filter((x) => matchesQuery(q, x.name, x.type));
+  const isNew = c.id.startsWith("new-");
+  const title = isNew ? "새 채널" : `수정 — ${c.name}`;
+  const pick = (x: Channel) => { setC(x); setOpen(true); };
+  const fields = (
+    <div className="grid gap-3 @xl:grid-cols-2">
+      <div><label className="field-label" htmlFor="c-name">채널명</label><input id="c-name" className="field" value={c.name} onChange={(e) => setC({ ...c, name: e.target.value })} /></div>
+      <div><label className="field-label" htmlFor="c-type">유형</label><select id="c-type" className="field" value={c.type} onChange={(e) => setC({ ...c, type: e.target.value as ChannelType })}>{CH_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
+      <div><label className="field-label" htmlFor="c-disc">평균 할인율 (%)</label><input id="c-disc" className="field tabular" inputMode="decimal" value={Math.round(c.avgDiscountRate * 1000) / 10} onChange={(e) => setC({ ...c, avgDiscountRate: Math.min(1, Math.max(0, Number(e.target.value) / 100 || 0)) })} /></div>
+      <label className="flex items-center gap-2 text-[0.92rem] @xl:pt-7"><input type="checkbox" className="h-4 w-4" checked={c.active} onChange={(e) => setC({ ...c, active: e.target.checked })} /> 사용 중</label>
+      {/* 판매 입력 주기 (PASS 27, R-24) — 몰아서 올리는 채널은 그 채널의 마지막 입력 기준으로 '최근 4주' */}
+      <div className="@xl:col-span-2">
+        <label className="field-label" htmlFor="c-cycle">판매 입력 주기</label>
+        <select id="c-cycle" data-testid="channel-cycle" className="field" value={cycleOf(c)} aria-describedby="c-cycle-help" onChange={(e) => setC({ ...c, inputCycle: e.target.value as InputCycle })}>
+          {INPUT_CYCLE_IDS.map((k) => <option key={k} value={k}>{INPUT_CYCLES[k].label}</option>)}
+        </select>
+        <p id="c-cycle-help" className="mt-1 text-[0.82rem] text-ink-soft">{INPUT_CYCLES[cycleOf(c)].help}</p>
+      </div>
+    </div>
+  );
+  const saveBtn = <button className="btn-primary" disabled={busy || !c.name.trim()} onClick={async () => { if (await save("채널을 저장했습니다", (s) => s.upsertChannel({ ...c, name: c.name.trim() }))) { setC(blankChannel()); setOpen(false); } }}>저장</button>;
+  const list = (
+    <DataCard title={<>채널 <ListCount shown={shown.length} total={all.length} filtered={!!q} /></>} action={single ? <button className="btn-primary !min-h-[40px] text-[0.86rem]" onClick={() => pick(blankChannel())} data-testid="master-new"><Plus size={16} aria-hidden /> 새 채널</button> : undefined}>
+      <MasterSearch q={q} setQ={setQ} label="채널 검색" placeholder="채널명·유형" />
+      {shown.length === 0 ? <NoMatch q={q} onClear={() => setQ("")} /> : (
+        <ul className="space-y-1.5" data-testid="master-list">{shown.map((x) => <li key={x.id}><button onClick={() => pick(x)} data-master-item={x.id} className="row-hover flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-[0.92rem]" style={{ borderColor: !single && c.id === x.id ? "var(--primary)" : "var(--border)" }}><span className="min-w-0 truncate font-semibold">{x.name}</span><span className="shrink-0 text-right text-[0.84rem] text-ink-soft">{x.type} · {Math.round(x.avgDiscountRate * 100)}%{cycleOf(x) !== "daily" ? ` · 입력 ${INPUT_CYCLES[cycleOf(x)].short}` : ""}{x.active ? "" : " · 중지"}</span></button></li>)}</ul>
+      )}
+    </DataCard>
+  );
+  if (single) return (
+    <div ref={gridRef} data-testid="master-channels" data-edit-mode="drawer">
+      {list}
+      <Drawer open={open} onClose={() => setOpen(false)} title={title} footer={<div className="flex gap-2">{saveBtn}<button className="btn-secondary" onClick={() => setOpen(false)}>취소</button></div>}>{fields}</Drawer>
+    </div>
+  );
   return (
-    <div className="grid gap-6 @4xl:grid-cols-2">
-      <DataCard title={c.id.startsWith("new-") ? "새 채널" : `수정 — ${c.name}`}>
-        <div className="grid gap-3 @xl:grid-cols-2">
-          <div><label className="field-label" htmlFor="c-name">채널명</label><input id="c-name" className="field" value={c.name} onChange={(e) => setC({ ...c, name: e.target.value })} /></div>
-          <div><label className="field-label" htmlFor="c-type">유형</label><select id="c-type" className="field" value={c.type} onChange={(e) => setC({ ...c, type: e.target.value as ChannelType })}>{CH_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
-          <div><label className="field-label" htmlFor="c-disc">평균 할인율 (%)</label><input id="c-disc" className="field tabular" inputMode="decimal" value={Math.round(c.avgDiscountRate * 1000) / 10} onChange={(e) => setC({ ...c, avgDiscountRate: Math.min(1, Math.max(0, Number(e.target.value) / 100 || 0)) })} /></div>
-          <label className="flex items-center gap-2 pt-7 text-[0.92rem]"><input type="checkbox" className="h-4 w-4" checked={c.active} onChange={(e) => setC({ ...c, active: e.target.checked })} /> 사용 중</label>
-          {/* 판매 입력 주기 (PASS 27, R-24) — 몰아서 올리는 채널은 그 채널의 마지막 입력 기준으로 '최근 4주' */}
-          <div className="@xl:col-span-2">
-            <label className="field-label" htmlFor="c-cycle">판매 입력 주기</label>
-            <select id="c-cycle" data-testid="channel-cycle" className="field" value={cycleOf(c)} aria-describedby="c-cycle-help" onChange={(e) => setC({ ...c, inputCycle: e.target.value as InputCycle })}>
-              {INPUT_CYCLE_IDS.map((k) => <option key={k} value={k}>{INPUT_CYCLES[k].label}</option>)}
-            </select>
-            <p id="c-cycle-help" className="mt-1 text-[0.82rem] text-ink-soft">{INPUT_CYCLES[cycleOf(c)].help}</p>
-          </div>
-        </div>
+    <div ref={gridRef} className="grid gap-6 @4xl:grid-cols-2" data-testid="master-channels" data-edit-mode="side">
+      <DataCard title={title}>
+        {fields}
         <div className="mt-4 flex gap-2">
-          <button className="btn-primary" disabled={busy || !c.name.trim()} onClick={async () => { if (await save("채널을 저장했습니다", (s) => s.upsertChannel({ ...c, name: c.name.trim() }))) setC({ id: `new-ch-${Date.now()}`, name: "", type: "온라인몰", avgDiscountRate: 0, active: true }); }}>저장</button>
-          {!c.id.startsWith("new-") && <button className="btn-secondary" onClick={() => setC({ id: `new-ch-${Date.now()}`, name: "", type: "온라인몰", avgDiscountRate: 0, active: true })}>새로 입력</button>}
+          {saveBtn}
+          {!isNew && <button className="btn-secondary" onClick={() => setC(blankChannel())}>새로 입력</button>}
         </div>
       </DataCard>
-      <DataCard title={`채널 (${m.snapshot.channels.length})`}>
-        <ul className="space-y-1.5">{m.snapshot.channels.map((x) => <li key={x.id}><button onClick={() => setC(x)} className="row-hover flex w-full justify-between rounded-xl border px-3 py-2.5 text-[0.92rem]" style={{ borderColor: "var(--border)" }}><span className="font-semibold">{x.name}</span><span className="text-ink-soft">{x.type} · {Math.round(x.avgDiscountRate * 100)}%{cycleOf(x) !== "daily" ? ` · 입력 ${INPUT_CYCLES[cycleOf(x)].short}` : ""}{x.active ? "" : " · 중지"}</span></button></li>)}</ul>
-      </DataCard>
+      {list}
     </div>
   );
 }
@@ -395,32 +457,57 @@ function ProductionTab() {
 }
 
 /* ---------- B2B ---------- */
+const blankB2B = (): B2BAccount => ({ id: `new-b2b-${Date.now()}`, name: "", status: "협의중", totalRevenue: 0, mainProductIds: [] });
 function B2BTab() {
   const m = useModel();
   const { role } = useSession();
   const { busy, save } = useSave();
-  const blank = (): B2BAccount => ({ id: `new-b2b-${Date.now()}`, name: "", status: "협의중", totalRevenue: 0, mainProductIds: [] });
-  const [b, setB] = useState<B2BAccount>(blank);
+  const [b, setB] = useState<B2BAccount>(blankB2B);
+  const [open, setOpen] = useState(false); // 좁은 폭에서 편집 서랍
+  const [q, setQ] = useState("");
+  const [gridRef, single] = useContainerBelow<HTMLDivElement>(56);
   if (!can(role, "edit_master")) return <NeedRole perm="거래처 입력" />;
+  const all = m.snapshot.b2b;
+  const shown = all.filter((x) => matchesQuery(q, x.name, x.status, x.note));
+  const isNew = b.id.startsWith("new-");
+  const title = isNew ? "새 거래처" : `수정 — ${b.name}`;
+  const pick = (x: B2BAccount) => { setB(x); setOpen(true); };
+  const fields = (
+    <div className="grid gap-3 @xl:grid-cols-2">
+      <div><label className="field-label" htmlFor="b-name">거래처명</label><input id="b-name" className="field" value={b.name} onChange={(e) => setB({ ...b, name: e.target.value })} /></div>
+      <div><label className="field-label" htmlFor="b-status">상태</label><select id="b-status" className="field" value={b.status} onChange={(e) => setB({ ...b, status: e.target.value as B2BAccount["status"] })}>{["거래중", "협의중", "휴면"].map((s) => <option key={s}>{s}</option>)}</select></div>
+      <div><label className="field-label" htmlFor="b-last">최근 거래일</label><input id="b-last" type="date" className="field" value={b.lastOrderAt ?? ""} onChange={(e) => setB({ ...b, lastOrderAt: e.target.value || null })} /></div>
+      <div><label className="field-label" htmlFor="b-next">다음 납품일</label><input id="b-next" type="date" className="field" value={b.nextDelivery ?? ""} onChange={(e) => setB({ ...b, nextDelivery: e.target.value || null })} /></div>
+      <div><label className="field-label" htmlFor="b-rev">누적 매출 (원)</label><input id="b-rev" className="field tabular" inputMode="numeric" value={b.totalRevenue || ""} onChange={(e) => setB({ ...b, totalRevenue: Number(e.target.value) || 0 })} /></div>
+      <div><label className="field-label" htmlFor="b-note">비고</label><input id="b-note" className="field" value={b.note ?? ""} onChange={(e) => setB({ ...b, note: e.target.value })} /></div>
+    </div>
+  );
+  const saveBtn = <button className="btn-primary" disabled={busy || !b.name.trim()} onClick={async () => { if (await save("거래처를 저장했습니다", (s) => s.upsertB2B({ ...b, name: b.name.trim() }))) { setB(blankB2B()); setOpen(false); } }}>저장</button>;
+  const tone = (s: B2BAccount["status"]) => (s === "거래중" ? "success" : s === "협의중" ? "info" : "neutral");
+  const list = (
+    <DataCard title={<>거래처 <ListCount shown={shown.length} total={all.length} filtered={!!q} /></>} action={single ? <button className="btn-primary !min-h-[40px] text-[0.86rem]" onClick={() => pick(blankB2B())} data-testid="master-new"><Plus size={16} aria-hidden /> 새 거래처</button> : undefined}>
+      <MasterSearch q={q} setQ={setQ} label="거래처 검색" placeholder="거래처명·상태·비고" />
+      {shown.length === 0 ? <NoMatch q={q} onClear={() => setQ("")} /> : (
+        <ul className="space-y-1.5" data-testid="master-list">{shown.map((x) => <li key={x.id}><button onClick={() => pick(x)} data-master-item={x.id} className="row-hover flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-[0.92rem]" style={{ borderColor: !single && b.id === x.id ? "var(--primary)" : "var(--border)" }}><span className="min-w-0 truncate font-semibold">{x.name}</span><StatusBadge tone={tone(x.status)}>{x.status}</StatusBadge></button></li>)}</ul>
+      )}
+    </DataCard>
+  );
+  if (single) return (
+    <div ref={gridRef} data-testid="master-b2b" data-edit-mode="drawer">
+      {list}
+      <Drawer open={open} onClose={() => setOpen(false)} title={title} footer={<div className="flex gap-2">{saveBtn}<button className="btn-secondary" onClick={() => setOpen(false)}>취소</button></div>}>{fields}</Drawer>
+    </div>
+  );
   return (
-    <div className="grid gap-6 @4xl:grid-cols-2">
-      <DataCard title={b.id.startsWith("new-") ? "새 거래처" : `수정 — ${b.name}`}>
-        <div className="grid gap-3 @xl:grid-cols-2">
-          <div><label className="field-label" htmlFor="b-name">거래처명</label><input id="b-name" className="field" value={b.name} onChange={(e) => setB({ ...b, name: e.target.value })} /></div>
-          <div><label className="field-label" htmlFor="b-status">상태</label><select id="b-status" className="field" value={b.status} onChange={(e) => setB({ ...b, status: e.target.value as B2BAccount["status"] })}>{["거래중", "협의중", "휴면"].map((s) => <option key={s}>{s}</option>)}</select></div>
-          <div><label className="field-label" htmlFor="b-last">최근 거래일</label><input id="b-last" type="date" className="field" value={b.lastOrderAt ?? ""} onChange={(e) => setB({ ...b, lastOrderAt: e.target.value || null })} /></div>
-          <div><label className="field-label" htmlFor="b-next">다음 납품일</label><input id="b-next" type="date" className="field" value={b.nextDelivery ?? ""} onChange={(e) => setB({ ...b, nextDelivery: e.target.value || null })} /></div>
-          <div><label className="field-label" htmlFor="b-rev">누적 매출 (원)</label><input id="b-rev" className="field tabular" inputMode="numeric" value={b.totalRevenue || ""} onChange={(e) => setB({ ...b, totalRevenue: Number(e.target.value) || 0 })} /></div>
-          <div><label className="field-label" htmlFor="b-note">비고</label><input id="b-note" className="field" value={b.note ?? ""} onChange={(e) => setB({ ...b, note: e.target.value })} /></div>
-        </div>
+    <div ref={gridRef} className="grid gap-6 @4xl:grid-cols-2" data-testid="master-b2b" data-edit-mode="side">
+      <DataCard title={title}>
+        {fields}
         <div className="mt-4 flex gap-2">
-          <button className="btn-primary" disabled={busy || !b.name.trim()} onClick={async () => { if (await save("거래처를 저장했습니다", (s) => s.upsertB2B({ ...b, name: b.name.trim() }))) setB(blank()); }}>저장</button>
-          {!b.id.startsWith("new-") && <button className="btn-secondary" onClick={() => setB(blank())}>새로 입력</button>}
+          {saveBtn}
+          {!isNew && <button className="btn-secondary" onClick={() => setB(blankB2B())}>새로 입력</button>}
         </div>
       </DataCard>
-      <DataCard title={`거래처 (${m.snapshot.b2b.length})`}>
-        <ul className="space-y-1.5">{m.snapshot.b2b.map((x) => <li key={x.id}><button onClick={() => setB(x)} className="row-hover flex w-full justify-between rounded-xl border px-3 py-2.5 text-[0.92rem]" style={{ borderColor: "var(--border)" }}><span className="font-semibold">{x.name}</span><span className="text-ink-soft">{x.status}</span></button></li>)}</ul>
-      </DataCard>
+      {list}
     </div>
   );
 }

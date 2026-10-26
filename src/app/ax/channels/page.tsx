@@ -241,7 +241,7 @@ function Export() {
           </div>
         )}
       </DataCard>
-      <p className="text-[0.86rem] text-ink-soft">관세·통관 관리는 이번 단계 범위 밖입니다 (NOT BUILDING). 권역별 성과 파악에 집중합니다.</p>
+      <p className="text-[0.86rem] text-ink-soft" data-testid="export-scope-note">이 화면은 권역별 수출 성과를 봅니다. 관세·통관 서류는 여기서 다루지 않으니 기존 방식대로 챙겨 주세요.</p>
     </div>
   );
 }

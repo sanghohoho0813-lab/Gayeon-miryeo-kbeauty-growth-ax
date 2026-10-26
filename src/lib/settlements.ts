@@ -101,3 +101,27 @@ export function receivableFor(list: Settlement[], today: string, party: { id: st
   }
   return r;
 }
+
+/** 연체 입금 확인 요청 글 (PASS 34, D-119) — 한 거래처의 기한 지난 청구만 모아 메신저·메일에 붙여 넣을 글로.
+ *  금액·날짜는 입력된 청구·입금 기록 그대로. Demo는 첫 줄에 시연용 표시. 연체가 없으면 null */
+export function overdueNoticeText(list: Settlement[], today: string, counterparty: string, opts: { orgName: string; demo: boolean }): string | null {
+  const norm = (x: string) => x.trim().toLowerCase().replace(/\s+/g, " ");
+  const key = norm(counterparty);
+  const items = list
+    .filter((s) => norm(s.counterparty) === key && overdueDays(s, today) > 0)
+    .sort((a, b) => (a.dueOn ?? "").localeCompare(b.dueOn ?? ""));
+  if (items.length === 0) return null;
+  const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
+  const dot = (iso: string) => iso.replaceAll("-", ".");
+  const total = items.reduce((a, s) => a + outstanding(s), 0);
+  const lines = [
+    ...(opts.demo ? ["※ 시연용 예시 데이터입니다 (실제 숫자 아님)"] : []),
+    `[${opts.orgName}] 입금 확인 요청 · ${dot(today)}`,
+    `${counterparty.trim()} 담당자님, 안녕하세요.`,
+    `아래 청구 건의 입금 기한이 지나 확인을 부탁드립니다.`,
+    ...items.map((s) => `· ${s.description?.trim() || SETTLEMENT_KIND_LABEL[s.kind]} — 청구 ${dot(s.issuedOn)} · 기한 ${dot(s.dueOn!)} (${overdueDays(s, today)}일 지남) · 남은 금액 ${won(outstanding(s))}`),
+    `합계 ${won(total)}`,
+    `이미 입금하셨다면 이 안내는 넘겨 주세요. 감사합니다.`,
+  ];
+  return lines.join("\n");
+}

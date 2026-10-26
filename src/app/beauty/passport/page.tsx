@@ -47,6 +47,11 @@ export default function PassportPage() {
   const result = mem.result;
   const hasData = mem.concerns.length > 0 || mem.wishlist.length > 0 || !!result || mem.viewed.length > 0 || rep.items.length > 0;
   const count = history?.length ?? (result ? 1 : 0);
+  // 홈 '최근 본 제품 → 패스포트에서 보기'(#recent): 이 칸은 기기 기록을 읽은 뒤에 그려지므로, 그려진 때 한 번 맞춰 내려 준다 (PASS 34)
+  const hasViewed = viewedProducts.length > 0;
+  useEffect(() => {
+    if (hasViewed && window.location.hash === "#recent") document.getElementById("recent")?.scrollIntoView({ block: "start" });
+  }, [hasViewed]);
 
   return (
     <div className="pt-4 @3xl:pt-8">
@@ -145,7 +150,7 @@ export default function PassportPage() {
 
       {/* 최근 본 제품 */}
       {viewedProducts.length > 0 && (
-        <Section eyebrow="RECENTLY VIEWED" title="최근 본 제품" sub="최근 조회한 순서">
+        <Section id="recent" eyebrow="RECENTLY VIEWED" title="최근 본 제품" sub="최근 조회한 순서">
           <Grid>{viewedProducts.slice(0, 4).map((p) => <BeautyProductCard key={p.id} product={p} />)}</Grid>
         </Section>
       )}

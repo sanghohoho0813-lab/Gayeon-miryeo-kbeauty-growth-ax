@@ -24,6 +24,8 @@ export default function BeautyHome() {
   const example = [1, 2, 3, 4].map((step) => products.find((p) => p.routineStep === step)).filter((p): p is NonNullable<typeof p> => !!p);
   const myRoutine = mem.result ? mem.result.productIds.map((id) => products.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p) : [];
   const routine = myRoutine.length ? myRoutine : example;
+  // 최근 본 제품 (PASS 34, D-120) — 이 기기에서 실제로 본 제품만, 본 순서대로. 없으면 줄 자체를 보이지 않음
+  const viewed = mem.viewed.map((id) => products.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p).slice(0, 8);
 
   const banners: Banner[] = [
     {
@@ -59,6 +61,13 @@ export default function BeautyHome() {
 
       <div className="mt-6"><PromoCarousel banners={banners} /></div>
       <div className="mt-6 @3xl:mt-8"><QuickMenu member={mem.member} /></div>
+
+      {viewed.length > 0 && (
+        <section className="mt-9 @3xl:mt-12" aria-labelledby="h-viewed" data-testid="home-recent">
+          <SectionHead id="h-viewed" title="최근 본 제품" sub="이 기기에서 본 순서예요" href="/beauty/passport#recent" linkLabel="패스포트에서 보기 →" />
+          <div className="b-rail mt-4">{viewed.map((p) => <BeautyProductCard key={p.id} product={p} compact />)}</div>
+        </section>
+      )}
 
       <section className="mt-9 @3xl:mt-12" aria-labelledby="h-concern">
         <SectionHead id="h-concern" title={mem.concerns.length ? "나의 피부 고민으로 찾기" : "피부 고민으로 찾기"} sub={mem.concerns.length ? "최근 상담에서 고른 고민에 표시했어요" : "지금 필요한 케어를 골라보세요"} href="/beauty/products" />

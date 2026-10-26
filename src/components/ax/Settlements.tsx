@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, Search, Wallet, X } from "lucide-react";
+import { Check, Copy, Plus, Search, Wallet, X } from "lucide-react";
 import { DataCard, KpiCard, StatusBadge, type Tone } from "./Cards";
 import { EmptyState } from "./States";
 import { Modal } from "./Modal";
@@ -16,7 +16,9 @@ import { useData, useModel } from "@/components/providers/DataProvider";
 import { formatKRW, formatPrice } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
 import { useNarrow } from "@/lib/use-narrow";
-import { AGING_LABEL, agingOf, outstanding, overdueDays, receivableAging, receivablesByCounterparty, SETTLEMENT_KIND_LABEL, SETTLEMENT_STATUS_LABEL, statusFor, summarizeReceivables, type AgingBucket } from "@/lib/settlements";
+import { AGING_LABEL, agingOf, outstanding, overdueDays, overdueNoticeText, receivableAging, receivablesByCounterparty, SETTLEMENT_KIND_LABEL, SETTLEMENT_STATUS_LABEL, statusFor, summarizeReceivables, type AgingBucket } from "@/lib/settlements";
+import { copyText } from "@/lib/clipboard";
+import { isLive } from "@/lib/config";
 import { matchesQuery } from "@/lib/search";
 import type { Settlement, SettlementKind } from "@/lib/types";
 
@@ -219,12 +221,21 @@ function CounterpartyCard({ onPick }: { onPick: (name: string) => void }) {
   const all = receivablesByCounterparty(m.snapshot.settlements, m.today);
   const top = all.slice(0, 5);
   const max = top[0]?.amount ?? 1;
+  // 연체 거래처 '입금 확인 요청 글' 복사 (PASS 34, D-119) — 메신저·메일에 붙여 넣기. 보내는 것은 사람이 한다
+  const [copied, setCopied] = useState<string | null>(null);
+  useEffect(() => { if (!copied) return; const t = window.setTimeout(() => setCopied(null), 2500); return () => window.clearTimeout(t); }, [copied]);
+  const copyNotice = async (name: string) => {
+    const text = overdueNoticeText(m.snapshot.settlements, m.today, name, { orgName: m.snapshot.org.name, demo: !isLive });
+    if (!text) return;
+    if (await copyText(text)) { setCopied(name); toast("입금 확인 요청 글을 복사했습니다 — 메신저·메일에 붙여 넣으세요"); }
+    else toast("복사하지 못했습니다 — 브라우저가 복사를 막았습니다", "error");
+  };
   return (
-    <DataCard title="거래처별 받을 돈" info="같은 거래처 이름의 남은 잔액을 합쳤습니다. 이름을 누르면 아래 정산 내역에서 그 거래처만 보입니다." testId="counterparty-card">
+    <DataCard title="거래처별 받을 돈" info="같은 거래처 이름의 남은 잔액을 합쳤습니다. 이름을 누르면 아래 정산 내역에서 그 거래처만 보입니다. 연체가 있으면 '요청 글'로 입금 확인 요청 문장을 복사할 수 있습니다(보내는 것은 직접)." testId="counterparty-card">
       <ul className="space-y-1.5">
         {top.map((c) => (
-          <li key={c.counterparty}>
-            <button type="button" onClick={() => onPick(c.counterparty)} className="row-hover w-full rounded-xl px-2.5 py-2 text-left" data-counterparty={c.counterparty}>
+          <li key={c.counterparty} className="relative">
+            <button type="button" onClick={() => onPick(c.counterparty)} className="row-hover block w-full rounded-xl px-2.5 py-2 text-left" data-counterparty={c.counterparty}>
               <span className="flex items-baseline justify-between gap-2">
                 <span className="min-w-0 truncate font-semibold">{c.counterparty}</span>
                 <span className="tabular shrink-0 font-bold">{formatKRW(c.amount)}</span>
@@ -232,10 +243,15 @@ function CounterpartyCard({ onPick }: { onPick: (name: string) => void }) {
               <span className="mt-1 block h-1.5 w-full overflow-hidden rounded-full bg-surface-muted" aria-hidden>
                 <span className="block h-full rounded-full" style={{ width: `${Math.max(3, (c.amount / max) * 100)}%`, background: c.overdueAmount > 0 ? "var(--danger)" : "var(--chart-1)" }} />
               </span>
-              <span className="tabular mt-1 block text-[0.78rem]" style={{ color: c.overdueAmount > 0 ? "var(--danger)" : "var(--text-secondary)" }}>
+              <span className={`tabular mt-1 block text-[0.78rem] ${c.overdueAmount > 0 ? "pr-[5.75rem]" : ""}`} style={{ color: c.overdueAmount > 0 ? "var(--danger)" : "var(--text-secondary)" }}>
                 {c.count}건{c.overdueAmount > 0 ? ` · 연체 ${formatKRW(c.overdueAmount)} (최장 ${c.maxOverdueDays}일)` : " · 연체 없음"}
               </span>
             </button>
+            {c.overdueAmount > 0 && (
+              <button type="button" onClick={() => void copyNotice(c.counterparty)} className="btn-ghost absolute bottom-0.5 right-1 !min-h-[36px] !px-2 text-[0.8rem]" aria-label={`${c.counterparty} 입금 확인 요청 글 ${copied === c.counterparty ? "복사됨" : "복사"}`} title="입금 확인 요청 글 복사 (메신저·메일용)" data-testid="notice-copy" data-for={c.counterparty}>
+                {copied === c.counterparty ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}<span>{copied === c.counterparty ? "복사됨" : "요청 글"}</span>
+              </button>
+            )}
           </li>
         ))}
       </ul>
