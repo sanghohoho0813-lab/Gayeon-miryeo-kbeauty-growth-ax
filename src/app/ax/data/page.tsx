@@ -234,10 +234,13 @@ function ManualSaleCard() {
                 </li>
               );
               return (
+                // 두 줄 (PASS 33): 날짜·상품 / 채널·수량·금액 — 오른쪽은 출처·버튼만 (모바일에서 상품명이 한 글자씩 감기던 문제)
                 <li key={s.id} className="flex items-center justify-between gap-2 rounded-lg bg-surface-muted px-3 py-2" data-sale-row={s.id}>
-                  <span className="min-w-0"><span className="tabular">{s.saleDate.slice(5).replace("-", ".")}</span> · <span className="font-semibold">{m.productById.get(s.productId)?.name ?? "삭제된 상품"}</span><span className="block text-[0.78rem] text-ink-soft @md:inline @md:before:content-['_·_']">{m.snapshot.channels.find((x) => x.id === s.channelId)?.name ?? "-"}</span></span>
-                  <span className="flex shrink-0 items-center gap-1.5">
-                    <span className="tabular text-right">{s.units.toLocaleString()}개 · {formatPrice(s.revenue)}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate"><span className="tabular">{s.saleDate.slice(5).replace("-", ".")}</span> · <span className="font-semibold">{m.productById.get(s.productId)?.name ?? "삭제된 상품"}</span></span>
+                    <span className="tabular block truncate text-[0.8rem] text-ink-soft">{m.snapshot.channels.find((x) => x.id === s.channelId)?.name ?? "-"} · <b className="font-semibold text-ink">{s.units.toLocaleString()}개 · {formatPrice(s.revenue)}</b></span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1">
                     <StatusBadge tone="neutral">{SOURCE_LABEL[s.source] ?? s.source}</StatusBadge>
                     {canDelete && s.source === "manual" && (
                       <button type="button" disabled={busy} onClick={() => { setConfirmId(null); setEditing({ id: s.id, saleDate: s.saleDate, units: String(s.units), revenue: String(s.revenue) }); }} className="inline-flex min-h-[34px] items-center rounded-lg px-2 text-[0.8rem] font-semibold text-ink-soft hover:bg-surface" aria-label={`${m.productById.get(s.productId)?.name ?? ""} ${s.saleDate} 판매 고치기`} data-testid="manual-sale-edit">

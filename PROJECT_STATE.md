@@ -47,16 +47,17 @@ CURRENT PASS: 33 — **다음 단계 고도화, UI/UX 중심**(사용자 요청 
 - 수정 시: 샘플 수치를 바꾸면 원고 2절 표 + `qa-review` 기대값을 함께 바꾼다. `/ax` 기기 보기 틀은 `/review`에서 꺼짐(`DeviceView.tsx`)
 
 ## PASS 33 변경 요약 (2026-10-26) — 고도화·UI/UX
+- 비포·애프터 비교 페이지(비공개 Artifact, 7화면 × 모바일·PC, 지금 배포본 PASS 32와 같은 Demo 자료·같은 조작): https://claude.ai/artifact/PpVxEakLF1rBaK4TPbBHc6
 | 항목 | 상태 |
 |---|---|
 | 진행 중인 달 = 지난달 같은 기간(1~n일)과 비교 — 월별 KPI·구성표·CSV · 대시보드 이번 달 · 보고 모드 (D-112) | VERIFIED (qa-pass33: 브라우저 저장 자료로 직접 계산한 값과 같음 · 지난 달은 전체 달끼리 · 단위 8) |
 | 전환 흐름 '사람 수' (앞 단계를 모두 거친 사람만) · 보기 기억 · Demo 시드 방문 번호 맞춤(저장된 자료도) (D-113) | VERIFIED (qa-pass33: 40 → 25 → 9 → 4 · 예전 자료 맞춤 · 단위 12) |
-| 직접 입력 판매 고치기 (판매일·수량·매출, Enter·Esc, 대표·관리자) · `updateSale` Demo·Live (D-114) | {S3} |
+| 직접 입력 판매 고치기 (판매일·수량·매출, Enter·Esc, 대표·관리자) · `updateSale` Demo·Live (D-114) | VERIFIED (qa-pass33 · Live E2E: 대표 수정 → DB 같은 행 · STAFF API 0행(RLS) · 지우기) |
 | 생산 착수 일정 마감 칩·요약 줄 · 알림 '생산 착수 마감' → `?due=` (D-115) | VERIFIED (qa-pass33: 칩 합 = 행 수 · 구간 필터 · D-1~14 · 알림 → 칩 눌린 채) |
 | 사업화 자료 모바일 금액 (억 단위 + 정확한 금액) · PC·인쇄는 정확한 금액 (D-116) | VERIFIED (qa-pass33: 모바일 한 줄·칸 안 · PC·인쇄 정확한 금액 1번) |
-| 시작 가이드 모바일 단계 행 (D-117) | VERIFIED (qa-pass33: 제목 2줄 이하 · 버튼 둘째 줄 · ⓘ 그대로) |
+| 시작 가이드 모바일 단계 행 (D-117) · 모바일 최근 판매 줄 두 줄 | VERIFIED (qa-pass33: 제목 2줄 이하 · 버튼 둘째 줄 · ⓘ 그대로) |
 | 대비·넘침: 7테마 × 새 화면 2 · AX 24화면 × 360·390·768 | VERIFIED (위반 0 · 넘침 0) |
-| 전체 회귀 · Live E2E | {LIVE_STATE} |
+| 전체 회귀 · Live E2E | VERIFIED (전체 회귀 32종 · Live E2E 117/117 · 단위 20) |
 
 ## PASS 32 변경 요약 (2026-10-26) — 고도화·UI/UX + Next.js 보안 패치 (배포 완료)
 - 배포 확인 (2026-10-26, 커밋 ef38ea7): 공개 주소 12곳 200(새 주소 `?status=NEW`·`?status=위험`·`?filter=overdue`·보고 모드 4장 포함) · 새 화면 코드(전환 흐름·처리 창 이전·다음)가 배포된 파일에 있음 · Next.js 16.4.3
