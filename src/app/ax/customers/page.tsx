@@ -12,7 +12,7 @@ import { AiReadyButton, AI_SPECS } from "@/components/ax/AiReady";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { EmptyState } from "@/components/ax/States";
 import { useModel } from "@/components/providers/DataProvider";
-import { EVENT_LABEL, formatPct, INTEREST_GROWTH_MIN, INTEREST_THRESHOLD } from "@/lib/analytics";
+import { actionWaitDays, customerFunnel, EVENT_LABEL, formatPct, INTEREST_GROWTH_MIN, INTEREST_THRESHOLD } from "@/lib/analytics";
 import { relativeKR } from "@/lib/date";
 import type { GrowthAction } from "@/lib/types";
 import { useNarrow } from "@/lib/use-narrow";
@@ -28,6 +28,48 @@ const TABS = [
 ] as const;
 type CustTab = (typeof TABS)[number]["id"];
 const TAB_IDS = TABS.map((t) => t.id);
+
+/* 고객 전환 흐름 (PASS 32, D-104) — 최근 7일 고객 화면 행동을 4단계로: Finder 시작 → 완료 → Passport 저장 → 구매채널 이동.
+   각 단계 = 행동 수(사람 수 아님). 단계 사이 % = 앞 단계 대비, 옆 증감 = 이전 7일 대비. 새 숫자 없이 기존 이벤트 집계만 */
+function CustomerFunnel() {
+  const m = useModel();
+  const steps = customerFunnel(m.customer);
+  const top = Math.max(1, ...steps.map((x) => x.n));
+  const first = steps[0].n;
+  const last = steps[steps.length - 1].n;
+  return (
+    <DataCard title="고객 전환 흐름 (최근 7일)" info="고객 화면에서 일어난 행동 수입니다(사람 수가 아닌 행동 횟수). 단계 사이 %는 앞 단계 대비, 오른쪽 증감은 이전 7일 대비입니다." testId="customer-funnel">
+      {first === 0 && last === 0 ? <EmptyState title="최근 7일 고객 행동이 없습니다" desc="고객 화면에서 Finder·Passport·구매채널 이동이 생기면 계산됩니다." /> : (
+        <>
+          <ol className="grid gap-2 @3xl:grid-cols-4 @3xl:gap-3">
+            {steps.map((st, i) => {
+              const { rate, delta } = st;
+              return (
+                <li key={st.key} className="min-w-0" data-funnel-step={st.key}>
+                  {i > 0 && (
+                    <p className="tabular mb-1 flex items-center gap-1 text-[0.78rem] font-semibold text-ink-soft @3xl:hidden" aria-hidden>
+                      <span>↓</span> {rate == null ? "-" : `${Math.round(rate * 100)}%`} 이어짐
+                    </p>
+                  )}
+                  <div className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[0.84rem] font-semibold text-ink-soft">{i + 1}. {st.label}</span>
+                      {delta != null && <span className="tabular text-[0.76rem] font-semibold" style={{ color: delta >= 0 ? "var(--success)" : "var(--danger)" }}>{delta >= 0 ? "+" : ""}{Math.round(delta * 100)}%</span>}
+                    </div>
+                    <div className="tabular mt-1 text-[1.35rem] font-extrabold leading-tight">{st.n.toLocaleString()}<span className="ml-0.5 text-[0.85rem] font-semibold text-ink-soft">건</span></div>
+                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface-muted" aria-hidden><div className="h-full rounded-full" style={{ width: `${Math.max(3, (st.n / top) * 100)}%`, background: `color-mix(in srgb, var(--chart-1) ${100 - i * 18}%, var(--chart-3))` }} /></div>
+                    <p className="tabular mt-1.5 text-[0.76rem] text-ink-soft">{i === 0 ? `이전 7일 ${st.prev.toLocaleString()}건` : <>앞 단계의 <b className="text-ink">{rate == null ? "-" : `${Math.round(rate * 100)}%`}</b> · 이전 7일 {st.prev.toLocaleString()}건</>}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          <p className="mt-3 text-[0.86rem] text-ink-soft" data-testid="funnel-summary">Finder 시작 {first.toLocaleString()}건 중 구매채널 이동 <b className="tabular text-ink">{last.toLocaleString()}건</b>{first > 0 ? ` (${Math.round((last / first) * 100)}%)` : ""} — 실제 구매 여부는 외부 쇼핑몰에서 일어나므로 이 화면에서는 알 수 없습니다.</p>
+        </>
+      )}
+    </DataCard>
+  );
+}
 
 export default function CustomersPage() {
   const m = useModel();
@@ -57,7 +99,9 @@ export default function CustomersPage() {
       <Tabs tabs={TABS} value={tab} onChange={setTab} className="mb-4 mt-5" panelId="cust-panel" label="고객 인사이트 보기" />
       <div id="cust-panel" role="tabpanel" aria-labelledby={`cust-panel-tab-${tab}`}>
       {tab === "behavior" && (
-      <div className="grid gap-5 @4xl:grid-cols-5">
+      <>
+      <CustomerFunnel />
+      <div className="mt-5 grid gap-5 @4xl:grid-cols-5">
         <DataCard title="일별 고객 행동 (14일)" className="@4xl:col-span-3">
           <DailyEvents data={c.daily} />
           <div className="mt-2 flex flex-wrap gap-3 text-[0.8rem] text-ink-soft">
@@ -79,6 +123,7 @@ export default function CustomersPage() {
           )}
         </DataCard>
       </div>
+      </>
       )}
 
       {tab === "interest" && (
@@ -136,7 +181,7 @@ export default function CustomersPage() {
       </DataCard>
         <DataCard title="고객 관련 Action">
           {interestActions.length === 0 ? <EmptyState title="고객 관련 Action이 없습니다" /> : (
-            <div className="grid gap-2.5">{interestActions.slice(0, 4).map((a) => <ActionRow key={a.id} action={a} onOpen={() => setOpen(a)} />)}</div>
+            <div className="grid gap-2.5">{interestActions.slice(0, 4).map((a) => <ActionRow key={a.id} action={a} waitDays={actionWaitDays(a, m.today)} onOpen={() => setOpen(a)} />)}</div>
           )}
         </DataCard>
       </div>

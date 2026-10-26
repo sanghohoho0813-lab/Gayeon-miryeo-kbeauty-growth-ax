@@ -26,10 +26,14 @@ const FILTERS: [Filter, string][] = [["open", "미수금"], ["overdue", "연체"
 
 export function Settlements() {
   const m = useModel();
-  const [filter, setFilterState] = useState<Filter>("open");
+  const sp = useSearchParams();
+  // 알림·브리핑의 '연체'는 ?filter=overdue 로 열림 (PASS 32, D-108)
+  const fParam = sp.get("filter");
+  const [filter, setFilterState] = useState<Filter>(() => (FILTERS.some(([f]) => f === fParam) ? (fParam as Filter) : "open"));
+  useEffect(() => { if (fParam && FILTERS.some(([f]) => f === fParam)) setFilterState(fParam as Filter); }, [fParam]);
   const [bucket, setBucket] = useState<AgingBucket | null>(null);
   // 빠른 이동에서 거래처를 고르면 ?q=거래처 로 열림 (PASS 31)
-  const qParam = useSearchParams().get("q") ?? "";
+  const qParam = sp.get("q") ?? "";
   const [q, setQ] = useState(qParam);
   useEffect(() => { if (qParam) setQ(qParam); }, [qParam]);
   const [edit, setEdit] = useState<Settlement | null>(null);

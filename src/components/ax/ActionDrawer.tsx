@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, ClipboardCheck, ExternalLink, PauseCircle, PlayCircle, Sparkles } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, ExternalLink, PauseCircle, PlayCircle, Sparkles } from "lucide-react";
 import type { GrowthAction, KpiSnapshot } from "@/lib/types";
 import { Drawer } from "./Modal";
 import { ACTION_STATUS_LABEL, ACTION_STATUS_TONE, StatusBadge } from "./Cards";
@@ -14,7 +14,7 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { can, ROLE_LABEL } from "@/lib/permissions";
 import { isLive } from "@/lib/config";
 import { formatDateTimeKR } from "@/lib/date";
-import { OPEN_STATUSES } from "@/lib/analytics";
+import { ACTION_WAIT_ALERT_DAYS, actionWaitDays, OPEN_STATUSES } from "@/lib/analytics";
 
 /* Growth Action Lifecycle — AX Decision → Human Action → Result → Proof Event (L2~L3, 자동실행 없음) */
 
@@ -33,7 +33,11 @@ function Snapshot({ title, items }: { title: string; items?: KpiSnapshot[] | nul
   );
 }
 
-export function ActionDrawer({ action, onClose }: { action: GrowthAction | null; onClose: () => void }) {
+/** nav: 목록 순서대로 이어서 처리 (PASS 32, D-106) — 열 때의 목록 순서(ids)를 고정해 두므로
+ *  처리해서 상태가 바뀌어도(목록에서 빠져도) 자리가 흔들리지 않는다. J 다음 · K 이전 (입력 중에는 무시) */
+export type ActionNav = { ids: string[]; onGo: (a: GrowthAction) => void };
+
+export function ActionDrawer({ action, onClose, nav }: { action: GrowthAction | null; onClose: () => void; nav?: ActionNav }) {
   const model = useModel();
   const { run } = useData();
   const { role, actorName } = useSession();
@@ -44,6 +48,30 @@ export function ActionDrawer({ action, onClose }: { action: GrowthAction | null;
   const [feature, setFeature] = useState(false);
   const [dismissReason, setDismissReason] = useState("");
   const [busy, setBusy] = useState(false);
+  // 다른 Action으로 넘어가면 쓰던 입력칸을 비움 (이전 Action의 담당자·메모가 따라오지 않게)
+  const [forId, setForId] = useState(action?.id);
+  if (forId !== action?.id) {
+    setForId(action?.id);
+    setAssignee(""); setNote(""); setResult(""); setLink(""); setFeature(false); setDismissReason("");
+  }
+  const ids = nav?.ids ?? [];
+  const pos = action ? ids.indexOf(action.id) : -1;
+  const prevA = pos > 0 ? model.actions.find((x) => x.id === ids[pos - 1]) : undefined;
+  const nextA = pos >= 0 && pos < ids.length - 1 ? model.actions.find((x) => x.id === ids[pos + 1]) : undefined;
+  useEffect(() => {
+    if (!action || !nav || pos < 0) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (document.querySelectorAll("[data-overlay]").length > 1) return; // 위에 다른 창(조건 바꿔 보기 등)이 열려 있으면 무시
+      // 한글 입력 상태에서도 같은 자리 키(ㅓ·ㅏ)로 동작하도록 e.code로 판단
+      const go = e.code === "KeyJ" ? nextA : e.code === "KeyK" ? prevA : undefined;
+      if (go) { e.preventDefault(); nav.onGo(go); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   if (!action) return <Drawer open={false} onClose={onClose}>{null}</Drawer>;
   const a = model.actions.find((x) => x.id === action.id) ?? action;
@@ -70,9 +98,21 @@ export function ActionDrawer({ action, onClose }: { action: GrowthAction | null;
   };
 
   const stepIndex = a.status === "DISMISSED" ? -1 : STEPS.indexOf(a.status as (typeof STEPS)[number]);
+  const wait = actionWaitDays(a, model.today);
+  const toolbar = nav && pos >= 0 && ids.length > 1 ? (
+    <div className="flex items-center justify-between gap-2" data-testid="action-nav">
+      <span className="tabular text-[0.86rem] font-semibold text-ink-soft" aria-hidden data-testid="action-nav-pos">{pos + 1} / {ids.length}</span>
+      <span className="sr-only" aria-live="polite">{`전체 ${ids.length}건 중 ${pos + 1}번째: ${a.title}`}</span>
+      <span className="ml-auto hidden text-[0.76rem] text-ink-soft @md:inline" aria-hidden>키보드 J 다음 · K 이전</span>
+      <span className="flex gap-1.5">
+        <button type="button" className="btn-secondary !min-h-[38px] !px-3 text-[0.86rem]" disabled={!prevA} onClick={() => prevA && nav.onGo(prevA)} aria-keyshortcuts="K" title={prevA?.title} data-testid="action-prev"><ChevronLeft size={16} aria-hidden /> 이전</button>
+        <button type="button" className="btn-secondary !min-h-[38px] !px-3 text-[0.86rem]" disabled={!nextA} onClick={() => nextA && nav.onGo(nextA)} aria-keyshortcuts="J" title={nextA?.title} data-testid="action-next">다음 <ChevronRight size={16} aria-hidden /></button>
+      </span>
+    </div>
+  ) : undefined;
 
   return (
-    <Drawer open onClose={onClose} title={a.title} footer={a.status === "NEW" ? (
+    <Drawer open onClose={onClose} title={a.title} toolbar={toolbar} bodyKey={a.id} footer={a.status === "NEW" ? (
       // 첫 단계 버튼은 아래에 고정 — 근거가 길어도 스크롤 없이 누를 수 있게 (PASS 15)
       <button className="btn-primary w-full" disabled={busy} onClick={() => act("검토 완료로 표시했습니다", () => run((s) => s.updateAction(a.id, { status: "REVIEWED" }, { from: "NEW", to: "REVIEWED", actorName })))}>
         <ClipboardCheck size={17} aria-hidden /> 근거 확인 — 검토 완료
@@ -82,6 +122,7 @@ export function ActionDrawer({ action, onClose }: { action: GrowthAction | null;
         <StatusBadge tone={ACTION_STATUS_TONE[a.status]}>{ACTION_STATUS_LABEL[a.status]}</StatusBadge>
         <StatusBadge tone="neutral">{a.category}</StatusBadge>
         <StatusBadge tone="primary">판단 방식: {a.decisionMethod}</StatusBadge>
+        {wait != null && wait >= ACTION_WAIT_ALERT_DAYS && <StatusBadge tone="warning">{wait}일째 대기</StatusBadge>}
         {!isLive && <StatusBadge tone="warning">DEMO</StatusBadge>}
       </div>
 

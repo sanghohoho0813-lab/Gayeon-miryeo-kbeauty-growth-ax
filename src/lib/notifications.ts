@@ -8,7 +8,8 @@ import { addDaysISO, daysBetween, formatDateKR, todayISO } from "./date";
 import { formatKRW } from "./analytics";
 
 /* 알림 센터 (PASS 13) — 화면마다 흩어진 '오늘 확인할 것'을 한 목록으로. 저장하지 않고 매번 데이터에서 계산한다
-   (해결하면 저절로 사라짐 = 읽음 처리 불필요). 위험 → 주의 → 안내 순, 역할 권한은 메뉴와 같은 규칙. */
+   (해결하면 저절로 사라짐 = 읽음 처리 불필요). 위험 → 주의 → 안내 순, 역할 권한은 메뉴와 같은 규칙.
+   PASS 32 (D-108): 누르면 걸러진 목록으로 — 연체 → 정산 '연체' 필터, 새 Action → '새 추천' 상태 */
 
 export type NoticeTone = "danger" | "warning" | "info" | "success";
 export interface Notice { id: string; tone: NoticeTone; title: string; detail: string; href: string }
@@ -34,7 +35,7 @@ export function buildNotifications(m: AxModel, role: Role, opts: { allowPractice
   // 2. 연체 미수금 (대표·관리자)
   if (fin) {
     const rs = summarizeReceivables(s.settlements, m.today);
-    if (rs.overdueCount > 0) out.push({ id: "overdue", tone: "danger", title: `연체 미수금 ${rs.overdueCount}건`, detail: `${formatKRW(rs.overdueAmount)} 입금 기한 지남`, href: "/ax/channels?tab=settlements" });
+    if (rs.overdueCount > 0) out.push({ id: "overdue", tone: "danger", title: `연체 미수금 ${rs.overdueCount}건`, detail: `${formatKRW(rs.overdueAmount)} 입금 기한 지남`, href: "/ax/channels?tab=settlements&filter=overdue" });
   }
 
   // 3. 데이터 품질 오류 (계산이 틀어지는 값)
@@ -50,7 +51,7 @@ export function buildNotifications(m: AxModel, role: Role, opts: { allowPractice
 
   // 5. 새 Action (검토 전)
   const fresh = m.actions.filter((a) => a.status === "NEW");
-  if (fresh.length) out.push({ id: "new-actions", tone: "info", title: `새 Action ${fresh.length}건 검토 대기`, detail: fresh.slice(0, 2).map((a) => a.title).join(" · ") + (fresh.length > 2 ? ` 외 ${fresh.length - 2}` : ""), href: "/ax/growth" });
+  if (fresh.length) out.push({ id: "new-actions", tone: "info", title: `새 Action ${fresh.length}건 검토 대기`, detail: fresh.slice(0, 2).map((a) => a.title).join(" · ") + (fresh.length > 2 ? ` 외 ${fresh.length - 2}` : ""), href: "/ax/growth?status=NEW" });
 
   // 6. 사후 성과 측정 완료 — 완료 후 14일이 지나 최근 7일 안에 결과가 나온 Action (실행 → 결과 확인 루프)
   const yesterday = addDaysISO(m.today, -1);

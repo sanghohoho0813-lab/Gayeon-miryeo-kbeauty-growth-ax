@@ -12,7 +12,8 @@ import { buildBriefing, type BriefTone } from "@/lib/briefing";
 import { buildNotifications, type NoticeTone } from "@/lib/notifications";
 import { change, marginRate, monthlySummary } from "@/lib/monthly";
 import { targetProgress } from "@/lib/targets";
-import { summarizeReceivables } from "@/lib/settlements";
+import { AGING_LABEL, receivableAging, summarizeReceivables } from "@/lib/settlements";
+import { AGING_COLOR } from "@/components/ax/AgingBar";
 import { doneAt } from "@/lib/action-outcome";
 import { lastDays, measureMoneyKpis } from "@/lib/evidence";
 import { formatKRW, formatPct } from "@/lib/analytics";
@@ -341,6 +342,7 @@ function Month() {
   const tp = targetProgress(cur.month, cur.revenue, m.snapshot.monthlyTargets ?? [], m.today);
   const mr = marginRate(cur);
   const rs = summarizeReceivables(m.snapshot.settlements, m.today);
+  const aging = receivableAging(m.snapshot.settlements, m.today);
   const max = Math.max(1, ...rows.map((r) => r.revenue));
   const day = Number(m.today.slice(8, 10));
   return (
@@ -349,7 +351,7 @@ function Month() {
         <Stat label={`이번 달 매출 (${day}일까지)`} value={formatKRW(cur.revenue)} sub={`지난달 전체 ${formatKRW(prev.revenue)}`} />
         <Stat label="목표 대비" value={tp.rate != null ? `${Math.round(tp.rate * 100)}%` : "목표 미입력"} sub={tp.rate != null ? `월 경과 ${Math.round(tp.elapsed * 100)}% · ${tp.status}` : "월별 실적에서 입력"} tone={tp.rate != null ? (tp.rate >= tp.elapsed ? "var(--success)" : "var(--warning)") : undefined} />
         <Stat label="매출총이익" value={formatKRW(cur.grossProfit)} sub={mr == null ? "원가 미입력" : `이익률 ${Math.round(mr * 100)}% (원가 입력 제품)`} />
-        <Stat label="받을 돈 (미수금)" value={formatKRW(rs.outstanding)} sub={rs.overdueCount ? `연체 ${rs.overdueCount}건 · ${formatKRW(rs.overdueAmount)}` : "연체 없음"} tone={rs.overdueCount ? "var(--danger)" : undefined} />
+        <Stat label="받을 돈 (미수금)" value={formatKRW(rs.outstanding)} sub={<>{rs.overdueCount ? `연체 ${rs.overdueCount}건 · ${formatKRW(rs.overdueAmount)}` : "연체 없음"}<AgingStrip rows={aging} total={rs.outstanding} /></>} tone={rs.overdueCount ? "var(--danger)" : undefined} />
       </div>
       <div className="min-h-0 flex-1 rounded-[0.7em] border p-[0.8em]" style={{ borderColor: "var(--border)" }}>
         <div className="text-[0.78em] font-semibold text-ink-soft">월별 매출 (12개월){change(cur.revenue, prev.revenue) != null && day >= 28 ? ` · 전월 대비 ${formatPct(change(cur.revenue, prev.revenue))}` : ""}</div>
@@ -368,6 +370,22 @@ function Month() {
         <p className="mt-[0.3em] text-[0.62em] text-ink-soft">점선 막대 = 이번 달 (진행 중) · 판관비 제외 매출총이익 기준</p>
       </div>
     </div>
+  );
+}
+
+/* 받을 돈 연령 (PASS 32, D-110) — 보고 장에서 '기한 넘긴 돈 %'와 구간 막대. 색은 정산 화면·대시보드와 같음 */
+function AgingStrip({ rows, total }: { rows: ReturnType<typeof receivableAging>; total: number }) {
+  if (total <= 0) return null;
+  const over = rows.filter((r) => r.bucket !== "notDue").reduce((a, r) => a + r.amount, 0);
+  const shown = rows.filter((r) => r.amount > 0);
+  return (
+    <span className="mt-[0.45em] block" data-testid="present-aging">
+      <span className="flex h-[0.42em] w-full overflow-hidden rounded-full bg-surface-muted" aria-hidden>
+        {shown.map((r) => <span key={r.bucket} className="h-full" style={{ width: `${Math.max(3, (r.amount / total) * 100)}%`, background: AGING_COLOR[r.bucket] }} data-bucket={r.bucket} />)}
+      </span>
+      <span className="mt-[0.3em] block" data-testid="present-aging-over">기한 넘긴 돈 <b className="tabular" style={{ color: over > 0 ? "var(--danger)" : undefined }}>{over > 0 && over / total < 0.01 ? "1% 미만" : `${Math.round((over / total) * 100)}%`}</b></span>
+      <span className="sr-only">{shown.map((r) => `${AGING_LABEL[r.bucket]} ${formatKRW(r.amount)}`).join(", ")}</span>
+    </span>
   );
 }
 

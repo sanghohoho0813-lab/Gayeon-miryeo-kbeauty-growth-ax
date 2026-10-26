@@ -10,7 +10,7 @@ import { ActionDrawer } from "@/components/ax/ActionDrawer";
 import { AiReadyButton, AI_SPECS } from "@/components/ax/AiReady";
 import { EmptyState } from "@/components/ax/States";
 import { useModel } from "@/components/providers/DataProvider";
-import { OPEN_STATUSES } from "@/lib/analytics";
+import { actionWaitDays, OPEN_STATUSES } from "@/lib/analytics";
 import { matchesQuery } from "@/lib/search";
 import type { ActionCategory, ActionStatus, GrowthAction } from "@/lib/types";
 
@@ -25,9 +25,14 @@ function Inner() {
   const m = useModel();
   const router = useRouter();
   const params = useSearchParams();
-  const [status, setStatus] = useState<StatusFilter>("열린 Action");
+  // 알림 '새 Action'은 ?status=NEW 로 열림 (PASS 32, D-108)
+  const sParam = params.get("status") as StatusFilter | null;
+  const [status, setStatus] = useState<StatusFilter>(() => (sParam && STATUS_FILTERS.includes(sParam) ? sParam : "열린 Action"));
+  useEffect(() => { if (sParam && STATUS_FILTERS.includes(sParam)) setStatus(sParam); }, [sParam]);
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("전체");
   const [open, setOpen] = useState<GrowthAction | null>(null);
+  // 처리 창 이전·다음 순서 — 연 순간의 목록 순서로 고정 (PASS 32, D-106)
+  const [navIds, setNavIds] = useState<string[]>([]);
   const [more, setMore] = useState(false);
   const [q, setQ] = useState("");
 
@@ -35,7 +40,7 @@ function Inner() {
   const aid = params.get("a");
   useEffect(() => {
     const a = aid ? m.actions.find((x) => x.id === aid) : undefined;
-    if (a) setOpen(a);
+    if (a) { setOpen(a); setNavIds([a.id]); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aid]);
   const close = () => { setOpen(null); if (aid) router.replace("/ax/growth", { scroll: false }); };
@@ -48,6 +53,7 @@ function Inner() {
     return status === "열린 Action" ? [...l].sort((a, b) => (missionRank.get(a.id) ?? 99) - (missionRank.get(b.id) ?? 99)) : l;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [m.actions, m.missions, status, category, q]);
+  const openAction = (a: GrowthAction) => { setOpen(a); setNavIds(list.some((x) => x.id === a.id) ? list.map((x) => x.id) : [a.id]); };
   const proofs = m.snapshot.proofEvents;
   const label = (s: StatusFilter) => (s === "열린 Action" ? s : ACTION_STATUS_LABEL[s]);
 
@@ -100,7 +106,7 @@ function Inner() {
             <ul className="space-y-2">
               {(more ? list : list.slice(0, SHOW)).map((a) => {
                 const rank = status === "열린 Action" ? missionRank.get(a.id) : undefined;
-                return <li key={a.id}><ActionRow action={a} rank={rank} today={!!rank} onOpen={() => setOpen(a)} /></li>;
+                return <li key={a.id}><ActionRow action={a} rank={rank} today={!!rank} waitDays={actionWaitDays(a, m.today)} onOpen={() => openAction(a)} /></li>;
               })}
             </ul>
             {list.length > SHOW && (
@@ -137,7 +143,7 @@ function Inner() {
         </div>
       </div>
 
-      <ActionDrawer action={open} onClose={close} />
+      <ActionDrawer action={open} onClose={close} nav={{ ids: navIds, onGo: setOpen }} />
     </div>
   );
 }

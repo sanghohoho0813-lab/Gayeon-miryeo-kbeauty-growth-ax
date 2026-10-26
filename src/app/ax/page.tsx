@@ -27,7 +27,7 @@ import { daysBetween, formatDateKR } from "@/lib/date";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { isLive } from "@/lib/config";
-import { formatKRW, formatPct, matrixZone, OPEN_STATUSES, productInsight, weeklyRevenue } from "@/lib/analytics";
+import { actionWaitDays, formatKRW, formatPct, matrixZone, OPEN_STATUSES, productInsight, weeklyRevenue } from "@/lib/analytics";
 import type { GrowthAction } from "@/lib/types";
 
 export default function DashboardPage() {
@@ -84,7 +84,7 @@ export default function DashboardPage() {
             <KpiCard bare label="처리할 Action" value={openActions.length} format={(v) => `${Math.round(v)}건`} icon={<ListChecks />} iconTone="#5965D8" sub="오늘의 Mission 포함" href="/ax/growth" />
           )}
           <KpiCard bare label="판매 중 SKU" value={kpis.totalSku} format={(v) => `${Math.round(v)}개`} icon={<Tags />} iconTone="#7C5CE7" sub={`성장 ${kpis.growingSku} · 부진 ${kpis.decliningSku}`} href="/ax/products" />
-          <KpiCard bare label="재고 위험 SKU" value={kpis.stockRiskSku} format={(v) => `${Math.round(v)}개`} icon={<AlertTriangle />} iconTone="#D99016" sub={`과잉 ${kpis.overStockSku}개 별도`} href="/ax/products?tab=inventory" />
+          <KpiCard bare label="재고 위험 SKU" value={kpis.stockRiskSku} format={(v) => `${Math.round(v)}개`} icon={<AlertTriangle />} iconTone="#D99016" sub={`과잉 ${kpis.overStockSku}개 별도`} href={kpis.stockRiskSku > 0 ? "/ax/products?tab=inventory&status=%EC%9C%84%ED%97%98" : "/ax/products?tab=inventory"} />
           {fin ? (
             <KpiCard bare label="B2B·수출" value={kpis.b2bExportRevenue28} format={formatKRW} icon={<Globe2 />} iconTone="#148C8C" trend={kpis.b2bExportGrowth} trendLabel="이전 4주 대비" href="/ax/channels?tab=b2b" spark={{ data: spark.be, label: sparkLabel("B2B·수출", spark.be) }} />
           ) : (
@@ -108,7 +108,7 @@ export default function DashboardPage() {
             <EmptyState title="지금 처리할 Action이 없습니다" desc="RULE이 새 위험·기회를 감지하면 이곳에 나타납니다." />
           ) : (
             <ol className="space-y-2.5">
-              {m.missions.map((a, i) => <li key={a.id}><ActionRow action={a} rank={i + 1} onOpen={() => setOpen(a)} /></li>)}
+              {m.missions.map((a, i) => <li key={a.id}><ActionRow action={a} rank={i + 1} waitDays={actionWaitDays(a, m.today)} onOpen={() => setOpen(a)} /></li>)}
             </ol>
           )}
           {openActions.length > m.missions.length && (
@@ -128,7 +128,7 @@ export default function DashboardPage() {
         <ChevronRight size={15} aria-hidden />
       </Link>
 
-      <ActionDrawer action={open} onClose={() => setOpen(null)} />
+      <ActionDrawer action={open} onClose={() => setOpen(null)} nav={{ ids: m.missions.map((x) => x.id), onGo: setOpen }} />
     </div>
   );
 }

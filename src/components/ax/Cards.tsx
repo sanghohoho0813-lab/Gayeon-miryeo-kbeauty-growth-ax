@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ArrowDownRight, ArrowUpRight, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 import { InfoTip } from "./InfoTip";
 import type { ActionStatus, GrowthAction } from "@/lib/types";
+import { ACTION_WAIT_ALERT_DAYS } from "@/lib/analytics";
 
 /* ---------- Count-up (첫 진입 1회, reduced-motion 존중) ---------- */
 export function useCountUp(target: number, duration = 650): number {
@@ -222,7 +223,8 @@ export function InsightCard({ title = "AI Growth Insight", method = "RULE", summ
 }
 
 /* ---------- Action 컴팩트 행 (대시보드 '오늘 먼저 할 일'·Growth Center 목록) — 카드보다 2~3배 많이 한 화면에 ---------- */
-export function ActionRow({ action, onOpen, rank, today = false }: { action: GrowthAction; onOpen: () => void; rank?: number; today?: boolean }) {
+export function ActionRow({ action, onOpen, rank, today = false, waitDays }: { action: GrowthAction; onOpen: () => void; rank?: number; today?: boolean; waitDays?: number | null }) {
+  const waiting = waitDays != null && waitDays >= ACTION_WAIT_ALERT_DAYS;
   return (
     <button onClick={onOpen} className="row-hover group flex w-full items-start gap-3 rounded-xl border p-3 text-left @md:p-3.5" style={{ borderColor: today ? "color-mix(in srgb, var(--primary) 35%, var(--border))" : "var(--border)" }} data-action-row={action.ruleKey}>
       {rank ? (
@@ -233,6 +235,8 @@ export function ActionRow({ action, onOpen, rank, today = false }: { action: Gro
           <StatusBadge tone={PRIORITY_TONE[action.priority]}>{action.priority}</StatusBadge>
           <StatusBadge tone="neutral">{action.category}</StatusBadge>
           <StatusBadge tone={ACTION_STATUS_TONE[action.status]}>{ACTION_STATUS_LABEL[action.status]}</StatusBadge>
+          {/* 오래 기다린 Action (PASS 32, D-107) — 새 추천·검토 완료로 3일 이상 머물면 표시 */}
+          {waiting && <span data-wait-days={waitDays}><StatusBadge tone="warning">{waitDays}일째 대기</StatusBadge></span>}
           {/* 좁은 화면은 순위 동그라미(1~3)가 '오늘 먼저'를 뜻하므로 꼬리표 생략 — 한 줄에 들어가게 (PASS 30) */}
           {today && <span className={rank ? "hidden @md:inline-flex" : "inline-flex"}><StatusBadge tone="primary">오늘 먼저</StatusBadge></span>}
           {/* 좁은 화면: '담당 미지정'은 숨겨 꼬리표가 한 줄에 들어가게 (담당자가 있으면 표시, 처리 창에서는 항상 보임 — PASS 30) */}

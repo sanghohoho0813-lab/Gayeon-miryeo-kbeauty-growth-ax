@@ -17,10 +17,11 @@ import { useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { formatKRW, formatPct, formatPrice } from "@/lib/analytics";
-import { change, marginRate, monthLabel, monthlySummary, type Breakdown } from "@/lib/monthly";
+import { change, marginRate, monthLabel, monthlySummary, vsPrevMonth, type Breakdown } from "@/lib/monthly";
 import { summarizeReceivables } from "@/lib/settlements";
 import { MonthlyTargetCard } from "@/components/ax/MonthlyTargetCard";
 import { targetProgress } from "@/lib/targets";
+import { useNarrow } from "@/lib/use-narrow";
 
 /* 월별 실적 — 계약 별지 제1호 ① "월별·판매채널별·제품별 매출, 이익" */
 function Inner() {
@@ -83,15 +84,17 @@ function Inner() {
           <MonthlyTargetCard key={sel.month} month={sel.month} actual={sel.revenue} />
           </div>
 
-          <Breakdowns month={sel.month} byChannel={sel.byChannel} byProduct={sel.byProduct} total={sel.revenue} />
+          <Breakdowns month={sel.month} byChannel={sel.byChannel} byProduct={sel.byProduct} total={sel.revenue} prev={prev ? { byChannel: prev.byChannel, byProduct: prev.byProduct } : null} />
         </>
       )}
     </div>
   );
 }
 
-/* 채널별·제품별 구성 — 같은 표 두 개를 탭 하나로 묶음 (PASS 21, D-075) */
-function Breakdowns({ month, byChannel, byProduct, total }: { month: string; byChannel: Breakdown[]; byProduct: Breakdown[]; total: number }) {
+/* 채널별·제품별 구성 — 같은 표 두 개를 탭 하나로 묶음 (PASS 21, D-075)
+   PASS 32 (D-105): 비중을 막대로 보이고 '전월 대비' 열 추가 — 지난달 같은 채널·제품 매출과 비교, 지난달 0원이면 '신규' */
+type PrevBreakdowns = { byChannel: Breakdown[]; byProduct: Breakdown[] } | null;
+function Breakdowns({ month, byChannel, byProduct, total, prev }: { month: string; byChannel: Breakdown[]; byProduct: Breakdown[]; total: number; prev: PrevBreakdowns }) {
   const [view, setView] = useState<"channel" | "product">("channel");
   const isCh = view === "channel";
   const title = `${monthLabel(month)} ${isCh ? "채널별" : "제품별"}`;
@@ -99,25 +102,54 @@ function Breakdowns({ month, byChannel, byProduct, total }: { month: string; byC
     <div className="mt-5">
       <Tabs tabs={[{ id: "channel", label: "채널별" }, { id: "product", label: "제품별" }]} value={view} onChange={setView} className="mb-3 w-fit" panelId="monthly-breakdown" label="구성 보기" />
       <div id="monthly-breakdown" role="tabpanel" aria-labelledby={`monthly-breakdown-tab-${view}`}>
-        <BreakdownTable key={view} file={`monthly_${isCh ? "channels" : "products"}_${month}`} title={title} rows={isCh ? byChannel : byProduct} total={total} testId={isCh ? "monthly-channels" : "monthly-products"} />
+        <BreakdownTable key={view} file={`monthly_${isCh ? "channels" : "products"}_${month}`} title={title} rows={isCh ? byChannel : byProduct} prevRows={prev ? (isCh ? prev.byChannel : prev.byProduct) : null} total={total} testId={isCh ? "monthly-channels" : "monthly-products"} />
       </div>
     </div>
   );
 }
 
-function BreakdownTable({ title, file, rows, total, testId }: { title: string; file: string; rows: Breakdown[]; total: number; testId: string }) {
+function VsPrev({ v }: { v: number | "new" | null }) {
+  if (v == null) return <span className="text-ink-soft">-</span>;
+  if (v === "new") return <span className="badge !min-h-0 !py-0.5 text-[0.74rem]" style={{ background: "color-mix(in srgb, var(--chart-1) 14%, transparent)" }}>신규</span>;
+  return <span className="font-semibold" style={{ color: v >= 0 ? "var(--success)" : "var(--danger)" }}>{v >= 0 ? "▲" : "▼"} {formatPct(Math.abs(v), false)}</span>;
+}
+function ShareBar({ share }: { share: number }) {
+  return <div className="mt-1 h-1.5 w-full max-w-[160px] overflow-hidden rounded-full bg-surface-muted" aria-hidden><div className="h-full rounded-full" style={{ width: `${Math.max(2, share * 100)}%`, background: "var(--chart-1)" }} /></div>;
+}
+
+function BreakdownTable({ title, file, rows, prevRows, total, testId }: { title: string; file: string; rows: Breakdown[]; prevRows: Breakdown[] | null; total: number; testId: string }) {
+  const narrow = useNarrow();
+  const data = rows.map((r) => ({ r, share: total ? r.revenue / total : 0, vs: vsPrevMonth(r, prevRows) }));
+  const vsText = (v: number | "new" | null) => (v == null ? "" : v === "new" ? "신규" : Math.round(v * 1000) / 10);
   return (
-    <DataCard title={title} action={<ExportButton name={title.replace(/[ .]/g, "_")} file={file} rows={rows.map((r) => ({ 이름: r.name, 매출: r.revenue, "비중(%)": total ? Math.round((r.revenue / total) * 1000) / 10 : 0, 판매수량: r.units, 매출총이익: r.profit ?? "" }))} />}>
-      {rows.length === 0 ? <p className="text-[0.9rem] text-ink-soft">해당 월 판매가 없습니다.</p> : (
+    <DataCard title={title} info="비중은 이달 전체 매출 대비, 전월 대비는 지난달 같은 채널·제품 매출과 비교한 값입니다." action={<ExportButton name={title.replace(/[ .]/g, "_")} file={file} rows={data.map(({ r, share, vs }) => ({ 이름: r.name, 매출: r.revenue, "비중(%)": Math.round(share * 1000) / 10, "전월 대비(%)": vsText(vs), 판매수량: r.units, 매출총이익: r.profit ?? "" }))} />}>
+      {rows.length === 0 ? <p className="text-[0.9rem] text-ink-soft">해당 월 판매가 없습니다.</p> : narrow ? (
+        <ul className="divide-y" style={{ borderColor: "var(--border)" }} data-testid={testId}>
+          {data.map(({ r, share, vs }) => (
+            <li key={r.key} className="py-2.5" data-breakdown-row={r.key}>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="min-w-0 truncate font-semibold">{r.name}</span>
+                <span className="tabular shrink-0 font-bold">{formatPrice(r.revenue)}</span>
+              </div>
+              <div className="mt-1 flex items-center gap-2">
+                <div className="flex-1"><ShareBar share={share} /></div>
+                <span className="tabular shrink-0 text-[0.8rem] text-ink-soft">{formatPct(share, false)}</span>
+              </div>
+              <p className="tabular mt-1 flex flex-wrap items-center gap-x-2 text-[0.8rem] text-ink-soft"><span>전월 대비 <VsPrev v={vs} /></span><span aria-hidden>·</span><span>{r.units.toLocaleString()}개</span><span aria-hidden>·</span><span>이익 {r.profit == null ? "원가 미입력" : formatPrice(r.profit)}</span></p>
+            </li>
+          ))}
+        </ul>
+      ) : (
         <div tabIndex={0} className="table-scroll">
-          <table className="!min-w-[480px] text-[0.9rem]" data-testid={testId}>
-            <thead><tr className="border-b text-left text-[0.8rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>{["이름", "매출", "비중", "수량", "매출총이익"].map((h) => <th key={h} className="py-2 pr-3 font-semibold">{h}</th>)}</tr></thead>
+          <table className="!min-w-[560px] text-[0.9rem]" data-testid={testId}>
+            <thead><tr className="border-b text-left text-[0.8rem] text-ink-soft" style={{ borderColor: "var(--border)" }}>{["이름", "매출", "비중", "전월 대비", "수량", "매출총이익"].map((h) => <th key={h} className="py-2 pr-3 font-semibold">{h}</th>)}</tr></thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.key} className="border-b" style={{ borderColor: "var(--border)" }}>
+              {data.map(({ r, share, vs }) => (
+                <tr key={r.key} className="border-b" style={{ borderColor: "var(--border)" }} data-breakdown-row={r.key}>
                   <td className="py-2.5 pr-3 font-semibold">{r.name}</td>
                   <td className="tabular py-2.5 pr-3">{formatPrice(r.revenue)}</td>
-                  <td className="tabular py-2.5 pr-3 text-ink-soft">{total ? formatPct(r.revenue / total, false) : "-"}</td>
+                  <td className="tabular py-2.5 pr-3 text-ink-soft"><span>{total ? formatPct(share, false) : "-"}</span><ShareBar share={share} /></td>
+                  <td className="tabular py-2.5 pr-3" data-vs-prev>{<VsPrev v={vs} />}</td>
                   <td className="tabular py-2.5 pr-3">{r.units.toLocaleString()}</td>
                   <td className="tabular py-2.5 pr-3">{r.profit == null ? <span className="text-ink-soft">원가 미입력</span> : formatPrice(r.profit)}</td>
                 </tr>

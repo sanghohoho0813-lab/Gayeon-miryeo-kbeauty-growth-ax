@@ -56,7 +56,8 @@ export function Modal({ open, onClose, title, children, maxWidth = "max-w-lg" }:
   );
 }
 
-export function Drawer({ open, onClose, title, children, footer }: { open: boolean; onClose: () => void; title?: string; children: ReactNode; footer?: ReactNode }) {
+/** toolbar: 제목 아래 고정 줄(예: 이전·다음). bodyKey가 바뀌면 본문을 새로 그림 — 스크롤이 맨 위로 (PASS 32) */
+export function Drawer({ open, onClose, title, children, footer, toolbar, bodyKey }: { open: boolean; onClose: () => void; title?: string; children: ReactNode; footer?: ReactNode; toolbar?: ReactNode; bodyKey?: string }) {
   const panel = useOverlayLifecycle(open, onClose);
   if (!open) return null;
   return (
@@ -70,7 +71,8 @@ export function Drawer({ open, onClose, title, children, footer }: { open: boole
             <X size={22} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        {toolbar && <div className="border-b px-6 py-2" style={{ borderColor: "var(--border)" }}>{toolbar}</div>}
+        <div key={bodyKey} className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
         {footer && <div className="border-t px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]" style={{ borderColor: "var(--border)" }}>{footer}</div>}
       </div>
     </div>

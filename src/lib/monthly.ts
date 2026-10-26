@@ -56,3 +56,11 @@ export function monthlySummary(sales: SalesRecord[], products: Product[], channe
 
 export const marginRate = (r: { costedRevenue: number; grossProfit: number }) => (r.costedRevenue > 0 ? r.grossProfit / r.costedRevenue : null);
 export const change = (cur: number, prev: number) => (prev > 0 ? (cur - prev) / prev : null);
+/** 구성표 '전월 대비' (PASS 32, D-105) — 지난달 같은 채널·제품(key) 매출과 비교.
+ *  null = 비교할 지난달 자료 없음(첫 달) 또는 두 달 모두 0원, "new" = 지난달 0원·이번 달 매출 있음 */
+export function vsPrevMonth(r: Breakdown, prevRows: Breakdown[] | null): number | "new" | null {
+  if (!prevRows) return null;
+  const p = prevRows.find((x) => x.key === r.key)?.revenue ?? 0;
+  if (p <= 0) return r.revenue > 0 ? "new" : null;
+  return change(r.revenue, p);
+}

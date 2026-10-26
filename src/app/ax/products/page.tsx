@@ -51,7 +51,7 @@ function Inner() {
       <PageHeader title="상품·재고·생산" description="SKU별 판매·재고·OEM 생산 흐름을 확인하고 재고를 바로 갱신합니다. 신규 입력·CSV는 데이터 관리에서 합니다." actions={<><AiReadyButton spec={AI_SPECS.inventory} /><DataFreshness /></>} />
       <Tabs tabs={TABS} value={tab} onChange={(t) => router.replace(`/ax/products?tab=${t}`, { scroll: false })} />
       {tab === "products" && <ProductsTab onSelect={setSelected} />}
-      {tab === "inventory" && <InventoryTab onSelect={setSelected} />}
+      {tab === "inventory" && <InventoryTab key={params.get("status") ?? ""} initialStatus={params.get("status")} onSelect={setSelected} />}
       {tab === "production" && <ProductionTab />}
       <ProductDrawer product={selected} onClose={closeDrawer} />
     </div>
@@ -241,17 +241,22 @@ function DaysGauge({ mm }: { mm: ProductMetrics }) {
   );
 }
 
-function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
+/* ?status= 로 걸러진 채 열기 (PASS 32, D-108) — 대시보드 '재고 위험 SKU'·브리핑에서 '위험'(품절위험+부족주의)으로 연결.
+   '위험'은 칩에 없는 묶음이라 맨 앞에 지울 수 있는 칩으로 보여 줌 (정산 연령 칩과 같은 방식) */
+const RISK = "위험";
+const INV_STATUSES = ["전체", "품절위험", "부족주의", "안정", "과잉", "데이터 없음"];
+function InventoryTab({ onSelect, initialStatus }: { onSelect: (p: Product) => void; initialStatus?: string | null }) {
   const m = useModel();
   const { run } = useData();
   const { role } = useSession();
-  const [status, setStatus] = useState("전체");
+  const [status, setStatus] = useState(() => (initialStatus && (initialStatus === RISK || INV_STATUSES.includes(initialStatus)) ? initialStatus : "전체"));
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<InvSort>(() => { try { const v = localStorage.getItem(INV_SORT_KEY) as InvSort | null; return v && INV_SORTS.some((x) => x.key === v) ? v : "days"; } catch { return "days"; } });
   const [edit, setEdit] = useState<{ product: Product; inv: Inventory } | null>(null);
-  const statuses = ["전체", "품절위험", "부족주의", "안정", "과잉", "데이터 없음"];
+  const statuses = INV_STATUSES;
   const all = m.snapshot.products.map((p) => ({ p, mm: m.metrics.get(p.id)!, inv: m.snapshot.inventory.find((i) => i.productId === p.id) }));
-  const countOf = (st: string) => (st === "전체" ? all.length : all.filter((r) => r.mm.stockStatus === st).length);
+  const isStatus = (st: string, r: (typeof all)[number]) => st === "전체" || (st === RISK ? r.mm.stockStatus === "품절위험" || r.mm.stockStatus === "부족주의" : r.mm.stockStatus === st);
+  const countOf = (st: string) => all.filter((r) => isStatus(st, r)).length;
   const key = (r: (typeof all)[number]): number | string => {
     switch (sort) {
       case "deadline": return r.mm.daysToDeadline ?? Infinity; // 생산기간 미입력은 맨 뒤
@@ -262,7 +267,7 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
     }
   };
   const rows = all
-    .filter((r) => (status === "전체" || r.mm.stockStatus === status) && matchesQuery(q, r.p.name, r.p.sku, r.p.category, r.p.line))
+    .filter((r) => isStatus(status, r) && matchesQuery(q, r.p.name, r.p.sku, r.p.category, r.p.line))
     .sort((a, b) => { const x = key(a), y = key(b); return (typeof x === "string" ? x.localeCompare(String(y), "ko") : (x as number) - (y as number)) || a.p.name.localeCompare(b.p.name, "ko"); });
   const canEdit = can(role, "edit_operational");
   const narrow = useNarrow();
@@ -273,6 +278,11 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
       <DataCard title={<>재고 현황 <span className="tabular text-ink-soft">({rows.length === all.length ? all.length : `${rows.length} / ${all.length}`})</span></>}>
         {/* 상태 칩 한 줄 + 개수 (PASS 31) — 좁은 화면은 옆으로 넘김, 0개는 숫자 없이 흐리게 */}
         <div className="chip-rail relative -mx-4 mb-2.5 flex gap-1.5 overflow-x-auto px-4 pb-0.5 @md:mx-0 @md:flex-wrap @md:px-0" role="group" aria-label="재고 상태 필터" data-testid="inventory-status">
+          {status === RISK && (
+            <button type="button" onClick={() => setStatus("전체")} className="pressable relative inline-flex min-h-[38px] shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 text-[0.84rem] font-semibold" style={{ background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" }} data-testid="inventory-risk-chip" aria-label="품절위험·부족주의만 보기 해제">
+              품절위험·부족주의 <span className="tabular rounded-full px-1.5 text-[0.76rem]" style={{ background: "#fff", color: "var(--primary)" }}>{countOf(RISK)}</span> <X size={14} aria-hidden />
+            </button>
+          )}
           {statuses.map((st) => {
             const on = status === st;
             const n = countOf(st);
@@ -297,7 +307,7 @@ function InventoryTab({ onSelect }: { onSelect: (p: Product) => void }) {
         </div>
         {rows.length === 0 ? (
           <div className="rounded-xl bg-surface-muted px-4 py-6 text-center text-[0.92rem]" data-testid="inventory-empty">
-            <p className="font-semibold">{q ? <>&lsquo;{q}&rsquo;에 맞는 상품이 없습니다</> : `'${status}' 상품이 없습니다`}</p>
+            <p className="font-semibold">{q ? <>&lsquo;{q}&rsquo;에 맞는 상품이 없습니다</> : status === RISK ? "품절위험·부족주의 상품이 없습니다" : `'${status}' 상품이 없습니다`}</p>
             <button type="button" className="btn-secondary mt-3 !min-h-[40px] text-[0.86rem]" onClick={() => { setQ(""); setStatus("전체"); }}>검색·상태 지우기</button>
           </div>
         ) : narrow ? (

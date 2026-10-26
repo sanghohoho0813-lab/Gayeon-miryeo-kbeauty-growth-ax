@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, StatusBadge } from "@/components/ax/Cards";
 import { Tabs } from "@/components/ax/Tabs";
@@ -23,7 +23,8 @@ import { can } from "@/lib/permissions";
 import { formatPrice } from "@/lib/analytics";
 import { todayISO } from "@/lib/date";
 import { isLive } from "@/lib/config";
-import type { B2BAccount, Channel, ChannelType, InputCycle, Product, ProductCategory, ProductionPlan, SkinConcern, Texture } from "@/lib/types";
+import type { B2BAccount, Channel, ChannelType, InputCycle, Product, ProductCategory, ProductionPlan, SalesRecord, SkinConcern, Texture } from "@/lib/types";
+import { matchesQuery } from "@/lib/search";
 import { cycleOf, INPUT_CYCLE_IDS, INPUT_CYCLES } from "@/lib/channel-cycle";
 
 const TABS = [
@@ -117,44 +118,106 @@ function SalesTab() {
   );
 }
 
+/* 판매 1건 입력 — PASS 32 (D-109): Enter로 저장(form) · 매출 자동 계산식을 그대로 보여 줌 · 상품 찾기(초성 가능)
+   · 직접 입력한 판매는 그 자리에서 삭제(대표·관리자, 두 번 눌러 확인 — 파일로 들어온 판매는 '가져오기 기록'에서 되돌림) */
+const SOURCE_LABEL: Record<SalesRecord["source"], string> = { manual: "직접 입력", csv: "파일", api: "연동", seed: "기준값" };
 function ManualSaleCard() {
   const m = useModel();
+  const { role } = useSession();
   const { busy, save } = useSave();
   const channels = m.snapshot.channels.filter((c) => c.active);
   const products = m.snapshot.products;
   const [f, setF] = useState({ saleDate: todayISO(), productId: products[0]?.id ?? "", channelId: channels[0]?.id ?? "", units: "", revenue: "" });
+  const [pq, setPq] = useState("");
+  const [confirmId, setConfirmId] = useState<string | null>(null);
   const recent = [...m.snapshot.sales].filter((s) => s.source !== "seed").sort((a, b) => b.saleDate.localeCompare(a.saleDate)).slice(0, 8);
+  const canDelete = can(role, "edit_master");
+  // 두 번째 누름을 기다리는 시간 — 4초 안에 다시 누르지 않으면 원래대로
+  useEffect(() => { if (!confirmId) return; const t = window.setTimeout(() => setConfirmId(null), 4000); return () => window.clearTimeout(t); }, [confirmId]);
 
-  const computeRevenue = (productId: string, channelId: string, units: number) => {
-    const p = m.productById.get(productId);
-    const c = channels.find((x) => x.id === channelId);
-    return p ? Math.round(units * p.price * (1 - (c?.avgDiscountRate ?? 0))) : 0;
+  const p = m.productById.get(f.productId);
+  const c = channels.find((x) => x.id === f.channelId);
+  const computeRevenue = (units: number) => (p ? Math.round(units * p.price * (1 - (c?.avgDiscountRate ?? 0))) : 0);
+  const unitsOk = f.units !== "" && Number.isInteger(Number(f.units)) && Number(f.units) >= 0;
+  const revOk = f.revenue === "" || (Number.isFinite(Number(f.revenue)) && Number(f.revenue) >= 0);
+  const shown = products.filter((x) => matchesQuery(pq, x.name, x.sku, x.category, x.line));
+  const pickQuery = (v: string) => {
+    setPq(v);
+    const hits = products.filter((x) => matchesQuery(v, x.name, x.sku, x.category, x.line));
+    if (hits.length && !hits.some((x) => x.id === f.productId)) setF({ ...f, productId: hits[0].id });
   };
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (busy || !unitsOk || !revOk || !p) return;
+    const units = Number(f.units);
+    const revenue = f.revenue ? Number(f.revenue) : computeRevenue(units);
+    if (await save(`판매 1건을 저장했습니다 — ${p.name} ${units.toLocaleString()}개`, (s) => s.addSales([{ productId: f.productId, channelId: f.channelId, saleDate: f.saleDate, units, revenue, source: "manual" }]))) {
+      setF({ ...f, units: "", revenue: "" });
+      document.getElementById("s-units")?.focus(); // 같은 상품·채널로 이어서 입력
+    }
+  };
+  const remove = async (id: string) => {
+    if (confirmId !== id) { setConfirmId(id); return; }
+    setConfirmId(null);
+    await save("판매 1건을 삭제했습니다", (s) => s.deleteSales([id]).then(() => undefined));
+  };
+  const rate = c?.avgDiscountRate ?? 0;
 
   return (
       <DataCard title="판매 1건 입력">
+        <form onSubmit={submit} data-testid="manual-sale-form">
         <div className="grid gap-3 @xl:grid-cols-2">
           <div><label className="field-label" htmlFor="s-date">판매일 (또는 집계일)</label><input id="s-date" type="date" className="field" value={f.saleDate} onChange={(e) => setF({ ...f, saleDate: e.target.value })} /></div>
-          <div><label className="field-label" htmlFor="s-units">수량</label><input id="s-units" className="field tabular" inputMode="numeric" value={f.units} onChange={(e) => setF({ ...f, units: e.target.value })} /></div>
-          <div><label className="field-label" htmlFor="s-prod">상품</label><select id="s-prod" className="field" value={f.productId} onChange={(e) => setF({ ...f, productId: e.target.value })}>{products.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}</select></div>
-          <div><label className="field-label" htmlFor="s-ch">채널</label><select id="s-ch" className="field" value={f.channelId} onChange={(e) => setF({ ...f, channelId: e.target.value })}>{channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-          <div className="@xl:col-span-2"><label className="field-label" htmlFor="s-rev">매출 (비우면 판매가 × 수량 × (1 − 채널 할인율))</label><input id="s-rev" className="field tabular" inputMode="numeric" placeholder={f.units ? String(computeRevenue(f.productId, f.channelId, Number(f.units) || 0)) : ""} value={f.revenue} onChange={(e) => setF({ ...f, revenue: e.target.value })} /></div>
+          <div><label className="field-label" htmlFor="s-units">수량</label><input id="s-units" className="field tabular" inputMode="numeric" enterKeyHint="done" placeholder="예: 3" aria-invalid={f.units !== "" && !unitsOk} aria-describedby={f.units !== "" && !unitsOk ? "s-units-err" : undefined} value={f.units} onChange={(e) => setF({ ...f, units: e.target.value.trim() })} />
+            {f.units !== "" && !unitsOk && <p id="s-units-err" className="mt-1 text-[0.8rem] font-semibold" style={{ color: "var(--danger)" }}>0 이상의 정수로 입력하세요</p>}
+          </div>
+          <div>
+            <div className="flex items-end justify-between gap-2"><label className="field-label" htmlFor="s-prod">상품</label>{products.length > 6 && <span className="mb-1 text-[0.76rem] text-ink-soft tabular" aria-hidden>{pq ? `${shown.length}개 찾음` : `${products.length}개`}</span>}</div>
+            {products.length > 6 && (
+              <input type="search" className="field mb-1.5 !min-h-[40px] text-[0.88rem]" placeholder="상품 찾기 — 이름·코드 (초성 가능)" value={pq} onChange={(e) => pickQuery(e.target.value)} aria-label="상품 찾기" aria-controls="s-prod" data-testid="manual-sale-product-search" />
+            )}
+            <select id="s-prod" className="field" value={f.productId} onChange={(e) => setF({ ...f, productId: e.target.value })}>
+              {(shown.length ? shown : products).map((x) => <option key={x.id} value={x.id}>{x.name} ({x.sku})</option>)}
+            </select>
+            {pq && shown.length === 0 && <p className="mt-1 text-[0.8rem] text-ink-soft" data-testid="manual-sale-product-none">&lsquo;{pq}&rsquo;에 맞는 상품이 없어 전체를 보여 줍니다</p>}
+          </div>
+          <div><label className="field-label" htmlFor="s-ch">채널</label><select id="s-ch" className="field" value={f.channelId} onChange={(e) => setF({ ...f, channelId: e.target.value })}>{channels.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
+          <div className="@xl:col-span-2">
+            <label className="field-label" htmlFor="s-rev">매출 (비우면 자동 계산)</label>
+            <input id="s-rev" className="field tabular" inputMode="numeric" enterKeyHint="done" aria-describedby="s-rev-calc" aria-invalid={!revOk} placeholder={unitsOk ? String(computeRevenue(Number(f.units))) : "수량을 넣으면 자동 계산"} value={f.revenue} onChange={(e) => setF({ ...f, revenue: e.target.value.replace(/[,\s원₩]/g, "") })} />
+            {/* 자동 계산식 — 숫자가 어디서 나왔는지 바로 보이게 */}
+            <p id="s-rev-calc" className="tabular mt-1 text-[0.8rem] text-ink-soft" aria-live="polite" data-testid="manual-sale-calc">
+              {!revOk ? <span className="font-semibold" style={{ color: "var(--danger)" }}>매출은 0 이상의 숫자로 입력하세요</span>
+                : f.revenue ? "입력한 매출로 저장합니다"
+                : p && unitsOk ? <>판매가 {formatPrice(p.price)} × {Number(f.units).toLocaleString()}개{rate ? ` × (1 − ${c?.name} 할인 ${Math.round(rate * 1000) / 10}%)` : ""} = <b className="text-ink">{formatPrice(computeRevenue(Number(f.units)))}</b></>
+                : "판매가 × 수량 × (1 − 채널 평균 할인율)"}
+            </p>
+          </div>
         </div>
-        <button
-          className="btn-primary mt-4"
-          disabled={busy || !Number.isInteger(Number(f.units)) || Number(f.units) < 0 || f.units === ""}
-          onClick={async () => {
-            const units = Number(f.units);
-            const revenue = f.revenue ? Number(f.revenue) : computeRevenue(f.productId, f.channelId, units);
-            if (await save("판매 1건을 저장했습니다", (s) => s.addSales([{ productId: f.productId, channelId: f.channelId, saleDate: f.saleDate, units, revenue, source: "manual" }]))) setF({ ...f, units: "", revenue: "" });
-          }}
-        >
-          <Plus size={17} aria-hidden /> 저장
+        <button type="submit" className="btn-primary mt-4" disabled={busy || !unitsOk || !revOk} data-testid="manual-sale-save">
+          <Plus size={17} aria-hidden /> 저장 <span className="hidden text-[0.78rem] font-medium opacity-80 @md:inline">(Enter)</span>
         </button>
-        <h3 className="mt-6 text-[0.95rem] font-bold">최근 직접 입력한 판매</h3>
+        </form>
+        <h3 className="mt-6 text-[0.95rem] font-bold">최근 입력된 판매 <span className="text-[0.8rem] font-medium text-ink-soft">(기준값 제외 · 판매일 순)</span></h3>
         {recent.length === 0 ? <p className="mt-2 text-[0.88rem] text-ink-soft">아직 없습니다 (Demo 기준값 제외)</p> : (
-          <ul className="mt-2 space-y-1.5 text-[0.88rem]">
-            {recent.map((s) => <li key={s.id} className="flex justify-between rounded-lg bg-surface-muted px-3 py-2"><span>{s.saleDate} · {m.productById.get(s.productId)?.name}</span><span className="tabular">{s.units}개 · {formatPrice(s.revenue)} <StatusBadge tone="neutral">{s.source}</StatusBadge></span></li>)}
+          <ul className="mt-2 space-y-1.5 text-[0.88rem]" data-testid="manual-sale-recent">
+            {recent.map((s) => {
+              const arm = confirmId === s.id;
+              return (
+                <li key={s.id} className="flex items-center justify-between gap-2 rounded-lg bg-surface-muted px-3 py-2" data-sale-row={s.id}>
+                  <span className="min-w-0"><span className="tabular">{s.saleDate.slice(5).replace("-", ".")}</span> · <span className="font-semibold">{m.productById.get(s.productId)?.name ?? "삭제된 상품"}</span><span className="block text-[0.78rem] text-ink-soft @md:inline @md:before:content-['_·_']">{m.snapshot.channels.find((x) => x.id === s.channelId)?.name ?? "-"}</span></span>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <span className="tabular text-right">{s.units.toLocaleString()}개 · {formatPrice(s.revenue)}</span>
+                    <StatusBadge tone="neutral">{SOURCE_LABEL[s.source] ?? s.source}</StatusBadge>
+                    {canDelete && s.source === "manual" && (
+                      <button type="button" disabled={busy} onClick={() => remove(s.id)} className={`inline-flex min-h-[34px] items-center gap-1 rounded-lg px-2 text-[0.8rem] font-semibold ${arm ? "text-white" : "text-ink-soft hover:bg-surface"}`} style={arm ? { background: "var(--danger)" } : undefined} aria-label={arm ? "한 번 더 누르면 삭제" : `${m.productById.get(s.productId)?.name ?? ""} ${s.saleDate} 판매 삭제`} data-testid="manual-sale-delete">
+                        <Trash2 size={14} aria-hidden />{arm ? "삭제 확인" : <span className="sr-only">삭제</span>}
+                      </button>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </DataCard>

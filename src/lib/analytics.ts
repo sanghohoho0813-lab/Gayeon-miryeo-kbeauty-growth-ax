@@ -253,6 +253,26 @@ export interface CustomerInsight {
   totalCount: number;
 }
 
+/** 고객 전환 흐름 4단계 (PASS 32, D-104) — 최근 7일 '행동 수'(사람 수 아님).
+ *  rate = 앞 단계 대비(앞 단계 0이면 null), delta = 이전 7일 대비(이전 0이면 null). 첫 단계 rate는 null */
+export const FUNNEL_STEPS = [
+  { key: "finder_start", label: "Finder 시작" },
+  { key: "finder_complete", label: "Finder 완료" },
+  { key: "passport_save", label: "Passport 저장" },
+  { key: "outbound_purchase_click", label: "구매채널 이동" },
+] as const satisfies readonly { key: CustomerEventType; label: string }[];
+export interface FunnelStep { key: CustomerEventType; label: string; n: number; prev: number; rate: number | null; delta: number | null }
+export function customerFunnel(c: Pick<CustomerInsight, "recent" | "prev">): FunnelStep[] {
+  const out: FunnelStep[] = [];
+  FUNNEL_STEPS.forEach((f, i) => {
+    const n = c.recent[f.key] ?? 0;
+    const prev = c.prev[f.key] ?? 0;
+    const before = i > 0 ? out[i - 1].n : 0;
+    out.push({ key: f.key, label: f.label, n, prev, rate: i > 0 && before > 0 ? n / before : null, delta: prev > 0 ? (n - prev) / prev : null });
+  });
+  return out;
+}
+
 const emptyCounts = () =>
   Object.fromEntries(Object.keys(EVENT_LABEL).map((k) => [k, 0])) as Record<CustomerEventType, number>;
 
@@ -534,6 +554,16 @@ export function generateCandidates(input: {
 const PRIORITY_ORDER = { 우선: 0, 높음: 1, 중간: 2 } as const;
 const STATUS_ORDER: Record<ActionStatus, number> = { IN_PROGRESS: 0, NEW: 1, REVIEWED: 2, DONE: 3, DISMISSED: 4 };
 export const OPEN_STATUSES: ActionStatus[] = ["NEW", "REVIEWED", "IN_PROGRESS"];
+
+/** 처리 대기 일수 (PASS 32, D-107) — 새 추천·검토 완료 상태 Action이 추천된 날부터 며칠째인지(한국 날짜 기준).
+ *  실행 중·완료·보류는 null. 목록에서는 ACTION_WAIT_ALERT_DAYS일 이상일 때만 'n일째 대기'로 표시 */
+export const ACTION_WAIT_ALERT_DAYS = 3;
+export function actionWaitDays(a: { status: ActionStatus; createdAt: string }, today: string): number | null {
+  if (a.status !== "NEW" && a.status !== "REVIEWED") return null;
+  const t = new Date(a.createdAt);
+  if (Number.isNaN(t.getTime())) return null;
+  return Math.max(0, daysBetween(todayISO(t), today));
+}
 export const ACTION_COOLDOWN_DAYS = 14;
 
 export function sortActions(actions: GrowthAction[]): GrowthAction[] {

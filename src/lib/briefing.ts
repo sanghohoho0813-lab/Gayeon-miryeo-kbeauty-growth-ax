@@ -38,12 +38,12 @@ export function buildBriefing(m: AxModel, opts: { financial: boolean }): Briefin
 
   // 재고
   const risk = metrics.filter((x) => x.mm.stockStatus === "품절위험" || x.mm.stockStatus === "부족주의").sort((a, b) => a.mm.daysOfStock - b.mm.daysOfStock);
-  if (risk.length) lines.push({ tone: risk.some((x) => x.mm.stockStatus === "품절위험") ? "risk" : "warn", topic: "재고", text: `재고 위험 ${risk.length}개 SKU — ${risk.slice(0, 2).map((x) => `${x.p.name} 약 ${Math.round(x.mm.daysOfStock)}일분`).join(", ")}.`, href: "/ax/products?tab=inventory" });
+  if (risk.length) lines.push({ tone: risk.some((x) => x.mm.stockStatus === "품절위험") ? "risk" : "warn", topic: "재고", text: `재고 위험 ${risk.length}개 SKU — ${risk.slice(0, 2).map((x) => `${x.p.name} 약 ${Math.round(x.mm.daysOfStock)}일분`).join(", ")}.`, href: "/ax/products?tab=inventory&status=%EC%9C%84%ED%97%98" });
 
   // 미수금 (재무 권한)
   if (opts.financial) {
     const rs = summarizeReceivables(s.settlements, m.today);
-    if (rs.overdueCount > 0) lines.push({ tone: "risk", topic: "미수금", text: `받을 돈 ${formatKRW(rs.outstanding)} 중 ${formatKRW(rs.overdueAmount)}(${rs.overdueCount}건)이 입금 기한을 넘겼습니다 (최장 ${rs.maxOverdueDays}일).`, href: "/ax/channels?tab=settlements" });
+    if (rs.overdueCount > 0) lines.push({ tone: "risk", topic: "미수금", text: `받을 돈 ${formatKRW(rs.outstanding)} 중 ${formatKRW(rs.overdueAmount)}(${rs.overdueCount}건)이 입금 기한을 넘겼습니다 (최장 ${rs.maxOverdueDays}일).`, href: "/ax/channels?tab=settlements&filter=overdue" });
     else if (rs.outstanding > 0) lines.push({ tone: "info", topic: "미수금", text: `받을 돈 ${formatKRW(rs.outstanding)} — 연체 없음, 30일 내 도래 ${formatKRW(rs.dueIn30)}.`, href: "/ax/channels?tab=settlements" });
   }
 
