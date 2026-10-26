@@ -411,12 +411,23 @@ function DeadlineBadge({ mm }: { mm: ProductMetrics }) {
 }
 
 /* 생산 착수 일정 — OEM 생산기간을 반영한 마감일 순 (계약 별지 제1호 ②) */
+/* 마감 구간 (PASS 33, D-115) — 지남(0일 이하) · 14일 이내 · 여유. 알림 '생산 착수 마감'은 ?due= 로 걸러 열림 */
+type DueBucket = "all" | "passed" | "soon" | "later";
+const DUE_LABEL: Record<Exclude<DueBucket, "all">, string> = { passed: "마감 지남", soon: "14일 이내", later: "여유" };
+const dueOf = (d: number): Exclude<DueBucket, "all"> => (d <= 0 ? "passed" : d <= 14 ? "soon" : "later");
 function ProductionSchedule() {
   const m = useModel();
-  const rows = m.snapshot.products
+  const dueParam = useSearchParams().get("due");
+  const [due, setDue] = useState<DueBucket>(() => (dueParam === "passed" || dueParam === "soon" || dueParam === "later" ? dueParam : "all"));
+  const all = m.snapshot.products
     .map((p) => ({ p, mm: m.metrics.get(p.id)!, active: m.snapshot.production.filter((x) => x.productId === p.id && (x.status === "생산중" || x.status === "입고예정" || x.status === "계획")) }))
     .filter((x) => x.mm && x.mm.leadTimeDays != null && x.mm.daysToDeadline != null)
     .sort((a, b) => a.mm.daysToDeadline! - b.mm.daysToDeadline!);
+  const rows = due === "all" ? all : all.filter((x) => dueOf(x.mm.daysToDeadline!) === due);
+  const countDue = (b: Exclude<DueBucket, "all">) => all.filter((x) => dueOf(x.mm.daysToDeadline!) === b).length;
+  // 14일 안에 착수해야 하는(지남 포함) 상품의 추천 생산량 합 — 진행 중인 생산이 있는 상품은 제외(이미 대응 중)
+  const urgent = all.filter((x) => x.mm.daysToDeadline! <= 14 && x.mm.recommendedOrder > 0 && !x.active.some((a) => a.status !== "계획"));
+  const urgentUnits = urgent.reduce((a, x) => a + x.mm.recommendedOrder, 0);
   const missing = m.snapshot.products.filter((p) => p.leadTimeDays == null);
   const narrow = useNarrow();
   const activeText = (active: typeof rows[number]["active"], mm: ProductMetrics) => (
@@ -429,7 +440,29 @@ function ProductionSchedule() {
     <DataCard title="생산 착수 일정" className="mb-6"
       info={<>OEM 생산기간을 반영한 생산 시작 마감일입니다. 가용 재고(현재 + 입고 예정)가 버티는 기간이 생산기간 + 안전 {m.planning.safetyDays}일보다 짧아지기 전에 생산을 시작해야 품절 없이 입고됩니다. 마감이 가까운 순서이고, 막대는 두 기간을 같은 출발선(오늘)에서 비교한 것입니다. &lsquo;조건 바꿔 보기&rsquo;로 판매속도·추가 입고·생산기간을 바꿔 다시 계산해 볼 수 있습니다(저장 안 함).</>}
       action={<div className="flex flex-wrap items-center gap-2"><Link href="/ax/settings#planning" className="btn-ghost !min-h-[40px] !px-2.5 text-[0.84rem]" data-testid="planning-link">기준값: 안전 {m.planning.safetyDays}일·입고 후 {m.planning.coverDays}일·{m.planning.roundTo}개 단위</Link><Link href="/ax/data?tab=products" className="btn-secondary !min-h-[40px] text-[0.86rem]">생산기간 입력</Link></div>}>
-      {rows.length === 0 ? <EmptyState title="생산기간이 입력된 상품이 없습니다" desc="상품별 OEM 생산기간(발주→입고 일수)을 입력하면 착수 마감일과 추천 생산량을 계산합니다." /> : narrow ? (
+      {all.length > 0 && (
+        <div className="mb-3" data-testid="schedule-summary">
+          <div className="chip-rail relative -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-0.5 @md:mx-0 @md:flex-wrap @md:px-0" role="group" aria-label="착수 마감 필터">
+            {(["all", "passed", "soon", "later"] as const).map((b) => {
+              const on = due === b;
+              const n = b === "all" ? all.length : countDue(b);
+              const tone = b === "passed" ? "var(--danger)" : b === "soon" ? "var(--warning)" : undefined;
+              return (
+                <button key={b} type="button" onClick={() => setDue(b)} aria-pressed={on} data-due={b} className="pressable relative inline-flex min-h-[38px] shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 text-[0.84rem] font-semibold"
+                  style={on ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : { borderColor: "var(--border)", color: "var(--text-secondary)" }}>
+                  {!on && tone && n > 0 && <span className="h-2 w-2 rounded-full" style={{ background: tone }} aria-hidden />}
+                  {b === "all" ? "전체" : DUE_LABEL[b]}
+                  {n > 0 || on ? <span className="tabular rounded-full px-1.5 text-[0.76rem]" style={on ? { background: "#fff", color: "var(--primary)" } : { background: "var(--surface-muted)" }}>{n}</span> : <span className="sr-only">0개</span>}
+                </button>
+              );
+            })}
+          </div>
+          {urgent.length > 0 && <p className="tabular mt-2 text-[0.86rem]" data-testid="schedule-urgent">14일 안에 착수할 상품 <b>{urgent.length}개</b> · 추천 생산량 합계 <b>{urgentUnits.toLocaleString()}개</b> <span className="text-ink-soft">(진행 중인 생산이 있는 상품 제외)</span></p>}
+        </div>
+      )}
+      {all.length === 0 ? <EmptyState title="생산기간이 입력된 상품이 없습니다" desc="상품별 OEM 생산기간(발주→입고 일수)을 입력하면 착수 마감일과 추천 생산량을 계산합니다." /> : rows.length === 0 ? (
+        <div className="rounded-xl bg-surface-muted px-4 py-6 text-center text-[0.92rem]" data-testid="schedule-empty"><p className="font-semibold">&lsquo;{due === "all" ? "전체" : DUE_LABEL[due]}&rsquo; 상품이 없습니다</p><button type="button" className="btn-secondary mt-3 !min-h-[40px] text-[0.86rem]" onClick={() => setDue("all")}>전체 보기</button></div>
+      ) : narrow ? (
         <ul className="space-y-2.5" data-testid="production-schedule">
           {rows.map(({ p, mm, active }) => (
             <li key={p.id} className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }} data-schedule={p.sku}>

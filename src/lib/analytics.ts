@@ -262,7 +262,7 @@ export const FUNNEL_STEPS = [
   { key: "outbound_purchase_click", label: "구매채널 이동" },
 ] as const satisfies readonly { key: CustomerEventType; label: string }[];
 export interface FunnelStep { key: CustomerEventType; label: string; n: number; prev: number; rate: number | null; delta: number | null }
-export function customerFunnel(c: Pick<CustomerInsight, "recent" | "prev">): FunnelStep[] {
+export function customerFunnel(c: { recent: Partial<Record<string, number>>; prev: Partial<Record<string, number>> }): FunnelStep[] {
   const out: FunnelStep[] = [];
   FUNNEL_STEPS.forEach((f, i) => {
     const n = c.recent[f.key] ?? 0;
@@ -271,6 +271,34 @@ export function customerFunnel(c: Pick<CustomerInsight, "recent" | "prev">): Fun
     out.push({ key: f.key, label: f.label, n, prev, rate: i > 0 && before > 0 ? n / before : null, delta: prev > 0 ? (n - prev) / prev : null });
   });
   return out;
+}
+
+/** 고객 전환 흐름 '사람 수' (PASS 33, D-113) — 고객 브라우저(익명 session_id) 기준, 앞 단계를 모두 거친 사람만 다음 단계로 센다.
+ *  그래서 단계마다 줄어든다(진짜 퍼널). 저장이 막혀 'anonymous'로 묶인 세션은 여러 사람이 섞이므로 제외.
+ *  창은 행동 수와 같다: 최근 7일 / 그 이전 7일 */
+export function funnelPeopleCounts(events: CustomerEvent[], now: number = Date.now()): { recent: Record<string, number>; prev: Record<string, number> } {
+  const day = 86_400_000;
+  const seen = { recent: new Map<string, Set<string>>(), prev: new Map<string, Set<string>>() };
+  for (const e of events) {
+    if (!e.sessionId || e.sessionId === "s-anonymous") continue;
+    const age = now - Date.parse(e.createdAt);
+    if (age < 0 || age >= 14 * day) continue;
+    const bucket = age < 7 * day ? seen.recent : seen.prev;
+    const set = bucket.get(e.eventType) ?? new Set<string>();
+    set.add(e.sessionId);
+    bucket.set(e.eventType, set);
+  }
+  const count = (m: Map<string, Set<string>>) => {
+    const out: Record<string, number> = {};
+    let pool: string[] | null = null;
+    for (const f of FUNNEL_STEPS) {
+      const has = m.get(f.key) ?? new Set<string>();
+      pool = pool == null ? [...has] : pool.filter((sid: string) => has.has(sid));
+      out[f.key] = pool.length;
+    }
+    return out;
+  };
+  return { recent: count(seen.recent), prev: count(seen.prev) };
 }
 
 const emptyCounts = () =>

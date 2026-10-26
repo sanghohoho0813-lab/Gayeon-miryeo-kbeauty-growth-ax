@@ -7,7 +7,7 @@ import { demoProducts, DEMO_LEAD_TIMES } from "../demo/products";
 import { demoChannels, demoB2B, demoExports } from "../demo/channels";
 import { demoInventory, demoProduction } from "../demo/inventory";
 import { demoSales } from "../demo/sales";
-import { demoCustomerEvents, demoCustomers, demoTechAssets } from "../demo/customers";
+import { demoCustomerEvents, demoCustomers, demoTechAssets, linkSeedFunnelSessions } from "../demo/customers";
 import { demoCustomerAccounts, demoCustomerPurchases, demoSettlements } from "../demo/stage2";
 import { addDaysISO, daysBetween, todayISO } from "../date";
 
@@ -38,6 +38,8 @@ interface DemoDB extends Omit<DataSnapshot, "loadedAt"> {
   seedSales?: number;
   /** PASS 10: Demo 상품 생산기간·MOQ 채움 */
   pass10?: boolean;
+  /** PASS 33: 시드 고객 행동 전환 흐름 방문 번호 맞춤 (D-113) */
+  pass33?: boolean;
   /** PASS 11: 샘플 자료 연습 모드 — 시드 없이 시작 */
   practice?: boolean;
   beautyResults: DemoBeautyResult[];
@@ -75,6 +77,7 @@ function seed(): DemoDB {
     stage2: true,
     seedSales: 2,
     pass10: true,
+    pass33: true,
   };
 }
 
@@ -87,7 +90,7 @@ function emptyPractice(): DemoDB {
     products: [], inventory: [], production: [], channels: [], sales: [], b2b: [], exports: [],
     customers: [], customerEvents: [], actions: [], actionEvents: [], proofEvents: [], techAssets: [], baselines: [],
     customerAccounts: [], customerPurchases: [], settlements: [], monthlyTargets: [], importBatches: [], beautyResults: [],
-    stage2: true, seedSales: 2, pass10: true, practice: true,
+    stage2: true, seedSales: 2, pass10: true, pass33: true, practice: true,
   };
 }
 
@@ -123,6 +126,12 @@ function read(): DemoDB {
           // PASS 10: 저장된 Demo 상품에 시연용 생산기간·MOQ (직접 입력한 상품은 그대로)
           parsed.products = parsed.products.map((p) => (p.isDemo && DEMO_LEAD_TIMES[p.id] && p.leadTimeDays == null ? { ...p, ...DEMO_LEAD_TIMES[p.id] } : p));
           parsed.pass10 = true;
+          write(parsed, false);
+        }
+        if (!parsed.pass33) {
+          // PASS 33 (D-113): 시드 고객 행동의 전환 흐름 방문 번호를 맞춤 (건수·시각 그대로, 직접 생긴 행동은 그대로)
+          linkSeedFunnelSessions(parsed.customerEvents);
+          parsed.pass33 = true;
           write(parsed, false);
         }
         if (parsed.stage2 && parsed.seedSales !== 2) {
@@ -259,6 +268,12 @@ export const demoSource: DataSource = {
     await mutate((db) => { const before = db.sales.length; db.sales = db.sales.filter((x) => !set.has(x.id)); n = before - db.sales.length; });
     return n;
   },
+  updateSale: (id, patch) =>
+    mutate((db) => {
+      const i = db.sales.findIndex((x) => x.id === id);
+      if (i < 0) throw new Error("판매 기록을 찾지 못했습니다 — 다시 불러온 뒤 시도하세요");
+      db.sales[i] = { ...db.sales[i], saleDate: patch.saleDate, units: patch.units, revenue: patch.revenue };
+    }),
   createActions: (cands) =>
     mutate((db) => {
       const now = new Date().toISOString();

@@ -56,18 +56,20 @@ export default function StartGuidePage() {
           </h2>
           <ol id={`phase-${pi}`} className={`mt-1 space-y-2 ${isOpen ? "" : "is-folded"}`} data-testid={`guide-${ph}`}>
             {list.map((x) => (
-              <li key={x.id} data-step={x.id} data-done={x.done ? "1" : "0"} className="ax-card flex items-center gap-3 px-4 py-3">
-                {x.done ? <CheckCircle2 size={22} className="shrink-0" style={{ color: "var(--success)" }} aria-label="완료" /> : <Circle size={22} className="shrink-0 text-ink-soft" aria-label="미완료" />}
+              // 한 줄 = 제목(+ⓘ·선택), 다음 줄 = 담당·현재 상태 + 버튼 (PASS 33, D-117) — 모바일에서 제목이 버튼에 밀려 세 줄로 감기던 문제
+              <li key={x.id} data-step={x.id} data-done={x.done ? "1" : "0"} className="ax-card flex items-start gap-3 px-4 py-3">
+                {x.done ? <CheckCircle2 size={22} className="mt-0.5 shrink-0" style={{ color: "var(--success)" }} aria-label="완료" /> : <Circle size={22} className="mt-0.5 shrink-0 text-ink-soft" aria-label="미완료" />}
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-bold">{x.title}</span>
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                    <span className="font-bold leading-snug">{x.title}</span>
                     <InfoTip text={x.why} label={`${x.title} 설명`} />
                     {x.optional && <StatusBadge tone="neutral">선택</StatusBadge>}
-                    <StatusBadge tone="neutral">{x.owner}</StatusBadge>
                   </div>
-                  <p className="mt-0.5 text-[0.84rem] text-ink-soft">현재: <b className="text-ink">{x.detail}</b></p>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p className="min-w-0 text-[0.84rem] text-ink-soft"><span className="mr-1.5 inline-block align-middle"><StatusBadge tone="neutral">{x.owner}</StatusBadge></span>현재: <b className="text-ink">{x.detail}</b></p>
+                    <Link href={x.href} className="btn-secondary !min-h-[38px] shrink-0 text-[0.84rem]" aria-label={`${x.done ? "보기" : "하기"}: ${x.title}`}>{x.done ? "보기" : "하기"}</Link>
+                  </div>
                 </div>
-                <Link href={x.href} className="btn-secondary !min-h-[38px] shrink-0 text-[0.84rem]" aria-label={`${x.done ? "보기" : "하기"}: ${x.title}`}>{x.done ? "보기" : "하기"}</Link>
               </li>
             ))}
           </ol>

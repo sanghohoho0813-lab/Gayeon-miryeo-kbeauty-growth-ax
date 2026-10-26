@@ -5,7 +5,7 @@ import { StatusBadge } from "./Cards";
 import { useModel } from "@/components/providers/DataProvider";
 import { isLive, DATA_SOURCE_LABEL } from "@/lib/config";
 import { formatDateKR, formatDateTimeKR } from "@/lib/date";
-import { formatPrice } from "@/lib/analytics";
+import { formatKRW, formatPrice } from "@/lib/analytics";
 import { monthLabel } from "@/lib/monthly";
 import { BASELINE_SOURCE_LABEL, formatKpiValue } from "@/lib/evidence";
 import { downloadCSV } from "@/lib/export";
@@ -62,9 +62,9 @@ export function BusinessReportView() {
           <>
             <Section n={1} title="매출 추이">
               <div className="grid grid-cols-2 gap-2 @xl:grid-cols-4">
-                <Stat label={`기간 매출 (${r.coverage.monthsWithSales}개월 판매)`} value={formatPrice(r.sales.total)} />
+                <Stat label={`기간 매출 (${r.coverage.monthsWithSales}개월 판매)`} money={r.sales.total} />
                 <Stat label="판매 수량" value={`${r.sales.units.toLocaleString()}개`} />
-                <Stat label={`최근 완료 3개월 (${r.sales.recentLabel})`} value={formatPrice(r.sales.recent3)} sub={`직전 3개월 대비 ${pct(r.sales.growth3, true)}`} />
+                <Stat label={`최근 완료 3개월 (${r.sales.recentLabel})`} money={r.sales.recent3} sub={`직전 3개월 대비 ${pct(r.sales.growth3, true)}`} />
                 <Stat label="매출총이익률 (원가 입력 상품)" value={pct(r.sales.grossMargin)} sub={r.sales.costedShare != null ? `원가 입력 매출 ${pct(r.sales.costedShare)}` : undefined} />
               </div>
               <table className="mt-3 w-full text-[0.84rem]" data-testid="business-monthly">
@@ -88,9 +88,9 @@ export function BusinessReportView() {
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 @xl:grid-cols-4">
                 <Stat label="B2B 거래처 (거래중)" value={`${r.b2b.accounts}곳 (${r.b2b.active})`} />
-                <Stat label="B2B 누적 거래액 (입력값)" value={formatPrice(r.b2b.cumulativeRevenue)} />
+                <Stat label="B2B 누적 거래액 (입력값)" money={r.b2b.cumulativeRevenue} />
                 <Stat label="수출 권역" value={`${r.exports.regions}곳`} />
-                <Stat label="수출 누적액 (입력값)" value={formatPrice(r.exports.cumulativeRevenue)} />
+                <Stat label="수출 누적액 (입력값)" money={r.exports.cumulativeRevenue} />
               </div>
               {r.exports.list.length > 0 && <p className="mt-2 text-[0.82rem] text-ink-soft">수출: {r.exports.list.map((e) => `${e.region} ${formatPrice(e.revenue)}`).join(" · ")}</p>}
             </Section>
@@ -163,11 +163,19 @@ function Section({ n, title, children }: { n: number; title: string; children: R
   );
 }
 
-function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+/* 금액 칸 (PASS 33, D-116) — 좁은 화면 2열 칸에 '₩3,307,957,750'이 숫자 중간에서 끊겼다.
+   좁을 때는 '33.1억 원'으로 크게 + 정확한 금액을 아래 작게, 넓을 때(인쇄·PC)는 정확한 금액 그대로 */
+function Stat({ label, value, money, sub }: { label: string; value?: string; money?: number; sub?: string }) {
   return (
-    <div className="min-w-0 rounded-xl bg-surface-muted px-3.5 py-3">
+    <div className="min-w-0 rounded-xl bg-surface-muted px-3.5 py-3" data-money={money}>
       <div className="text-[0.78rem] text-ink-soft">{label}</div>
-      <div className="break-any tabular mt-0.5 text-[1.15rem] font-bold">{value}</div>
+      {money != null ? (
+        <>
+          <div className="tabular mt-0.5 whitespace-nowrap text-[1.15rem] font-bold @xl:hidden print:hidden" data-money-short>{formatKRW(money)}</div>
+          <div className="tabular mt-0.5 hidden whitespace-nowrap text-[1.15rem] font-bold @xl:block print:block" data-money-exact>{formatPrice(money)}</div>
+          <div className="tabular text-[0.74rem] text-ink-soft @xl:hidden print:hidden">{formatPrice(money)}</div>
+        </>
+      ) : <div className="break-any tabular mt-0.5 text-[1.15rem] font-bold">{value}</div>}
       {sub && <div className="tabular text-[0.8rem] text-ink-soft">{sub}</div>}
     </div>
   );

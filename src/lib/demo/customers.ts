@@ -60,7 +60,36 @@ export function demoCustomerEvents(now: number = Date.now()): CustomerEvent[] {
       push(type, ts, undefined, type === "finder_complete" ? { concerns: concernCycle[i % concernCycle.length] } : undefined)
     );
   }
+  linkSeedFunnelSessions(events);
   return events.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+/**
+ * 시드 전환 흐름 방문 번호 맞추기 (PASS 33, D-113) — 처음 시드는 방문 번호를 돌려 붙여 Finder 시작·완료·Passport·구매채널 이동이
+ * 서로 다른 방문에 흩어져 있었다(사람 수 보기에서 완료 0명). 시드를 만든 7일 창(가장 최근 시드 시각 기준 0·1번째 주)마다
+ * 단계별로 최근 것부터 k번째 이벤트를 같은 방문 'seed-v-주-k'로 묶는다. 창마다 뒤 단계 건수가 앞 단계보다 적어
+ * 뒤 단계 방문은 늘 앞 단계 방문 안에 든다. 건수·시각·상품은 그대로라 행동 수·관심점수·Action은 바뀌지 않는다.
+ * 이미 저장된 Demo 자료도 불러올 때 같은 방식으로 맞춘다
+ */
+const SEED_FUNNEL_TYPES: CustomerEventType[] = ["finder_start", "finder_complete", "passport_save", "outbound_purchase_click"];
+export function linkSeedFunnelSessions(events: CustomerEvent[]): boolean {
+  const seed = events.filter((e) => e.origin === "seed");
+  if (seed.length === 0) return false;
+  const week = 7 * 86_400_000;
+  const anchor = Math.max(...seed.map((e) => Date.parse(e.createdAt))) + 1;
+  let changed = false;
+  for (const t of SEED_FUNNEL_TYPES) {
+    const list = seed.filter((e) => e.eventType === t).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || a.id.localeCompare(b.id));
+    const nth = new Map<number, number>();
+    for (const e of list) {
+      const w = Math.floor((anchor - Date.parse(e.createdAt)) / week);
+      const k = (nth.get(w) ?? 0) + 1;
+      nth.set(w, k);
+      const sid = `seed-v-${w}-${k}`;
+      if (e.sessionId !== sid) { e.sessionId = sid; changed = true; }
+    }
+  }
+  return changed;
 }
 
 /** 기술·사업화 자산 — 실제 상태 확인 전이므로 모두 "미확인". 번호를 만들지 않는다. */

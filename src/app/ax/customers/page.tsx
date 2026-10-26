@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Radio } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
@@ -12,7 +12,7 @@ import { AiReadyButton, AI_SPECS } from "@/components/ax/AiReady";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { EmptyState } from "@/components/ax/States";
 import { useModel } from "@/components/providers/DataProvider";
-import { actionWaitDays, customerFunnel, EVENT_LABEL, formatPct, INTEREST_GROWTH_MIN, INTEREST_THRESHOLD } from "@/lib/analytics";
+import { actionWaitDays, customerFunnel, EVENT_LABEL, funnelPeopleCounts, formatPct, INTEREST_GROWTH_MIN, INTEREST_THRESHOLD } from "@/lib/analytics";
 import { relativeKR } from "@/lib/date";
 import type { GrowthAction } from "@/lib/types";
 import { useNarrow } from "@/lib/use-narrow";
@@ -31,15 +31,29 @@ const TAB_IDS = TABS.map((t) => t.id);
 
 /* 고객 전환 흐름 (PASS 32, D-104) — 최근 7일 고객 화면 행동을 4단계로: Finder 시작 → 완료 → Passport 저장 → 구매채널 이동.
    각 단계 = 행동 수(사람 수 아님). 단계 사이 % = 앞 단계 대비, 옆 증감 = 이전 7일 대비. 새 숫자 없이 기존 이벤트 집계만 */
+type FunnelMode = "events" | "people";
+const FUNNEL_MODE_KEY = "miryeo-funnel-mode";
 function CustomerFunnel() {
   const m = useModel();
-  const steps = customerFunnel(m.customer);
+  // 보기: 행동 수(기본, PASS 32) ↔ 사람 수(브라우저 기준·앞 단계를 모두 거친 사람만, PASS 33 D-113). 고른 보기는 이 브라우저에 기억
+  const [mode, setModeState] = useState<FunnelMode>(() => { try { return localStorage.getItem(FUNNEL_MODE_KEY) === "people" ? "people" : "events"; } catch { return "events"; } });
+  const setMode = (v: FunnelMode) => { setModeState(v); try { localStorage.setItem(FUNNEL_MODE_KEY, v); } catch { /* 기억 못 해도 동작 */ } };
+  const people = useMemo(() => funnelPeopleCounts(m.snapshot.customerEvents), [m.snapshot.customerEvents]);
+  const steps = customerFunnel(mode === "people" ? people : m.customer);
+  const unit = mode === "people" ? "명" : "건";
   const top = Math.max(1, ...steps.map((x) => x.n));
   const first = steps[0].n;
   const last = steps[steps.length - 1].n;
+  const toggle = (
+    <div role="radiogroup" aria-label="세는 방법" className="flex gap-0.5 rounded-xl border bg-surface p-0.5 @md:gap-1 @md:p-1" style={{ borderColor: "var(--border)" }} data-testid="funnel-mode">
+      {([["events", "행동 수"], ["people", "사람 수"]] as const).map(([v, l]) => (
+        <button key={v} type="button" role="radio" aria-checked={mode === v} onClick={() => setMode(v)} className="min-h-[34px] whitespace-nowrap rounded-lg px-2.5 text-[0.82rem] font-semibold @md:px-3 @md:text-[0.84rem]" style={mode === v ? { background: "var(--primary)", color: "#fff" } : { color: "var(--text-secondary)" }} data-funnel-mode={v}>{l}</button>
+      ))}
+    </div>
+  );
   return (
-    <DataCard title="고객 전환 흐름 (최근 7일)" info="고객 화면에서 일어난 행동 수입니다(사람 수가 아닌 행동 횟수). 단계 사이 %는 앞 단계 대비, 오른쪽 증감은 이전 7일 대비입니다." testId="customer-funnel">
-      {first === 0 && last === 0 ? <EmptyState title="최근 7일 고객 행동이 없습니다" desc="고객 화면에서 Finder·Passport·구매채널 이동이 생기면 계산됩니다." /> : (
+    <DataCard title={<>고객 전환 흐름<span className="hidden @md:inline"> (최근 7일)</span></>} action={toggle} info={mode === "people" ? "사람 수 = 고객 브라우저(익명) 기준으로, 앞 단계를 모두 거친 사람만 다음 단계로 셉니다. 그래서 단계마다 줄어듭니다. 같은 사람이 다른 기기를 쓰면 따로 셉니다. 오른쪽 증감은 이전 7일 대비입니다." : "고객 화면에서 일어난 행동 수입니다(사람 수가 아닌 행동 횟수). 단계 사이 %는 앞 단계 대비, 오른쪽 증감은 이전 7일 대비입니다."} testId="customer-funnel">
+      {first === 0 && last === 0 && steps.every((x) => x.n === 0) ? <EmptyState title="최근 7일 고객 행동이 없습니다" desc="고객 화면에서 Finder·Passport·구매채널 이동이 생기면 계산됩니다." /> : (
         <>
           <ol className="grid gap-2 @3xl:grid-cols-4 @3xl:gap-3">
             {steps.map((st, i) => {
@@ -55,14 +69,14 @@ function CustomerFunnel() {
                   <div className="rounded-xl border px-3 py-2.5 @3xl:p-3" style={{ borderColor: "var(--border)" }}>
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="min-w-0 truncate text-[0.84rem] font-semibold text-ink-soft">{i + 1}. {st.label}</span>
-                      <span className="tabular shrink-0 @3xl:hidden"><b className="text-[1.1rem] font-extrabold">{st.n.toLocaleString()}</b><span className="ml-0.5 text-[0.8rem] font-semibold text-ink-soft">건</span></span>
+                      <span className="tabular shrink-0 @3xl:hidden"><b className="text-[1.1rem] font-extrabold">{st.n.toLocaleString()}</b><span className="ml-0.5 text-[0.8rem] font-semibold text-ink-soft">{unit}</span></span>
                       {delta != null && <span className="tabular hidden text-[0.76rem] font-semibold @3xl:inline" style={{ color: delta >= 0 ? "var(--success)" : "var(--danger)" }}>{delta >= 0 ? "+" : ""}{Math.round(delta * 100)}%</span>}
                     </div>
-                    <div className="tabular mt-1 hidden text-[1.35rem] font-extrabold leading-tight @3xl:block">{st.n.toLocaleString()}<span className="ml-0.5 text-[0.85rem] font-semibold text-ink-soft">건</span></div>
+                    <div className="tabular mt-1 hidden text-[1.35rem] font-extrabold leading-tight @3xl:block">{st.n.toLocaleString()}<span className="ml-0.5 text-[0.85rem] font-semibold text-ink-soft">{unit}</span></div>
                     <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-muted @3xl:mt-2" aria-hidden><div className="h-full rounded-full" style={{ width: `${Math.max(3, (st.n / top) * 100)}%`, background: `color-mix(in srgb, var(--chart-1) ${100 - i * 18}%, var(--chart-3))` }} /></div>
                     <p className="tabular mt-1 text-[0.76rem] text-ink-soft @3xl:mt-1.5">
                       {i > 0 && <span className="hidden @3xl:inline">앞 단계의 <b className="text-ink">{rate == null ? "-" : `${Math.round(rate * 100)}%`}</b> · </span>}
-                      이전 7일 {st.prev.toLocaleString()}건
+                      이전 7일 {st.prev.toLocaleString()}{unit}
                       {delta != null && <span className="font-semibold @3xl:hidden" style={{ color: delta >= 0 ? "var(--success)" : "var(--danger)" }}> · {delta >= 0 ? "+" : ""}{Math.round(delta * 100)}%</span>}
                     </p>
                   </div>
@@ -70,7 +84,7 @@ function CustomerFunnel() {
               );
             })}
           </ol>
-          <p className="mt-3 text-[0.86rem] text-ink-soft" data-testid="funnel-summary">Finder 시작 {first.toLocaleString()}건 중 구매채널 이동 <b className="tabular text-ink">{last.toLocaleString()}건</b>{first > 0 ? ` (${Math.round((last / first) * 100)}%)` : ""} — 실제 구매 여부는 외부 쇼핑몰에서 일어나므로 이 화면에서는 알 수 없습니다.</p>
+          <p className="mt-3 text-[0.86rem] text-ink-soft" data-testid="funnel-summary">최근 7일 Finder 시작 {first.toLocaleString()}{unit} 중 구매채널 이동{mode === "people" ? "까지 간 사람" : ""} <b className="tabular text-ink">{last.toLocaleString()}{unit}</b>{first > 0 ? ` (${Math.round((last / first) * 100)}%)` : ""} — 실제 구매 여부는 외부 쇼핑몰에서 일어나므로 이 화면에서는 알 수 없습니다.</p>
         </>
       )}
     </DataCard>

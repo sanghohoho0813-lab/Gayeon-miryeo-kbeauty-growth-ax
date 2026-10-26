@@ -10,7 +10,7 @@ import { useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { buildBriefing, type BriefTone } from "@/lib/briefing";
 import { buildNotifications, type NoticeTone } from "@/lib/notifications";
-import { change, marginRate, monthlySummary } from "@/lib/monthly";
+import { change, marginRate, monthlySummary, monthUpTo, samePeriodDay } from "@/lib/monthly";
 import { targetProgress } from "@/lib/targets";
 import { AGING_LABEL, receivableAging, summarizeReceivables } from "@/lib/settlements";
 import { AGING_COLOR } from "@/components/ax/AgingBar";
@@ -345,17 +345,20 @@ function Month() {
   const aging = receivableAging(m.snapshot.settlements, m.today);
   const max = Math.max(1, ...rows.map((r) => r.revenue));
   const day = Number(m.today.slice(8, 10));
+  const spDay = samePeriodDay(m.today, m.salesAsOf);
+  const sp = monthUpTo(m.snapshot.sales, m.snapshot.products, m.snapshot.channels, prev.month, spDay); // 지난달 같은 기간 (PASS 33, D-112)
+  const spChange = change(cur.revenue, sp.revenue);
   const narrow = useNarrow(); // 좁은 화면은 월 라벨 12개가 붙어 읽히지 않음 → 3개월마다(끝 = 이번 달) 하나씩 (PASS 32)
   return (
     <div className="flex h-full flex-col gap-[0.9em]">
       <div className="grid grid-cols-2 gap-[0.6em] @3xl:grid-cols-4">
-        <Stat label={`이번 달 매출 (${day}일까지)`} value={formatKRW(cur.revenue)} sub={`지난달 전체 ${formatKRW(prev.revenue)}`} />
+        <Stat label={`이번 달 매출 (${day}일까지)`} value={formatKRW(cur.revenue)} sub={<>지난달 1~{spDay}일 {formatKRW(sp.revenue)}{spChange != null && <b className="ml-1" style={{ color: spChange >= 0 ? "var(--success)" : "var(--danger)" }}>{formatPct(spChange)}</b>}</>} />
         <Stat label="목표 대비" value={tp.rate != null ? `${Math.round(tp.rate * 100)}%` : "목표 미입력"} sub={tp.rate != null ? `월 경과 ${Math.round(tp.elapsed * 100)}% · ${tp.status}` : "월별 실적에서 입력"} tone={tp.rate != null ? (tp.rate >= tp.elapsed ? "var(--success)" : "var(--warning)") : undefined} />
         <Stat label="매출총이익" value={formatKRW(cur.grossProfit)} sub={mr == null ? "원가 미입력" : `이익률 ${Math.round(mr * 100)}% (원가 입력 제품)`} />
         <Stat label="받을 돈 (미수금)" value={formatKRW(rs.outstanding)} sub={<>{rs.overdueCount ? `연체 ${rs.overdueCount}건 · ${formatKRW(rs.overdueAmount)}` : "연체 없음"}<AgingStrip rows={aging} total={rs.outstanding} /></>} tone={rs.overdueCount ? "var(--danger)" : undefined} />
       </div>
       <div className="min-h-0 flex-1 rounded-[0.7em] border p-[0.8em]" style={{ borderColor: "var(--border)" }}>
-        <div className="text-[0.78em] font-semibold text-ink-soft">월별 매출 (12개월){change(cur.revenue, prev.revenue) != null && day >= 28 ? ` · 전월 대비 ${formatPct(change(cur.revenue, prev.revenue))}` : ""}</div>
+        <div className="text-[0.78em] font-semibold text-ink-soft">월별 매출 (12개월)</div>
         <ol className="mt-[0.5em] flex h-[7.5em] items-end gap-[0.4em]" aria-label="월별 매출 12개월">
           {rows.map((r, i) => {
             const inProgress = r.month === cur.month;

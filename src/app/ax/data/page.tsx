@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, StatusBadge } from "@/components/ax/Cards";
 import { Tabs } from "@/components/ax/Tabs";
@@ -119,7 +119,8 @@ function SalesTab() {
 }
 
 /* 판매 1건 입력 — PASS 32 (D-109): Enter로 저장(form) · 매출 자동 계산식을 그대로 보여 줌 · 상품 찾기(초성 가능)
-   · 직접 입력한 판매는 그 자리에서 삭제(대표·관리자, 두 번 눌러 확인 — 파일로 들어온 판매는 '가져오기 기록'에서 되돌림) */
+   · 직접 입력한 판매는 그 자리에서 삭제(대표·관리자, 두 번 눌러 확인 — 파일로 들어온 판매는 '가져오기 기록'에서 되돌림)
+   · PASS 33 (D-114): 직접 입력한 판매는 지우지 않고 날짜·수량·매출을 고칠 수 있음 (같은 권한) */
 const SOURCE_LABEL: Record<SalesRecord["source"], string> = { manual: "직접 입력", csv: "파일", api: "연동", seed: "기준값" };
 function ManualSaleCard() {
   const m = useModel();
@@ -155,6 +156,15 @@ function ManualSaleCard() {
       setF({ ...f, units: "", revenue: "" });
       document.getElementById("s-units")?.focus(); // 같은 상품·채널로 이어서 입력
     }
+  };
+  // 직접 입력 판매 고치기 (PASS 33, D-114) — 날짜·수량·매출만, 한 번에 한 줄. Esc = 취소
+  const [editing, setEditing] = useState<{ id: string; saleDate: string; units: string; revenue: string } | null>(null);
+  const editOk = !!editing && /^\d{4}-\d{2}-\d{2}$/.test(editing.saleDate) && editing.units !== "" && Number.isInteger(Number(editing.units)) && Number(editing.units) >= 0 && editing.revenue !== "" && Number.isFinite(Number(editing.revenue)) && Number(editing.revenue) >= 0;
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing || !editOk || busy) return;
+    const ed = editing;
+    if (await save("판매 기록을 고쳤습니다", (s) => s.updateSale(ed.id, { saleDate: ed.saleDate, units: Number(ed.units), revenue: Number(ed.revenue) }))) setEditing(null);
   };
   const remove = async (id: string) => {
     if (confirmId !== id) { setConfirmId(id); return; }
@@ -206,12 +216,34 @@ function ManualSaleCard() {
           <ul className="mt-2 space-y-1.5 text-[0.88rem]" data-testid="manual-sale-recent">
             {recent.map((s) => {
               const arm = confirmId === s.id;
+              if (editing?.id === s.id) return (
+                <li key={s.id} className="rounded-lg border px-3 py-2.5" style={{ borderColor: "var(--primary)" }} data-sale-row={s.id} data-editing="">
+                  <form onSubmit={saveEdit} onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setEditing(null); } }} data-testid="manual-sale-edit-form">
+                    <p className="text-[0.84rem] font-semibold">{m.productById.get(s.productId)?.name ?? "삭제된 상품"} <span className="font-normal text-ink-soft">· {m.snapshot.channels.find((x) => x.id === s.channelId)?.name ?? "-"}</span></p>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      <label className="min-w-0"><span className="block text-[0.74rem] text-ink-soft">판매일</span><input type="date" className="field !min-h-[40px] !px-2 text-[0.86rem]" value={editing.saleDate} onChange={(e) => setEditing({ ...editing, saleDate: e.target.value })} data-testid="edit-date" /></label>
+                      <label className="min-w-0"><span className="block text-[0.74rem] text-ink-soft">수량</span><input className="field tabular !min-h-[40px] !px-2 text-[0.86rem]" inputMode="numeric" value={editing.units} onChange={(e) => setEditing({ ...editing, units: e.target.value.trim() })} autoFocus data-testid="edit-units" /></label>
+                      <label className="min-w-0"><span className="block text-[0.74rem] text-ink-soft">매출(원)</span><input className="field tabular !min-h-[40px] !px-2 text-[0.86rem]" inputMode="numeric" value={editing.revenue} onChange={(e) => setEditing({ ...editing, revenue: e.target.value.replace(/[,\s원₩]/g, "") })} data-testid="edit-revenue" /></label>
+                    </div>
+                    {!editOk && <p className="mt-1 text-[0.78rem] font-semibold" style={{ color: "var(--danger)" }}>날짜와 0 이상의 수량(정수)·매출을 넣으세요</p>}
+                    <div className="mt-2 flex justify-end gap-1.5">
+                      <button type="button" className="btn-ghost !min-h-[38px] !px-3 text-[0.84rem]" onClick={() => setEditing(null)}>취소</button>
+                      <button type="submit" className="btn-primary !min-h-[38px] !px-3 text-[0.84rem]" disabled={!editOk || busy} data-testid="edit-save">고친 내용 저장</button>
+                    </div>
+                  </form>
+                </li>
+              );
               return (
                 <li key={s.id} className="flex items-center justify-between gap-2 rounded-lg bg-surface-muted px-3 py-2" data-sale-row={s.id}>
                   <span className="min-w-0"><span className="tabular">{s.saleDate.slice(5).replace("-", ".")}</span> · <span className="font-semibold">{m.productById.get(s.productId)?.name ?? "삭제된 상품"}</span><span className="block text-[0.78rem] text-ink-soft @md:inline @md:before:content-['_·_']">{m.snapshot.channels.find((x) => x.id === s.channelId)?.name ?? "-"}</span></span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     <span className="tabular text-right">{s.units.toLocaleString()}개 · {formatPrice(s.revenue)}</span>
                     <StatusBadge tone="neutral">{SOURCE_LABEL[s.source] ?? s.source}</StatusBadge>
+                    {canDelete && s.source === "manual" && (
+                      <button type="button" disabled={busy} onClick={() => { setConfirmId(null); setEditing({ id: s.id, saleDate: s.saleDate, units: String(s.units), revenue: String(s.revenue) }); }} className="inline-flex min-h-[34px] items-center rounded-lg px-2 text-[0.8rem] font-semibold text-ink-soft hover:bg-surface" aria-label={`${m.productById.get(s.productId)?.name ?? ""} ${s.saleDate} 판매 고치기`} data-testid="manual-sale-edit">
+                        <Pencil size={14} aria-hidden /><span className="sr-only">고치기</span>
+                      </button>
+                    )}
                     {canDelete && s.source === "manual" && (
                       <button type="button" disabled={busy} onClick={() => remove(s.id)} className={`inline-flex min-h-[34px] items-center gap-1 rounded-lg px-2 text-[0.8rem] font-semibold ${arm ? "text-white" : "text-ink-soft hover:bg-surface"}`} style={arm ? { background: "var(--danger)" } : undefined} aria-label={arm ? "한 번 더 누르면 삭제" : `${m.productById.get(s.productId)?.name ?? ""} ${s.saleDate} 판매 삭제`} data-testid="manual-sale-delete">
                         <Trash2 size={14} aria-hidden />{arm ? "삭제 확인" : <span className="sr-only">삭제</span>}

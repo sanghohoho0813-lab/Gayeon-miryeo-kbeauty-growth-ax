@@ -17,7 +17,7 @@ import { buildBriefing, type BriefTone } from "@/lib/briefing";
 import { buildStartGuide, guideProgress } from "@/lib/start-guide";
 import { CircleAlert, Rocket } from "lucide-react";
 import { buildWeeklyRoutine, routineProgress } from "@/lib/weekly-routine";
-import { change, marginRate, monthlySummary } from "@/lib/monthly";
+import { change, marginRate, monthlySummary, monthUpTo, samePeriodDay } from "@/lib/monthly";
 import { targetProgress } from "@/lib/targets";
 import { receivableAging, summarizeReceivables } from "@/lib/settlements";
 import { AgingMiniBar } from "@/components/ax/AgingBar";
@@ -284,12 +284,15 @@ function FinanceRow() {
   const mr = marginRate(cur);
   const rs = summarizeReceivables(m.snapshot.settlements, m.today);
   const day = Number(m.today.slice(8, 10));
+  // 지난달 같은 기간(1~n일)과 비교 (PASS 33, D-112) — 지난달 전체와 비교하면 월초엔 늘 줄어든 것처럼 보임
+  const spDay = samePeriodDay(m.today, m.salesAsOf);
+  const sp = monthUpTo(m.snapshot.sales, m.snapshot.products, m.snapshot.channels, prev.month, spDay);
   return (
     <div className="min-w-0 border-t pt-1 @5xl:border-t-0 @5xl:pl-1 @5xl:pt-0" style={{ borderColor: "var(--border)" }}>
     <div className="px-3 pt-1 text-[0.76rem] font-bold tracking-wide text-ink-soft">이번 달 ({day}일까지)</div>
     <div className="grid grid-cols-2 @3xl:grid-cols-3 [&>*:last-child]:col-span-2 @3xl:[&>*:last-child]:col-span-1" data-testid="finance-row">
-      <KpiCard bare label="이번 달 매출" value={cur.revenue} format={formatKRW} icon={<CalendarRange />} iconTone="#2563EB" sub={tp.rate != null ? `목표 대비 ${Math.round(tp.rate * 100)}% · 월 경과 ${Math.round(tp.elapsed * 100)}%` : `지난달 전체 ${formatKRW(prev.revenue)} · 목표 미입력`} href="/ax/monthly" />
-      <KpiCard bare label="매출총이익" value={cur.grossProfit} format={formatKRW} icon={<Banknote />} iconTone="#16A34A" sub={mr == null ? "원가 미입력" : <>이익률 {Math.round(mr * 100)}%<span className="hidden @md:inline"> · 원가 입력 제품 기준</span></>} trend={change(cur.grossProfit, prev.grossProfit) != null && day >= 28 ? change(cur.grossProfit, prev.grossProfit) : null} href="/ax/monthly" />
+      <KpiCard bare label="이번 달 매출" value={cur.revenue} format={formatKRW} icon={<CalendarRange />} iconTone="#2563EB" sub={tp.rate != null ? `목표 대비 ${Math.round(tp.rate * 100)}% · 월 경과 ${Math.round(tp.elapsed * 100)}%` : `비교 기준 ${formatKRW(sp.revenue)} · 목표 미입력`} trend={change(cur.revenue, sp.revenue)} trendLabel={`지난달 1~${spDay}일 대비`} href="/ax/monthly" />
+      <KpiCard bare label="매출총이익" value={cur.grossProfit} format={formatKRW} icon={<Banknote />} iconTone="#16A34A" sub={mr == null ? "원가 미입력" : <>이익률 {Math.round(mr * 100)}%<span className="hidden @md:inline"> · 원가 입력 제품 기준</span></>} trend={change(cur.grossProfit, sp.grossProfit)} trendLabel={`지난달 1~${spDay}일 대비`} href="/ax/monthly" />
       <KpiCard bare label="받을 돈 (미수금)" value={rs.outstanding} format={formatKRW} icon={<Wallet />} iconTone={rs.overdueCount ? "#DC2626" : "#0F766E"} sub={rs.overdueCount ? `연체 ${rs.overdueCount}건 · ${formatKRW(rs.overdueAmount)}` : `${rs.openCount}건 · 연체 없음`} href="/ax/channels?tab=settlements" foot={<AgingMiniBar rows={receivableAging(m.snapshot.settlements, m.today)} />} />
     </div>
     </div>

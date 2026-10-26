@@ -29,7 +29,7 @@ export function buildNotifications(m: AxModel, role: Role, opts: { allowPractice
     .sort((a, b) => a.mm!.daysToDeadline! - b.mm!.daysToDeadline!);
   if (due.length) {
     const passed = due.filter((x) => x.mm!.daysToDeadline! <= 0).length;
-    out.push({ id: "lead", tone: passed ? "danger" : "warning", title: passed ? `생산 착수 마감 지남 ${passed}개` : `생산 착수 마감 7일 이내 ${due.length}개`, detail: due.slice(0, 2).map((x) => `${x.p.name} ${x.mm!.daysToDeadline! <= 0 ? "마감 지남" : `D-${x.mm!.daysToDeadline}`}`).join(" · ") + (due.length > 2 ? ` 외 ${due.length - 2}` : ""), href: "/ax/products?tab=production" });
+    out.push({ id: "lead", tone: passed ? "danger" : "warning", title: passed ? `생산 착수 마감 지남 ${passed}개` : `생산 착수 마감 7일 이내 ${due.length}개`, detail: due.slice(0, 2).map((x) => `${x.p.name} ${x.mm!.daysToDeadline! <= 0 ? "마감 지남" : `D-${x.mm!.daysToDeadline}`}`).join(" · ") + (due.length > 2 ? ` 외 ${due.length - 2}` : ""), href: `/ax/products?tab=production&due=${passed ? "passed" : "soon"}` });
   }
 
   // 2. 연체 미수금 (대표·관리자)

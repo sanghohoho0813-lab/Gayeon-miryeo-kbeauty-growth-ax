@@ -221,6 +221,10 @@ export function createLiveSource(sb: SupabaseClient, orgId: string, userId: stri
       for (let i = 0; i < ids.length; i += 200) n += must<Row[]>(await sb.from("sales_records").delete().eq("organization_id", org).in("id", ids.slice(i, i + 200)).select("id")).length;
       return n;
     },
+    async updateSale(id, patch) {
+      const rows = must<Row[]>(await sb.from("sales_records").update({ sale_date: patch.saleDate, units: patch.units, revenue: patch.revenue }).eq("organization_id", org).eq("id", id).select("id"));
+      if (rows.length === 0) throw new Error("판매 기록을 고치지 못했습니다 (권한 또는 이미 삭제됨)");
+    },
     async createActions(cands) {
       for (const c of cands) {
         const res = await sb.from("growth_actions").insert({

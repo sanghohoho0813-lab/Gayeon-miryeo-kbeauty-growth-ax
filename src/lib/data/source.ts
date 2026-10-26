@@ -96,6 +96,8 @@ export interface DataSource {
   undoImport(batchId: string): Promise<{ sales: number; settlements: number }>;
   /** 판매 행 삭제 — 대표·관리자 (DB 정책 sales_delete). 데이터 품질 점검의 잘못 들어온 행 정리용 */
   deleteSales(ids: string[]): Promise<number>;
+  /** 판매 1건 고치기 — 날짜·수량·매출만 (PASS 33, D-114). 대표·관리자 (DB 정책 sales_modify) */
+  updateSale(id: string, patch: Pick<SalesRecord, "saleDate" | "units" | "revenue">): Promise<void>;
 
   createActions(c: GrowthActionCandidate[]): Promise<void>;
   updateAction(id: string, patch: Partial<GrowthAction>, t: ActionTransition): Promise<void>;

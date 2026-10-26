@@ -64,3 +64,15 @@ export function vsPrevMonth(r: Breakdown, prevRows: Breakdown[] | null): number 
   if (p <= 0) return r.revenue > 0 ? "new" : null;
   return change(r.revenue, p);
 }
+
+/* 지난달 같은 기간 (PASS 33, D-112) — 진행 중인 달을 지난달 '전체'와 비교하면 줄어든 것처럼 보인다.
+   이번 달 1~n일과 지난달 1~n일을 비교한다. n = 판매 기준일의 일자(마지막 판매일이 이번 달이면 그날, 아니면 오늘).
+   지난달이 더 짧으면(예: 31일 vs 30일) 지난달 전체가 된다 */
+export function samePeriodDay(today: string, salesAsOf: string): number {
+  const asOf = salesAsOf.slice(0, 7) === today.slice(0, 7) ? salesAsOf : today;
+  return Number(asOf.slice(8, 10));
+}
+export function monthUpTo(sales: SalesRecord[], products: Product[], channels: Channel[], month: string, day: number): MonthRow {
+  const cut = `${month}-${String(day).padStart(2, "0")}`;
+  return monthlySummary(sales.filter((s) => s.saleDate.slice(0, 7) === month && s.saleDate <= cut), products, channels, cut, 1)[0];
+}

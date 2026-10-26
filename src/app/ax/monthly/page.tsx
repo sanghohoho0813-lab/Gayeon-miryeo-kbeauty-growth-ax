@@ -17,7 +17,7 @@ import { useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { formatKRW, formatPct, formatPrice } from "@/lib/analytics";
-import { change, marginRate, monthLabel, monthlySummary, vsPrevMonth, type Breakdown } from "@/lib/monthly";
+import { change, marginRate, monthLabel, monthlySummary, monthUpTo, samePeriodDay, vsPrevMonth, type Breakdown } from "@/lib/monthly";
 import { summarizeReceivables } from "@/lib/settlements";
 import { MonthlyTargetCard } from "@/components/ax/MonthlyTargetCard";
 import { targetProgress } from "@/lib/targets";
@@ -36,6 +36,11 @@ function Inner() {
   const sel = rows.find((r) => r.month === params.get("m")) ?? rows[rows.length - 1];
   const idx = rows.indexOf(sel);
   const prev = idx > 0 ? rows[idx - 1] : null;
+  // 진행 중인 달은 지난달 '같은 기간(1~n일)'과 비교 (PASS 33, D-112) — 지난 달은 그대로 지난달 전체와
+  const isCur = sel.month === current;
+  const spDay = samePeriodDay(m.today, m.salesAsOf);
+  const cmp = prev ? (isCur ? monthUpTo(m.snapshot.sales, m.snapshot.products, m.snapshot.channels, prev.month, spDay) : prev) : null;
+  const cmpLabel = isCur ? `지난달 1~${spDay}일 대비` : "전월 대비";
   const rs = summarizeReceivables(m.snapshot.settlements, m.today);
   const hasData = rows.some((r) => r.revenue > 0);
   const mr = marginRate(sel);
@@ -58,8 +63,8 @@ function Inner() {
         <>
 
           <div className="stagger grid grid-cols-2 gap-3 @md:gap-4 @4xl:grid-cols-4" data-testid="monthly-kpis">
-            <KpiCard label={`${monthLabel(sel.month)} 매출`} value={sel.revenue} format={formatKRW} trend={prev ? change(sel.revenue, prev.revenue) : null} trendLabel="전월 대비" />
-            <KpiCard label="매출총이익" value={sel.grossProfit} format={formatKRW} sub={coverage == null ? "-" : `원가 입력 매출 ${Math.round(coverage * 100)}% 기준`} trend={prev ? change(sel.grossProfit, prev.grossProfit) : null} trendLabel="전월 대비" />
+            <KpiCard label={`${monthLabel(sel.month)} 매출`} value={sel.revenue} format={formatKRW} trend={cmp ? change(sel.revenue, cmp.revenue) : null} trendLabel={cmpLabel} />
+            <KpiCard label="매출총이익" value={sel.grossProfit} format={formatKRW} sub={coverage == null ? "-" : `원가 입력 매출 ${Math.round(coverage * 100)}% 기준`} trend={cmp ? change(sel.grossProfit, cmp.grossProfit) : null} trendLabel={cmpLabel} />
             <KpiCard label="매출총이익률" value={(mr ?? 0) * 100} format={(v) => (mr == null ? "원가 미입력" : `${v.toFixed(1)}%`)} sub="(매출 − 수량×원가) ÷ 매출" />
             <KpiCard label="받을 돈 (현재)" value={rs.outstanding} format={formatKRW} sub={rs.overdueCount ? `연체 ${rs.overdueCount}건 ${formatKRW(rs.overdueAmount)}` : "연체 없음"} href="/ax/channels?tab=settlements" />
           </div>
@@ -84,7 +89,7 @@ function Inner() {
           <MonthlyTargetCard key={sel.month} month={sel.month} actual={sel.revenue} />
           </div>
 
-          <Breakdowns month={sel.month} byChannel={sel.byChannel} byProduct={sel.byProduct} total={sel.revenue} prev={prev ? { byChannel: prev.byChannel, byProduct: prev.byProduct } : null} inProgressDay={sel.month === current ? Number(m.today.slice(8, 10)) : null} />
+          <Breakdowns month={sel.month} byChannel={sel.byChannel} byProduct={sel.byProduct} total={sel.revenue} prev={cmp ? { byChannel: cmp.byChannel, byProduct: cmp.byProduct } : null} inProgressDay={isCur ? spDay : null} />
         </>
       )}
     </div>
@@ -122,7 +127,7 @@ function BreakdownTable({ title, file, rows, prevRows, total, testId, inProgress
   const data = rows.map((r) => ({ r, share: total ? r.revenue / total : 0, vs: vsPrevMonth(r, prevRows) }));
   const vsText = (v: number | "new" | null) => (v == null ? "" : v === "new" ? "신규" : Math.round(v * 1000) / 10);
   return (
-    <DataCard title={title} info="비중은 이달 전체 매출 대비, 전월 대비는 지난달 같은 채널·제품 매출과 비교한 값입니다." action={<ExportButton name={title.replace(/[ .]/g, "_")} file={file} rows={data.map(({ r, share, vs }) => ({ 이름: r.name, 매출: r.revenue, "비중(%)": Math.round(share * 1000) / 10, "전월 대비(%)": vsText(vs), 판매수량: r.units, 매출총이익: r.profit ?? "" }))} />}>
+    <DataCard title={title} info="비중은 이달 전체 매출 대비, 전월 대비는 지난달 같은 채널·제품 매출과 비교한 값입니다. 진행 중인 이번 달은 지난달도 같은 1~n일만 비교합니다." action={<ExportButton name={title.replace(/[ .]/g, "_")} file={file} rows={data.map(({ r, share, vs }) => ({ 이름: r.name, 매출: r.revenue, "비중(%)": Math.round(share * 1000) / 10, [inProgressDay != null ? `지난달 1~${inProgressDay}일 대비(%)` : "전월 대비(%)"]: vsText(vs), 판매수량: r.units, 매출총이익: r.profit ?? "" }))} />}>
       {rows.length === 0 ? <p className="text-[0.9rem] text-ink-soft">해당 월 판매가 없습니다.</p> : narrow ? (
         <ul data-testid={testId}>
           {data.map(({ r, share, vs }) => (
@@ -158,8 +163,8 @@ function BreakdownTable({ title, file, rows, prevRows, total, testId, inProgress
           </table>
         </div>
       )}
-      {/* 진행 중인 달은 지난달 '전체'와 비교됨 — 줄어든 것처럼 보일 수 있어 적어 둔다 */}
-      {inProgressDay != null && rows.length > 0 && <p className="mt-3 text-[0.8rem] text-ink-soft" data-testid="monthly-inprogress-note">이번 달은 {inProgressDay}일까지의 매출이라, 지난달 전체와 비교한 &lsquo;전월 대비&rsquo;는 낮게 나올 수 있습니다.</p>}
+      {/* 진행 중인 달 — 지난달도 같은 1~n일만 더해 비교 (PASS 33, D-112) */}
+      {inProgressDay != null && rows.length > 0 && <p className="mt-3 text-[0.8rem] text-ink-soft" data-testid="monthly-inprogress-note">이번 달은 1~{inProgressDay}일 매출이라, &lsquo;전월 대비&rsquo;도 지난달 1~{inProgressDay}일 매출과 비교합니다.</p>}
     </DataCard>
   );
 }
