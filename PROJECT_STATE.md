@@ -46,7 +46,8 @@ CURRENT PASS: 33 — **다음 단계 고도화, UI/UX 중심**(사용자 요청 
 - 2026-10-14 보완(사용자 요청, 2곳만): HERO에 작은 보조문구 "주식회사 가연인터내셔널 · AX Sprint II 심사용"(신청기업) → 프로젝트명 "MIRYEO K-Beauty Growth AX · PILOT" 위계, 데모 제목 아래 분석 방식 카드(현재 PILOT: 규칙·통계 기반 / 향후 고도화: 시계열·머신러닝) — 기존 칩 2개를 같은 내용의 2단 카드로 교체. 데모 수치·계산·섹션 내용 변경 없음
 - 수정 시: 샘플 수치를 바꾸면 원고 2절 표 + `qa-review` 기대값을 함께 바꾼다. `/ax` 기기 보기 틀은 `/review`에서 꺼짐(`DeviceView.tsx`)
 
-## PASS 33 변경 요약 (2026-10-26) — 고도화·UI/UX
+## PASS 33 변경 요약 (2026-10-26) — 고도화·UI/UX (배포 완료)
+- 배포 확인 (2026-10-26, 커밋 dcfaabf): 공개 주소 11곳 200(새 주소 `?tab=production&due=passed`·보고 모드 4장 포함) · 새 화면 코드(전환 흐름 사람 수 전환)가 배포된 파일에 있음
 - 비포·애프터 비교 페이지(비공개 Artifact, 7화면 × 모바일·PC, 지금 배포본 PASS 32와 같은 Demo 자료·같은 조작): https://claude.ai/artifact/PpVxEakLF1rBaK4TPbBHc6
 | 항목 | 상태 |
 |---|---|
