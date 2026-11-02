@@ -1,5 +1,7 @@
-#  assemble.py — 짧은 파일(첫 문장) + 긴 파일(첫 문장 뺀 나머지) → 쉼 정리(도구 가이드 §4-3) → asm.wav (24kHz)
-#  문장 사이 0.4초 · 장(문단) 사이 0.7초 · 문장 안 0.9초 넘는 쉼은 0.65초 · 그 밖의 쉼은 그대로
+#  assemble.py — 짧은 파일(첫 문장) + 긴 파일(첫 문장 뺀 나머지) → 쉼 정리 → asm.wav (24kHz)
+#  V2.1 (사용자 피드백: 말끝이 잘려 다음 문장으로 넘어감 · 쉼을 줄여 속도감 있게)
+#  - 쉼 안에서 '조용한 프레임'(-46dB 미만)만 잘라 낸다. 말끝 꼬리 · 숨소리 · 다음 말 시작은 지우지 않는다(무음으로 바꾸지 않음)
+#  - 조용한 가운데 길이 목표(속도 바꾸기 전): 문장 사이 0.24초 · 문단 사이 0.38초 · 문장 안 쉼은 0.26초 넘으면 0.26초
 import json, re, wave, difflib, bisect
 import numpy as np
 SR = 24000
@@ -39,11 +41,10 @@ def end_time(i):
     while i not in m and i > 0: i -= 1
     return m.get(i)
 bounds = [(end_time(i), para) for i, para in ends[:-1]]
-# 10ms 음량 → 말/무음
+# 10ms 음량 → 쉼 후보(-38dB 미만 연속, 80ms 미만 소리는 쉼 안에 포함) · 지워도 되는 프레임(-46dB 미만)
 hop = int(.01 * SR); n = len(x) // hop
 db = 20 * np.log10(np.sqrt(np.mean(x[: n * hop].reshape(n, hop) ** 2, axis=1)) / 32768 + 1e-9)
 sp = db > -38
-# 80ms 미만 소리는 말이 아님(딸깍)
 i = 0
 while i < n:
     if sp[i]:
@@ -52,37 +53,65 @@ while i < n:
         if j - i < 8: sp[i:j] = False
         i = j
     else: i += 1
-runs = []   # 무음 구간 (시작, 끝) 초
+runs = []   # 쉼 후보 (시작 프레임, 끝 프레임)
 i = 0
 while i < n:
     if not sp[i]:
         j = i
         while j < n and not sp[j]: j += 1
-        runs.append((i * .01, j * .01)); i = j
+        runs.append((i, j)); i = j
     else: i += 1
-first_sp = next(k for k in range(n) if sp[k]) * .01; last_sp = (n - 1 - next(k for k in range(n) if sp[n - 1 - k])) * .01
-out, plan, cur = [], [], first_sp
-# 문장 끝마다 가장 가까운 0.2초 이상 무음 하나를 경계로 (단어 사이 아주 짧은 틈은 제외)
-cand = [(a, b) for (a, b) in runs if b - a >= .2 and first_sp < a < last_sp]
+loud = db >= -46
+guard = loud.copy()
+for k in (1, 2): guard[k:] |= loud[:-k]; guard[:-k] |= loud[k:]      # 소리 앞뒤 20ms 보호
+first_sp = next(k for k in range(n) if sp[k]); last_sp = n - 1 - next(k for k in range(n) if loud[n - 1 - k])
+S_T, P_T, CAP = .24, .38, .26
+cand = [(a, b) for (a, b) in runs if (b - a) >= 20 and first_sp < a < last_sp]
 bmap = {}
-for k, (te, para) in enumerate(bounds):
-    best = min(cand, key=lambda r: abs(r[0] - te))
-    if abs(best[0] - te) <= .6: bmap[best] = .7 if para else .4
-used = set(range(len(bmap)))
+for te, para in bounds:
+    best = min(cand, key=lambda r: abs(r[0] * .01 - te))
+    if abs(best[0] * .01 - te) <= .6: bmap[best] = P_T if para else S_T
+cuts, ins, plan = [], [], []    # cuts: (시작 프레임, 끝 프레임) 지움 · ins: (프레임, 길이 초) 넣음
 for (a, b) in runs:
-    if a <= first_sp or a >= last_sp: continue
-    L = b - a
+    if a <= first_sp or a >= last_sp or b - a < 20: continue
+    rem = [k for k in range(a + 6, b - 4) if not guard[k]]       # 꼬리 60ms · 다음 말 앞 40ms는 항상 남김
+    if not rem: continue
+    r0, r1 = rem[0], rem[-1]
+    mid = (r1 - r0 + 1) * .01
     tgt = bmap.get((a, b))
     if tgt is None:
-        if L < .25: continue
-        tgt = .65 if L > .9 else L
-    out.append(x[int(cur * SR):int(a * SR)])
-    pad = int(tgt * SR); out.append(np.zeros(pad, dtype=np.float32))
-    plan.append((round(a, 2), round(L, 2), tgt)); cur = b
-out.append(x[int(cur * SR):int((last_sp + .12) * SR)])
+        if mid <= CAP: continue
+        tgt = CAP
+    need = int(round((mid - tgt) * 100))
+    st, cur = [], [rem[0]]                                         # 지울 수 있는 연속 구간들
+    for k in rem[1:]:
+        if k == cur[-1] + 1: cur.append(k)
+        else: st.append(cur); cur = [k]
+    st.append(cur); st.sort(key=len, reverse=True)
+    if need > 0:
+        got = 0
+        for s_ in st:
+            if got >= need: break
+            take = min(need - got, len(s_) - 2)
+            if take <= 0: continue
+            c0 = s_[0] + (len(s_) - take) // 2
+            cuts.append((c0, c0 + take)); got += take
+        plan.append((round(a * .01, 2), round((b - a) * .01, 2), round(mid, 2), tgt, -got * .01))
+    elif need < 0:
+        s_ = st[0]; ins.append((s_[len(s_) // 2], -need * .01))
+        plan.append((round(a * .01, 2), round((b - a) * .01, 2), round(mid, 2), tgt, -need * .01))
+# 지우는 프레임에 말소리가 없는지 확인
+for c0, c1 in cuts: assert not loud[c0:c1].any()
+ops = sorted([(c0 * hop, "cut", c1 * hop) for c0, c1 in cuts] + [(p * hop, "ins", L) for p, L in ins])
+XF = int(.005 * SR); fo = np.linspace(1, 0, XF, dtype=np.float32); fi = 1 - fo
+out, pos = [], max(0, first_sp * hop - int(.05 * SR))
+for p0, kind, v in ops:
+    if kind == "cut":
+        out.append(x[pos:p0 - XF]); out.append(x[p0 - XF:p0] * fo + x[v:v + XF] * fi); pos = v + XF
+    else:
+        out.append(x[pos:p0]); out.append(np.zeros(int(v * SR), dtype=np.float32)); pos = p0
+out.append(x[pos:min(len(x), (last_sp + 12) * hop)])
 y = np.concatenate(out)
-print("문장 경계", len(bounds), "· 찾은 경계", len(used), "· 바꾼 쉼", len(plan), f"· 길이 {len(x)/SR:.1f} → {len(y)/SR:.1f}초")
-missing = len(bounds) - len(bmap)
-print("못 찾은 경계(문장 번호):", missing)
+print("문장 경계", len(bounds), "· 찾은 경계", len(bmap), "· 바꾼 쉼", len(plan), f"· 길이 {len(x)/SR:.1f} → {len(y)/SR:.1f}초", "· 못 찾은 경계", len(bounds) - len(bmap))
 w = wave.open("asm.wav", "wb"); w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR); w.writeframes(np.clip(y, -32768, 32767).astype(np.int16).tobytes()); w.close()
 json.dump(plan, open("asm_plan.json", "w"))
