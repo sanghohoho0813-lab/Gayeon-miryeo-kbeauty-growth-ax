@@ -272,6 +272,7 @@ function ProductsTab() {
   const { role } = useSession();
   const { busy, save } = useSave();
   const [edit, setEdit] = useState<Product | null>(null);
+  const [dirty, setDirty] = useState(false); // 서랍 '저장 안 한 변경' 확인 (PASS 35, R-37)
   const [q, setQ] = useState("");
   // 두 칸(@4xl)이 풀리는 폭에서는 편집 칸이 목록 아래 멀리 열리므로 서랍으로 연다 (PASS 34, D-118)
   const [gridRef, single] = useContainerBelow<HTMLDivElement>(56);
@@ -279,7 +280,7 @@ function ProductsTab() {
   const all = m.snapshot.products;
   const shown = all.filter((p) => matchesQuery(q, p.name, p.sku, p.category, p.line));
   const title = edit ? (edit.id.startsWith("new-") ? "새 상품 등록" : `수정 — ${edit.name}`) : "상품 선택";
-  const form = edit && <ProductForm key={edit.id} value={edit} busy={busy} channels={m.snapshot.channels} onCancel={() => setEdit(null)} onSave={async (p) => { if (await save("상품을 저장했습니다", (s) => s.upsertProduct(p))) setEdit(null); }} skuTaken={(sku) => all.some((x) => x.sku === sku && x.id !== edit.id)} stickyActions={single} />;
+  const form = edit && <ProductForm key={edit.id} value={edit} busy={busy} channels={m.snapshot.channels} onCancel={() => setEdit(null)} onSave={async (p) => { if (await save("상품을 저장했습니다", (s) => s.upsertProduct(p))) setEdit(null); }} skuTaken={(sku) => all.some((x) => x.sku === sku && x.id !== edit.id)} stickyActions={single} onDirty={setDirty} />;
   return (
     <>
     <div ref={gridRef} className="grid gap-6 @4xl:grid-cols-5" data-testid="master-products" data-edit-mode={single ? "drawer" : "side"}>
@@ -302,7 +303,7 @@ function ProductsTab() {
         </DataCard>
       )}
     </div>
-    {single && <Drawer open={!!edit} onClose={() => setEdit(null)} title={title}>{form}</Drawer>}
+    {single && <Drawer open={!!edit} onClose={() => setEdit(null)} title={title} dirty={dirty}>{form}</Drawer>}
     <ProductImport />
     </>
   );
@@ -331,9 +332,13 @@ function NoMatch({ q, onClear }: { q: string; onClear: () => void }) {
   );
 }
 
-function ProductForm({ value, busy, channels, onSave, onCancel, skuTaken, stickyActions }: { value: Product; busy: boolean; channels: Channel[]; onSave: (p: Product) => void; onCancel: () => void; skuTaken: (sku: string) => boolean; stickyActions?: boolean }) {
+function ProductForm({ value, busy, channels, onSave, onCancel, skuTaken, stickyActions, onDirty }: { value: Product; busy: boolean; channels: Channel[]; onSave: (p: Product) => void; onCancel: () => void; skuTaken: (sku: string) => boolean; stickyActions?: boolean; onDirty?: (d: boolean) => void }) {
   const [p, setP] = useState<Product>(value);
-  const [links, setLinks] = useState(value.purchaseLinks.map((l) => `${l.label}|${l.url}`).join("\n"));
+  const initialLinks = value.purchaseLinks.map((l) => `${l.label}|${l.url}`).join("\n");
+  const [links, setLinks] = useState(initialLinks);
+  const isDirty = JSON.stringify(p) !== JSON.stringify(value) || links !== initialLinks;
+  useEffect(() => { onDirty?.(isDirty); }, [isDirty, onDirty]);
+  useEffect(() => () => onDirty?.(false), [onDirty]);
   const errors = [!p.sku.trim() && "SKU 필수", skuTaken(p.sku.trim()) && "이미 있는 SKU", !p.name.trim() && "제품명 필수", !(p.price > 0) && "판매가 필수"].filter(Boolean) as string[];
   return (
     <div className="space-y-3">
@@ -378,6 +383,7 @@ function ChannelsTab() {
   const { role } = useSession();
   const { busy, save } = useSave();
   const [c, setC] = useState<Channel>(blankChannel);
+  const [orig, setOrig] = useState<Channel | null>(null); // 서랍을 연 때의 값 — '저장 안 한 변경' 확인 (PASS 35)
   const [open, setOpen] = useState(false); // 좁은 폭에서 편집 서랍
   const [q, setQ] = useState("");
   const [gridRef, single] = useContainerBelow<HTMLDivElement>(56);
@@ -386,7 +392,8 @@ function ChannelsTab() {
   const shown = all.filter((x) => matchesQuery(q, x.name, x.type));
   const isNew = c.id.startsWith("new-");
   const title = isNew ? "새 채널" : `수정 — ${c.name}`;
-  const pick = (x: Channel) => { setC(x); setOpen(true); };
+  const pick = (x: Channel) => { setC(x); setOrig(x); setOpen(true); };
+  const dirty = open && !!orig && JSON.stringify(c) !== JSON.stringify(orig);
   const fields = (
     <div className="grid gap-3 @xl:grid-cols-2">
       <div><label className="field-label" htmlFor="c-name">채널명</label><input id="c-name" className="field" value={c.name} onChange={(e) => setC({ ...c, name: e.target.value })} /></div>
@@ -415,7 +422,7 @@ function ChannelsTab() {
   if (single) return (
     <div ref={gridRef} data-testid="master-channels" data-edit-mode="drawer">
       {list}
-      <Drawer open={open} onClose={() => setOpen(false)} title={title} footer={<div className="flex gap-2">{saveBtn}<button className="btn-secondary" onClick={() => setOpen(false)}>취소</button></div>}>{fields}</Drawer>
+      <Drawer open={open} onClose={() => setOpen(false)} title={title} dirty={dirty} footer={<div className="flex gap-2">{saveBtn}<button className="btn-secondary" onClick={() => setOpen(false)}>취소</button></div>}>{fields}</Drawer>
     </div>
   );
   return (
@@ -463,6 +470,7 @@ function B2BTab() {
   const { role } = useSession();
   const { busy, save } = useSave();
   const [b, setB] = useState<B2BAccount>(blankB2B);
+  const [orig, setOrig] = useState<B2BAccount | null>(null); // 서랍을 연 때의 값 (PASS 35)
   const [open, setOpen] = useState(false); // 좁은 폭에서 편집 서랍
   const [q, setQ] = useState("");
   const [gridRef, single] = useContainerBelow<HTMLDivElement>(56);
@@ -471,7 +479,8 @@ function B2BTab() {
   const shown = all.filter((x) => matchesQuery(q, x.name, x.status, x.note));
   const isNew = b.id.startsWith("new-");
   const title = isNew ? "새 거래처" : `수정 — ${b.name}`;
-  const pick = (x: B2BAccount) => { setB(x); setOpen(true); };
+  const pick = (x: B2BAccount) => { setB(x); setOrig(x); setOpen(true); };
+  const dirty = open && !!orig && JSON.stringify(b) !== JSON.stringify(orig);
   const fields = (
     <div className="grid gap-3 @xl:grid-cols-2">
       <div><label className="field-label" htmlFor="b-name">거래처명</label><input id="b-name" className="field" value={b.name} onChange={(e) => setB({ ...b, name: e.target.value })} /></div>
@@ -495,7 +504,7 @@ function B2BTab() {
   if (single) return (
     <div ref={gridRef} data-testid="master-b2b" data-edit-mode="drawer">
       {list}
-      <Drawer open={open} onClose={() => setOpen(false)} title={title} footer={<div className="flex gap-2">{saveBtn}<button className="btn-secondary" onClick={() => setOpen(false)}>취소</button></div>}>{fields}</Drawer>
+      <Drawer open={open} onClose={() => setOpen(false)} title={title} dirty={dirty} footer={<div className="flex gap-2">{saveBtn}<button className="btn-secondary" onClick={() => setOpen(false)}>취소</button></div>}>{fields}</Drawer>
     </div>
   );
   return (

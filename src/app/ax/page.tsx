@@ -163,7 +163,7 @@ function DashboardAnalysis({ fin }: { fin: boolean }) {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 id="dash-analysis-title" className="text-[1.08rem] font-bold @md:text-[1.15rem] @3xl:text-[1.25rem]">분석 <span className="text-[0.86rem] font-semibold text-ink-soft">최근 4주</span></h2>
       </div>
-      <Tabs tabs={tabs} value={current} onChange={setTab} className="mb-4" panelId="dash-analysis-panel" label="분석 보기" />
+      <Tabs tabs={tabs} value={current} onChange={setTab} className="mb-4" panelId="dash-analysis-panel" label="분석 보기" fill />
       <div id="dash-analysis-panel" role="tabpanel" aria-labelledby={`dash-analysis-panel-tab-${current}`} tabIndex={0} className="outline-none">
         {current === "growth" && (
           <div className="grid gap-5 @4xl:grid-cols-2 [&>*]:min-w-0">

@@ -1,10 +1,11 @@
-# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 34)
+# QA_REPORT — MIRYEO K-Beauty Growth AX (PASS 35)
 
-DATE: 2026-10-26 · Next.js 16.4.3 · MODE TESTED: DEMO + LIVE(로컬 Supabase 호환 스택) · BROWSER: Chromium (Playwright)
+DATE: 2026-11-03 · Next.js 16.4.3 · MODE TESTED: DEMO (PASS 35 — Live E2E 미실행, 아래 참고) · BROWSER: Chromium (Playwright)
 
 ## 1. Release Gate
 | 항목 | 결과 |
 |---|---|
+| **PASS 35 고도화·UI/UX (D-127 ~ D-131)** — 검수 스크립트를 저장소 `qa/`에 보관 시작(PASS 34까지의 33종은 저장소 밖에 있어 사라짐). `qa/pass35` 118(생산 착수 일정 간단히 보기·펼침·기억·마감 칩·PC 표, 협의 요청 글 업체별 수 합·받는 업체·수량 = 추천 생산량·Demo 첫 줄, 서랍 한 글자씩 입력·Esc·X·바깥 누름 확인 줄·계속 편집·버리고 닫기·취소/저장은 묻지 않음, 분석 탭 360·390 한 줄·PC 그대로·제목 균형, 고객 제품 목록 주소 기억·뒤로·새로고침·필터 해제·검색 줄 ≤ 80px·필터 버튼, axe 7테마 × 3화면 + 고객 화면) · `qa/sweep` 384(32주소 × 360·390·768·1440: 200·오류 0·넘침 0) · `qa/a11y` 136(AX 16화면 × 7테마 1440 + 24화면 390: axe 위반 0) · `qa/unit35` 21 · **화면 보고 고친 것**: 데이터 관리 서랍에서 한 글자마다 초점이 빠지는 결함(PASS 34부터, 기존 검수는 값을 한 번에 넣어 놓침) · 대시보드 분석 탭 1차 수정 후에도 360·390에서 넘침 → 글자 크기를 폭에 맞춤 | **PASS** — **Live E2E 미실행**: 이 컨테이너에서 Postgres 서버 시작·인증 서버(GoTrue) 소스 빌드가 권한 정책으로 막힘. 이번 변경은 저장·불러오기 코드(`src/lib/data`)를 바꾸지 않았고 창 공통 코드(초점)만 바뀜 → 다음 Live 확인 때 `run.sh` 1회 |
 | `npm run typecheck` (tsc --noEmit) | PASS |
 | `npm run build` (Next 16, Turbopack) | PASS |
 | `npm audit` | 0 vulnerabilities (2026-10-26, PASS 32 — Next.js 16.4.3 보안 패치 후. 16.4.0에서 critical 3건 발견 → 해소, D-111) |

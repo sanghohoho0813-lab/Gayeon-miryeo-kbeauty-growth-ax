@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, ArrowUpDown, Pencil, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, Copy, Pencil, Search, X } from "lucide-react";
 import { useNarrow } from "@/lib/use-narrow";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, InsightCard, StatusBadge, saleStatusTone, stockStatusTone } from "@/components/ax/Cards";
@@ -23,6 +23,9 @@ import { can } from "@/lib/permissions";
 import { formatKRW, formatPct, formatPrice, productInsight, type ProductMetrics } from "@/lib/analytics";
 import { formatDateKR } from "@/lib/date";
 import { matchesQuery } from "@/lib/search";
+import { copyText } from "@/lib/clipboard";
+import { isLive } from "@/lib/config";
+import { groupByPartner, productionRequestText, UNASSIGNED_PARTNER } from "@/lib/production-request";
 import type { Inventory, Product } from "@/lib/types";
 
 const TABS = [
@@ -415,6 +418,7 @@ function DeadlineBadge({ mm }: { mm: ProductMetrics }) {
 type DueBucket = "all" | "passed" | "soon" | "later";
 const DUE_LABEL: Record<Exclude<DueBucket, "all">, string> = { passed: "마감 지남", soon: "14일 이내", later: "여유" };
 const dueOf = (d: number): Exclude<DueBucket, "all"> => (d <= 0 ? "passed" : d <= 14 ? "soon" : "later");
+const SCHEDULE_VIEW_KEY = "miryeo-schedule-view";
 function ProductionSchedule() {
   const m = useModel();
   const dueParam = useSearchParams().get("due");
@@ -430,6 +434,22 @@ function ProductionSchedule() {
   const urgentUnits = urgent.reduce((a, x) => a + x.mm.recommendedOrder, 0);
   const missing = m.snapshot.products.filter((p) => p.leadTimeDays == null);
   const narrow = useNarrow();
+  // OEM 업체별 '생산 일정 협의 요청 글' 복사 (PASS 35, D-128) — 보내는 것은 사람이 한다
+  const groups = groupByPartner(urgent.map((x) => ({ product: x.p, daysToDeadline: x.mm.daysToDeadline!, orderDeadline: x.mm.orderDeadline!, recommendedOrder: x.mm.recommendedOrder, leadTimeDays: x.mm.leadTimeDays! })), m.snapshot.production);
+  const [copied, setCopied] = useState<string | null>(null);
+  useEffect(() => { if (!copied) return; const t = window.setTimeout(() => setCopied(null), 2500); return () => window.clearTimeout(t); }, [copied]);
+  const copyRequest = async (partner: string) => {
+    const g = groups.find((x) => x.partner === partner);
+    const text = g && productionRequestText(partner, g.items, m.today, { orgName: m.snapshot.org.name, demo: !isLive });
+    if (!text) return;
+    if (await copyText(text)) { setCopied(partner); toast("생산 일정 협의 요청 글을 복사했습니다 — 메신저·메일에 붙여 넣으세요"); }
+    else toast("복사하지 못했습니다 — 브라우저가 복사를 막았습니다", "error");
+  };
+  // 모바일 '간단히 보기' (PASS 35, D-127) — 한 줄 요약을 누르면 그 상품만 펼친다. 고른 보기는 이 브라우저에 기억
+  const [view, setViewState] = useState<"compact" | "full">("compact");
+  useEffect(() => { try { if (localStorage.getItem(SCHEDULE_VIEW_KEY) === "full") setViewState("full"); } catch { /* 기본 간단히 */ } }, []);
+  const setView = (v: "compact" | "full") => { setViewState(v); try { localStorage.setItem(SCHEDULE_VIEW_KEY, v); } catch { /* 저장 안 돼도 동작 */ } };
+  const [openSku, setOpenSku] = useState<string | null>(null);
   const activeText = (active: typeof rows[number]["active"], mm: ProductMetrics) => (
     <>
       {active.length ? active.map((x) => `${x.status} ${x.quantity.toLocaleString()}개`).join(", ") : <span className="text-ink-soft">없음</span>}
@@ -458,18 +478,66 @@ function ProductionSchedule() {
             })}
           </div>
           {urgent.length > 0 && <p className="tabular mt-2 text-[0.86rem]" data-testid="schedule-urgent">14일 안에 착수할 상품 <b>{urgent.length}개</b> · 추천 생산량 합계 <b>{urgentUnits.toLocaleString()}개</b> <span className="text-ink-soft">(진행 중인 생산이 있는 상품 제외)</span></p>}
+          {groups.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5" data-testid="request-copy-row">
+              <span className="text-[0.8rem] text-ink-soft">협의 요청 글 <span className="hidden @md:inline">(메신저·메일용, 발주서 아님)</span></span>
+              {groups.map((g) => {
+                const done = copied === g.partner;
+                return (
+                  <button key={g.partner} type="button" onClick={() => void copyRequest(g.partner)} className="btn-secondary !min-h-[36px] !px-2.5 text-[0.82rem]" aria-label={`${g.partner} 생산 일정 협의 요청 글 ${done ? "복사됨" : "복사"} (${g.items.length}개 상품)`} title="생산 일정 협의 요청 글 복사 (메신저·메일용, 발주서 아님)" data-testid="request-copy" data-partner={g.partner}>
+                    {done ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+                    <span className="max-w-[12rem] truncate">{done ? "복사됨" : g.partner === UNASSIGNED_PARTNER ? "업체 미지정" : g.partner}</span>
+                    {!done && <span className="tabular rounded-full px-1.5 text-[0.74rem]" style={{ background: "var(--surface-muted)" }}>{g.items.length}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {narrow && rows.length > 0 && (
+            <div className="mt-2.5 flex items-center justify-between gap-2" data-testid="schedule-view">
+              <span className="text-[0.8rem] text-ink-soft tabular">{rows.length}개 상품 · 마감 순</span>
+              <div className="flex rounded-[10px] p-0.5" style={{ background: "color-mix(in srgb, var(--text-primary) 6%, var(--surface))" }} role="group" aria-label="보기 방식">
+                {(["compact", "full"] as const).map((v) => (
+                  <button key={v} type="button" onClick={() => { setView(v); setOpenSku(null); }} aria-pressed={view === v} data-view={v} className="pressable min-h-[34px] rounded-[8px] px-3 text-[0.8rem] font-semibold"
+                    style={view === v ? { background: "var(--surface)", color: "var(--text-primary)", boxShadow: "0 1px 2px rgba(16,24,40,.12)" } : { color: "var(--text-secondary)" }}>
+                    {v === "compact" ? "간단히" : "자세히"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
       {all.length === 0 ? <EmptyState title="생산기간이 입력된 상품이 없습니다" desc="상품별 OEM 생산기간(발주→입고 일수)을 입력하면 착수 마감일과 추천 생산량을 계산합니다." /> : rows.length === 0 ? (
         <div className="rounded-xl bg-surface-muted px-4 py-6 text-center text-[0.92rem]" data-testid="schedule-empty"><p className="font-semibold">&lsquo;{due === "all" ? "전체" : DUE_LABEL[due]}&rsquo; 상품이 없습니다</p><button type="button" className="btn-secondary mt-3 !min-h-[40px] text-[0.86rem]" onClick={() => setDue("all")}>전체 보기</button></div>
       ) : narrow ? (
-        <ul className="space-y-2.5" data-testid="production-schedule">
-          {rows.map(({ p, mm, active }) => (
-            <li key={p.id} className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }} data-schedule={p.sku}>
+        <ul className={view === "compact" ? "space-y-1.5" : "space-y-2.5"} data-testid="production-schedule" data-view={view}>
+          {rows.map(({ p, mm, active }) => {
+            const expanded = view === "full" || openSku === p.sku;
+            const panelId = `sched-${p.sku}`;
+            const units = mm.recommendedOrder > 0 ? `추천 ${mm.recommendedOrder.toLocaleString()}개` : "생산 불필요";
+            return (
+            <li key={p.id} className={`rounded-xl border ${view === "compact" ? "" : "p-3"}`} style={{ borderColor: expanded && view === "compact" ? "var(--primary)" : "var(--border)" }} data-schedule={p.sku} data-expanded={expanded ? "" : undefined}>
+              {view === "compact" ? (
+                <button type="button" onClick={() => setOpenSku(expanded ? null : p.sku)} aria-expanded={expanded} aria-controls={panelId} className="row-hover flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left" data-testid="schedule-row">
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold leading-snug">{p.name}</span>
+                    <span className="tabular block truncate text-[0.78rem] text-ink-soft">{units}{active.length ? ` · ${active[0].status} ${active[0].quantity.toLocaleString()}개` : ""}</span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <DeadlineBadge mm={mm} />
+                    <ChevronDown size={16} aria-hidden className="text-ink-soft transition-transform" style={{ transform: expanded ? "rotate(180deg)" : undefined }} />
+                  </span>
+                </button>
+              ) : (
               <div className="flex items-start justify-between gap-2">
                 <span className="min-w-0"><span className="block font-semibold leading-snug">{p.name}</span><span className="block text-[0.76rem] text-ink-soft">{p.sku}</span></span>
                 <DeadlineBadge mm={mm} />
               </div>
+              )}
+              {expanded && (
+              <div id={panelId} className={view === "compact" ? "border-t px-3 pb-3 pt-2.5" : ""} style={view === "compact" ? { borderColor: "var(--border)" } : undefined} data-testid="schedule-detail">
+              {view === "compact" && <span className="block text-[0.76rem] text-ink-soft">{p.sku}</span>}
               <div className="mt-2"><CoverBarFor product={p} compact /></div>
               <dl className="tabular mt-2 grid grid-cols-2 gap-x-3 gap-y-2 text-[0.88rem]">
                 <div><dt className="text-[0.76rem] text-ink-soft">추천 생산량</dt><dd className="font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}</dd></div>
@@ -479,8 +547,11 @@ function ProductionSchedule() {
               </dl>
               <div className="mt-2 text-[0.84rem]"><span className="text-[0.76rem] text-ink-soft">진행 중 생산 </span>{activeText(active, mm)}</div>
               <ScenarioButton product={p} className="mt-2.5 w-full" />
+              </div>
+              )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       ) : (
         <div tabIndex={0} className="table-scroll">

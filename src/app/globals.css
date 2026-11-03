@@ -225,6 +225,8 @@ body {
 .tabular { font-variant-numeric: tabular-nums; }
 .font-display { font-family: Georgia, "Times New Roman", "Noto Serif KR", serif; letter-spacing: 0.01em; }
 .break-any { overflow-wrap: anywhere; }
+/* 제목이 두 줄이 되면 줄 길이를 고르게 — 마지막 줄에 한 글자만 남지 않게 (PASS 35, D-130) */
+h1, h2, h3 { text-wrap: balance; }
 
 /* ---------- Components (layer: utilities가 우선하도록) ---------- */
 @layer components {
