@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+/* recharts를 쓰는 차트 — 화면에서는 LazyCharts.tsx로 늦게 불러온다 (PASS 38, D-139) */
+
+import { useId } from "react";
+import { useChartMotion } from "./chart-motion";
 import {
   Area,
   AreaChart,
@@ -13,16 +16,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-
-/** 움직임 줄이기(OS 설정·화면 설정)면 차트 애니메이션 끔 — 애니메이션 중 크기가 바뀌면(인쇄·창 크기) 선이 옛 좌표에 멈추는 문제도 피한다 */
-export function useChartMotion(): boolean {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.dataset.motion === "reduce";
-    setOn(!reduce);
-  }, []);
-  return on;
-}
 
 const tooltipStyle = {
   background: "var(--surface)",

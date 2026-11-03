@@ -8,7 +8,7 @@ import { useNarrow } from "@/lib/use-narrow";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, InsightCard, StatusBadge, saleStatusTone, stockStatusTone } from "@/components/ax/Cards";
 import { Drawer, Modal } from "@/components/ax/Modal";
-import { WeeklyTrend } from "@/components/ax/TrendChart";
+import { WeeklyTrend } from "@/components/ax/LazyCharts";
 import { AiReadyButton, AI_SPECS } from "@/components/ax/AiReady";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { EmptyState } from "@/components/ax/States";

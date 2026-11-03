@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ExternalLink, Radio } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { ActionRow, DataCard, KpiCard, MiniBar } from "@/components/ax/Cards";
-import { DailyEvents } from "@/components/ax/TrendChart";
+import { DailyEvents } from "@/components/ax/LazyCharts";
 import { ActionDrawer } from "@/components/ax/ActionDrawer";
 import { CustomerMembers } from "@/components/ax/CustomerMembers";
 import { AiReadyButton, AI_SPECS } from "@/components/ax/AiReady";

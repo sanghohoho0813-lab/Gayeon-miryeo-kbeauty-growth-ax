@@ -18,9 +18,11 @@ const NAV = [
 /* Demo/운영자 전용 Control Bar — 일반 고객에게는 노출하지 않는다 (Hybrid Demo Control Layer) */
 function DemoControlBar() {
   const { isFrame } = useDeviceView();
-  const [operator, setOperator] = useState(false);
+  // Demo는 처음부터 보임(빌드 때 정해짐) — 그려진 뒤에 끼어들면 화면 전체가 45px 밀렸다 (PASS 38, CLS 0.05 → 0)
+  const [operator, setOperator] = useState(!isLive);
   useEffect(() => {
-    try { setOperator(!isLive || localStorage.getItem("miryeo-operator") === "1"); } catch { setOperator(!isLive); }
+    if (!isLive) return;
+    try { setOperator(localStorage.getItem("miryeo-operator") === "1"); } catch { /* 고객에게는 숨김 */ }
   }, []);
   if (!operator) return null;
   return (
@@ -30,7 +32,7 @@ function DemoControlBar() {
         <span className="hidden text-[#AEB7C3] sm:inline">고객 행동은 Business AX 고객 인사이트로 즉시 전달됩니다</span>
         <span className="flex-1" />
         {!isFrame && <DeviceSwitch tone="beauty" />}
-        <Link href="/ax/customers" className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 font-semibold text-white hover:bg-white/10">
+        <Link href="/ax/customers" prefetch={false} className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 font-semibold text-white hover:bg-white/10">
           <LayoutDashboard size={15} aria-hidden /> Business AX 보기
         </Link>
       </div>

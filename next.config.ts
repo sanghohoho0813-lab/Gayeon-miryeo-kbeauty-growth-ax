@@ -7,6 +7,10 @@ import type { NextConfig } from "next";
 const indexable = process.env.NEXT_PUBLIC_DATA_MODE === "live" && process.env.NEXT_PUBLIC_ALLOW_INDEXING === "on";
 const NOINDEX = { key: "X-Robots-Tag", value: "noindex, nofollow" };
 
+/* Demo 빌드는 브라우저에서 Supabase를 쓰지 않음 → 브라우저 묶음에서만 빈 모듈로 바꿔 첫 화면 JS를 줄인다 (PASS 38, D-140).
+   NEXT_PUBLIC_DATA_MODE는 빌드할 때 정해지므로(Live 전환 = 환경변수 + 재배포) 같은 빌드 안에서 바뀌지 않는다. */
+const demoBuild = process.env.NEXT_PUBLIC_DATA_MODE !== "live";
+
 const security = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -18,6 +22,9 @@ const security = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  turbopack: {
+    resolveAlias: demoBuild ? { "@supabase/supabase-js": { browser: "./src/lib/data/supabase-demo-stub.ts" } } : {},
+  },
   async headers() {
     return [
       { source: "/:path*", headers: indexable ? security : [...security, NOINDEX] },

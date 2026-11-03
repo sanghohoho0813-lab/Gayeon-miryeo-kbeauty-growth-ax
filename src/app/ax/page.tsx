@@ -8,7 +8,7 @@ import { InfoTip } from "@/components/ax/InfoTip";
 import { ActionRow, DataCard, InsightCard, KpiCard, MiniBar, SeeAllLink, StatusBadge } from "@/components/ax/Cards";
 import { Tabs } from "@/components/ax/Tabs";
 import { ChannelDonut } from "@/components/ax/ChannelDonut";
-import { WeeklyTrend } from "@/components/ax/TrendChart";
+import { WeeklyTrend } from "@/components/ax/LazyCharts";
 import { ActionDrawer } from "@/components/ax/ActionDrawer";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { EmptyState } from "@/components/ax/States";
