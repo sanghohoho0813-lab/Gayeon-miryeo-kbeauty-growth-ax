@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "re
 
 /* 탭 — ←/→/Home/End로 이동(roving tabindex), panelId를 주면 aria-controls 연결.
    탭이 화면보다 넓으면(모바일) 가려진 쪽 가장자리를 흐리게 하고, 선택된 탭이 보이도록 가로로 스크롤한다. */
-/** fill: 좁은 칸(@md 미만)에서 탭을 같은 너비로 채운다 — 모바일 대시보드 분석 탭 4개가 한 줄에 다 보이게 (PASS 35, D-130). 글자가 안 들어가면 예전처럼 가로로 넘김 */
+/** 좁은 칸(@md 미만)에서는 탭이 옆으로 숨지 않게 두 줄까지 감싸고 줄을 채운다 (PASS 36, D-134 — 데이터 관리 8개·설정·고객 인사이트·채널).
+ *  fill: 좁은 칸(@md 미만)에서 탭을 같은 너비로 채운다 — 모바일 대시보드 분석 탭 4개가 한 줄에 다 보이게 (PASS 35, D-130). 글자가 안 들어가면 예전처럼 가로로 넘김 */
 export function Tabs<T extends string>({ tabs, value, onChange, className = "mb-6", panelId, label, fill = false }: { tabs: readonly { id: T; label: string }[]; value: T; onChange: (t: T) => void; className?: string; panelId?: string; label?: string; fill?: boolean }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const box = useRef<HTMLDivElement>(null);
@@ -42,7 +43,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, className = "mb-
     <div
       ref={box}
       onScroll={measure}
-      className={`flex gap-1 overflow-x-auto rounded-[14px] p-1 [scrollbar-width:none] ${className}`}
+      className={`flex gap-1 overflow-x-auto rounded-[14px] p-1 [scrollbar-width:none] ${fill ? "" : "@max-md:flex-wrap"} ${className}`}
       style={{ background: "color-mix(in srgb, var(--text-primary) 6%, var(--surface))", maskImage: fade, WebkitMaskImage: fade }}
       role="tablist"
       aria-label={label}
@@ -59,7 +60,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, className = "mb-
           tabIndex={value === t.id ? 0 : -1}
           onClick={() => onChange(t.id)}
           onKeyDown={(e) => onKey(e, i)}
-          className={`pressable min-h-[42px] whitespace-nowrap rounded-[11px] font-semibold transition-colors @md:px-5 @md:text-[0.95rem] ${fill ? "flex-1 basis-auto px-1 text-[clamp(0.76rem,3.45vw,0.93rem)] @md:flex-none" : "shrink-0 px-4 text-[0.93rem]"}`}
+          className={`pressable min-h-[42px] whitespace-nowrap rounded-[11px] font-semibold transition-colors @md:px-5 @md:text-[0.95rem] ${fill ? "flex-1 basis-auto px-1 text-[clamp(0.76rem,3.45vw,0.93rem)] @md:flex-none" : "shrink-0 px-4 text-[0.93rem] @max-md:flex-1 @max-md:basis-auto @max-md:px-2.5 @max-md:text-[clamp(0.8rem,3.4vw,0.88rem)]"}`}
           style={value === t.id ? { background: "var(--surface)", color: "var(--text-primary)", boxShadow: "0 1px 3px rgba(16,24,40,.12), 0 1px 1px rgba(16,24,40,.04)", fontWeight: 700 } : { color: "var(--text-secondary)" }}
         >
           {t.label}

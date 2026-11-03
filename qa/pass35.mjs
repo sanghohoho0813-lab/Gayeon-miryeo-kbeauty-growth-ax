@@ -86,7 +86,8 @@ const errsAll = [];
   const allChip = Number((await p.locator('[data-due="all"]').innerText()).replace(/\D/g, ""));
   check("행 수 = '전체' 칩 수", n === allChip && n > 0, `${n} vs ${allChip}`);
   const hs = await rows.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
-  check("간단히 — 행 높이 90px 이하", hs.every((h) => h <= 90), hs.map(Math.round).join(","));
+  // PASS 36: 둘째 줄을 말줄임 대신 묶음 단위로 감음 → 진행 중 생산이 있으면 두 줄 (최대 100px)
+  check("간단히 — 행 높이 100px 이하", hs.every((h) => h <= 100), hs.map(Math.round).join(","));
   check("간단히 — 펼친 칸 없음", await list.locator('[data-testid="schedule-detail"]').count() === 0);
   const firstName = (await rows.first().locator('[data-testid="schedule-row"] span.font-semibold').innerText()).trim();
   const listH = await list.evaluate((e) => e.getBoundingClientRect().height);

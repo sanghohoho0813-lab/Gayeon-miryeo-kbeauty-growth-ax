@@ -113,7 +113,7 @@ export default function ReportsPage() {
             ) : (
               <>
                 <span className="block text-[1.15rem] font-bold leading-snug" style={{ color: "var(--warning)" }}>미지정 <span className="text-[0.78rem] font-semibold">(REQUIRED / UNASSIGNED)</span></span>
-                {can(role, "manage_org") ? <Link href="/ax/settings#pilot" className="inline-flex items-center gap-1 text-[0.84rem] font-semibold" style={{ color: "var(--primary)" }}>지정하기 <ArrowRight size={14} aria-hidden /></Link> : <span className="text-[0.82rem] text-ink-soft">대표가 지정합니다</span>}
+                {can(role, "manage_org") ? <Link href="/ax/settings#pilot" className="inline-flex min-h-[32px] items-center gap-1 text-[0.84rem] font-semibold" style={{ color: "var(--primary)" }}>지정하기 <ArrowRight size={14} aria-hidden /></Link> : <span className="text-[0.82rem] text-ink-soft">대표가 지정합니다</span>}
               </>
             )}
           </div>

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, Copy, Pencil, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, Copy, ListChecks, Pencil, Search, X } from "lucide-react";
 import { useNarrow } from "@/lib/use-narrow";
 import { PageHeader } from "@/components/ax/PageHeader";
 import { DataCard, InsightCard, StatusBadge, saleStatusTone, stockStatusTone } from "@/components/ax/Cards";
@@ -17,6 +17,8 @@ import { toast } from "@/components/ax/Toast";
 import { ProductVisual } from "@/components/shared/ProductVisual";
 import { Fold } from "@/components/ax/InfoTip";
 import { CoverBarFor, ScenarioButton } from "@/components/ax/ProductionPlanner";
+import { useListView, ViewToggle } from "@/components/ax/ListView";
+import { StocktakeDrawer } from "@/components/ax/Stocktake";
 import { useData, useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
@@ -275,10 +277,31 @@ function InventoryTab({ onSelect, initialStatus }: { onSelect: (p: Product) => v
   const canEdit = can(role, "edit_operational");
   const narrow = useNarrow();
   const openEdit = (p: Product, inv?: Inventory) => setEdit({ product: p, inv: inv ?? { productId: p.id, currentStock: 0, safetyStock: 0, incomingStock: 0 } });
+  // 모바일 간단히 보기 (PASS 36, D-132) · 재고 한 번에 입력 (D-133, 주간 점검 '재고 갱신'에서 ?stocktake=1로 바로 열림)
+  const [view, setView] = useListView("miryeo-inventory-view");
+  const [openSku, setOpenSku] = useState<string | null>(null);
+  const router = useRouter();
+  const params = useSearchParams();
+  const [stocktake, setStocktake] = useState(() => params.get("stocktake") === "1" && canEdit);
+  const closeStocktake = () => { setStocktake(false); if (params.get("stocktake")) router.replace("/ax/products?tab=inventory", { scroll: false }); };
+  const detail = ({ p, mm, inv }: (typeof rows)[number]) => (
+    <>
+      <dl className="tabular mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-[0.88rem]">
+        <div><dt className="text-[0.76rem] text-ink-soft">현재 재고</dt><dd className="font-semibold">{inv ? `${inv.currentStock.toLocaleString()}개` : "미입력"}</dd></div>
+        <div><dt className="text-[0.76rem] text-ink-soft">예상 소진</dt><dd className="font-semibold">{Number.isFinite(mm.daysOfStock) && inv ? `약 ${Math.round(mm.daysOfStock)}일` : "-"}</dd>{inv && <DaysGauge mm={mm} />}</div>
+        <div><dt className="text-[0.76rem] text-ink-soft">일 판매속도</dt><dd>{mm.dailyVelocity.toFixed(1)}개/일</dd></div>
+        <div><dt className="text-[0.76rem] text-ink-soft">입고 예정</dt><dd>{inv?.incomingStock ? `${inv.incomingStock.toLocaleString()}개` : "-"}</dd></div>
+        <div data-deadline={p.sku}><dt className="text-[0.76rem] text-ink-soft">생산 착수</dt><dd><DeadlineBadge mm={mm} /></dd></div>
+        <div><dt className="text-[0.76rem] text-ink-soft">추천 생산량</dt><dd className="font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}</dd></div>
+      </dl>
+      {canEdit && <button className="btn-secondary mt-2.5 !min-h-[40px] w-full text-[0.86rem]" onClick={() => openEdit(p, inv)} aria-label={`${p.name} 재고 수정`}><Pencil size={15} aria-hidden /> 재고 수정</button>}
+    </>
+  );
 
   return (
     <>
-      <DataCard title={<>재고 현황 <span className="tabular text-ink-soft">({rows.length === all.length ? all.length : `${rows.length} / ${all.length}`})</span></>}>
+      <DataCard title={<>재고 현황 <span className="tabular text-ink-soft">({rows.length === all.length ? all.length : `${rows.length} / ${all.length}`})</span></>}
+        action={canEdit ? <button type="button" className="btn-secondary !min-h-[40px] text-[0.86rem]" onClick={() => setStocktake(true)} data-testid="stocktake-open"><ListChecks size={16} aria-hidden /> 한 번에 입력</button> : undefined}>
         {/* 상태 칩 한 줄 + 개수 (PASS 31) — 좁은 화면은 옆으로 넘김, 0개는 숫자 없이 흐리게 */}
         <div className="chip-rail relative -mx-4 mb-2.5 flex gap-1.5 overflow-x-auto px-4 pb-0.5 @md:mx-0 @md:flex-wrap @md:px-0" role="group" aria-label="재고 상태 필터" data-testid="inventory-status">
           {status === RISK && (
@@ -314,25 +337,50 @@ function InventoryTab({ onSelect, initialStatus }: { onSelect: (p: Product) => v
             <button type="button" className="btn-secondary mt-3 !min-h-[40px] text-[0.86rem]" onClick={() => { setQ(""); setStatus("전체"); }}>검색·상태 지우기</button>
           </div>
         ) : narrow ? (
-          <ul className="space-y-2.5" data-testid="inventory-cards">
-            {rows.map(({ p, mm, inv }) => (
-              <li key={p.id} className="rounded-xl border p-3" style={{ borderColor: "var(--border)" }} data-inv-card={p.sku}>
-                <div className="flex items-start justify-between gap-2">
-                  <button onClick={() => onSelect(p)} className="min-w-0 text-left"><span className="block font-semibold leading-snug">{p.name}</span><span className="block text-[0.78rem] text-ink-soft">{p.sku}</span></button>
-                  <StatusBadge tone={stockStatusTone(mm.stockStatus)}>{mm.stockStatus}</StatusBadge>
-                </div>
-                <dl className="tabular mt-2.5 grid grid-cols-2 gap-x-3 gap-y-2 text-[0.88rem]">
-                  <div><dt className="text-[0.76rem] text-ink-soft">현재 재고</dt><dd className="font-semibold">{inv ? `${inv.currentStock.toLocaleString()}개` : "미입력"}</dd></div>
-                  <div><dt className="text-[0.76rem] text-ink-soft">예상 소진</dt><dd className="font-semibold">{Number.isFinite(mm.daysOfStock) && inv ? `약 ${Math.round(mm.daysOfStock)}일` : "-"}</dd>{inv && <DaysGauge mm={mm} />}</div>
-                  <div><dt className="text-[0.76rem] text-ink-soft">일 판매속도</dt><dd>{mm.dailyVelocity.toFixed(1)}개/일</dd></div>
-                  <div><dt className="text-[0.76rem] text-ink-soft">입고 예정</dt><dd>{inv?.incomingStock ? `${inv.incomingStock.toLocaleString()}개` : "-"}</dd></div>
-                  <div data-deadline={p.sku}><dt className="text-[0.76rem] text-ink-soft">생산 착수</dt><dd><DeadlineBadge mm={mm} /></dd></div>
-                  <div><dt className="text-[0.76rem] text-ink-soft">추천 생산량</dt><dd className="font-semibold">{mm.recommendedOrder > 0 ? `${mm.recommendedOrder.toLocaleString()}개` : "불필요"}</dd></div>
-                </dl>
-                {canEdit && <button className="btn-secondary mt-2.5 !min-h-[40px] w-full text-[0.86rem]" onClick={() => openEdit(p, inv)} aria-label={`${p.name} 재고 수정`}><Pencil size={15} aria-hidden /> 재고 수정</button>}
+          <>
+          <div className="mb-2 flex items-center justify-between gap-2" data-testid="inventory-view">
+            <span className="tabular text-[0.8rem] text-ink-soft">{rows.length}개 상품 · {INV_SORTS.find((x) => x.key === sort)?.label}</span>
+            <ViewToggle view={view} onChange={(v) => { setView(v); setOpenSku(null); }} />
+          </div>
+          <ul className={view === "compact" ? "space-y-1.5" : "space-y-2.5"} data-testid="inventory-cards" data-view={view}>
+            {rows.map((r) => {
+              const { p, mm, inv } = r;
+              const expanded = view === "full" || openSku === p.sku;
+              const panelId = `inv-${p.sku}`;
+              return (
+              <li key={p.id} className={`rounded-xl border ${view === "compact" ? "" : "p-3"}`} style={{ borderColor: expanded && view === "compact" ? "var(--primary)" : "var(--border)" }} data-inv-card={p.sku} data-expanded={expanded ? "" : undefined}>
+                {view === "compact" ? (
+                  <button type="button" onClick={() => setOpenSku(expanded ? null : p.sku)} aria-expanded={expanded} aria-controls={panelId} className="row-hover flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left" data-testid="inventory-row">
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold leading-snug">{p.name}</span>
+                      <span className="tabular block text-[0.78rem] text-ink-soft">
+                        <span className="whitespace-nowrap">{inv ? `재고 ${inv.currentStock.toLocaleString()}개` : "재고 미입력"}</span>
+                        {inv && Number.isFinite(mm.daysOfStock) && <>{" "}<span className="whitespace-nowrap">· 약 {Math.round(mm.daysOfStock)}일</span></>}
+                        {inv?.incomingStock ? <>{" "}<span className="whitespace-nowrap">· 입고 예정 {inv.incomingStock.toLocaleString()}개</span></> : null}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <StatusBadge tone={stockStatusTone(mm.stockStatus)}>{mm.stockStatus}</StatusBadge>
+                      <ChevronDown size={16} aria-hidden className="text-ink-soft transition-transform" style={{ transform: expanded ? "rotate(180deg)" : undefined }} />
+                    </span>
+                  </button>
+                ) : (
+                  <div className="flex items-start justify-between gap-2">
+                    <button onClick={() => onSelect(p)} className="min-w-0 text-left"><span className="block font-semibold leading-snug">{p.name}</span><span className="block text-[0.78rem] text-ink-soft">{p.sku}</span></button>
+                    <StatusBadge tone={stockStatusTone(mm.stockStatus)}>{mm.stockStatus}</StatusBadge>
+                  </div>
+                )}
+                {expanded && (
+                  <div id={panelId} className={view === "compact" ? "border-t px-3 pb-3 pt-1" : ""} style={view === "compact" ? { borderColor: "var(--border)" } : undefined} data-testid="inventory-detail">
+                    {view === "compact" && <button type="button" onClick={() => onSelect(p)} className="mt-1.5 inline-flex min-h-[32px] items-center text-[0.8rem] font-semibold underline-offset-2 hover:underline" style={{ color: "var(--primary)" }}>{p.sku} · 상품 상세</button>}
+                    {detail(r)}
+                  </div>
+                )}
               </li>
-            ))}
+              );
+            })}
           </ul>
+          </>
         ) : (
         <div tabIndex={0} className="table-scroll">
           <table className="text-[0.93rem]">
@@ -370,6 +418,7 @@ function InventoryTab({ onSelect, initialStatus }: { onSelect: (p: Product) => v
           미입력 상품: 6주 예상 판매 − 현재 − 입고 예정. 예측 일판매 = 최근 4주 판매속도 × 추세 보정. (RULE, 사람 승인 필요)
         </p></Fold>
       </DataCard>
+      {canEdit && stocktake && <StocktakeDrawer open onClose={closeStocktake} />}
       {edit && (
         <InventoryEditModal key={edit.product.id} product={edit.product} inv={edit.inv} onClose={() => setEdit(null)} onSave={async (next) => {
           try { await run((s) => s.upsertInventory(next)); toast("재고를 저장했습니다"); setEdit(null); } catch (e) { toast(e instanceof Error ? e.message : "저장 실패", "error"); }
@@ -446,9 +495,7 @@ function ProductionSchedule() {
     else toast("복사하지 못했습니다 — 브라우저가 복사를 막았습니다", "error");
   };
   // 모바일 '간단히 보기' (PASS 35, D-127) — 한 줄 요약을 누르면 그 상품만 펼친다. 고른 보기는 이 브라우저에 기억
-  const [view, setViewState] = useState<"compact" | "full">("compact");
-  useEffect(() => { try { if (localStorage.getItem(SCHEDULE_VIEW_KEY) === "full") setViewState("full"); } catch { /* 기본 간단히 */ } }, []);
-  const setView = (v: "compact" | "full") => { setViewState(v); try { localStorage.setItem(SCHEDULE_VIEW_KEY, v); } catch { /* 저장 안 돼도 동작 */ } };
+  const [view, setView] = useListView(SCHEDULE_VIEW_KEY);
   const [openSku, setOpenSku] = useState<string | null>(null);
   const activeText = (active: typeof rows[number]["active"], mm: ProductMetrics) => (
     <>
@@ -496,14 +543,7 @@ function ProductionSchedule() {
           {narrow && rows.length > 0 && (
             <div className="mt-2.5 flex items-center justify-between gap-2" data-testid="schedule-view">
               <span className="text-[0.8rem] text-ink-soft tabular">{rows.length}개 상품 · 마감 순</span>
-              <div className="flex rounded-[10px] p-0.5" style={{ background: "color-mix(in srgb, var(--text-primary) 6%, var(--surface))" }} role="group" aria-label="보기 방식">
-                {(["compact", "full"] as const).map((v) => (
-                  <button key={v} type="button" onClick={() => { setView(v); setOpenSku(null); }} aria-pressed={view === v} data-view={v} className="pressable min-h-[34px] rounded-[8px] px-3 text-[0.8rem] font-semibold"
-                    style={view === v ? { background: "var(--surface)", color: "var(--text-primary)", boxShadow: "0 1px 2px rgba(16,24,40,.12)" } : { color: "var(--text-secondary)" }}>
-                    {v === "compact" ? "간단히" : "자세히"}
-                  </button>
-                ))}
-              </div>
+              <ViewToggle view={view} onChange={(v) => { setView(v); setOpenSku(null); }} />
             </div>
           )}
         </div>
@@ -522,7 +562,8 @@ function ProductionSchedule() {
                 <button type="button" onClick={() => setOpenSku(expanded ? null : p.sku)} aria-expanded={expanded} aria-controls={panelId} className="row-hover flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left" data-testid="schedule-row">
                   <span className="min-w-0">
                     <span className="block truncate font-semibold leading-snug">{p.name}</span>
-                    <span className="tabular block truncate text-[0.78rem] text-ink-soft">{units}{active.length ? ` · ${active[0].status} ${active[0].quantity.toLocaleString()}개` : ""}</span>
+                    {/* 둘째 줄은 말줄임 대신 묶음 단위로 줄바꿈 (PASS 36 — 390에서 '생산중 1,000개'가 '…'로 잘렸음) */}
+                    <span className="tabular block text-[0.78rem] text-ink-soft"><span className="whitespace-nowrap">{units}</span>{active.length ? <>{" "}<span className="whitespace-nowrap">· {active[0].status} {active[0].quantity.toLocaleString()}개</span></> : null}</span>
                   </span>
                   <span className="flex shrink-0 items-center gap-1.5">
                     <DeadlineBadge mm={mm} />

@@ -21,7 +21,7 @@ export function WeeklyRoutineList({ print = false }: { print?: boolean }) {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline justify-between gap-x-2">
                 <span className="font-bold">{x.title}</span>
-                {!print && !x.done && <Link href={x.href} className="text-[0.82rem] font-semibold underline print:hidden" style={{ color: "var(--primary)" }} aria-label={`처리하기: ${x.title}`}>처리하기</Link>}
+                {!print && !x.done && <Link href={x.href} className="inline-flex min-h-[32px] items-center px-1 text-[0.82rem] font-semibold underline print:hidden" style={{ color: "var(--primary)" }} aria-label={`처리하기: ${x.title}`}>처리하기</Link>}
               </div>
               <p className="break-any text-[0.86rem]">{x.detail}</p>
               <p className="text-[0.78rem] text-ink-soft">기준: {x.rule}</p>

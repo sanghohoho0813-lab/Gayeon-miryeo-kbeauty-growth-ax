@@ -282,6 +282,9 @@ textarea.field { padding: 0.6rem 0.85rem; min-height: 88px; }
   display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; margin: -4px 0;
   border-radius: 999px; color: var(--text-secondary); opacity: 0.7; cursor: help; transition: opacity 0.14s, background 0.14s;
 }
+/* 보이는 원은 26px 그대로, 누르는 자리는 34px (PASS 36, D-135 — 모바일에서 ⓘ가 잘 안 눌림) */
+.infotip-btn { position: relative; }
+.infotip-btn::before { content: ""; position: absolute; inset: -4px; border-radius: 999px; }
 .infotip-btn:hover, .infotip[data-open] .infotip-btn { opacity: 1; background: var(--surface-muted); }
 .infotip-pop {
   position: absolute; z-index: 70; top: calc(100% + 8px); left: -6px; width: max-content; max-width: min(340px, calc(100vw - 40px));

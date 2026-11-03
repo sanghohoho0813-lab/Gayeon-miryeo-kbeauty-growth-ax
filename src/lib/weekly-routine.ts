@@ -49,7 +49,7 @@ export function buildWeeklyRoutine(s: DataSnapshot, today: string, opts: { allow
       id: "inventory", title: "재고 갱신", rule: `모든 실제 상품의 재고를 ${R.inventoryDays}일 안에 확인`,
       done: r.products.length > 0 && staleInv.length === 0,
       detail: r.products.length === 0 ? "실제 상품 없음" : staleInv.length ? `${staleInv.length}개 상품 미갱신: ${staleInv.slice(0, 3).map((p) => p.name).join(", ")}${staleInv.length > 3 ? " 외" : ""}` : `${r.products.length}개 모두 최신`,
-      href: "/ax/products?tab=inventory",
+      href: "/ax/products?tab=inventory&stocktake=1",
     },
     {
       id: "quality", title: "데이터 품질 오류 정리", rule: "계산을 틀어지게 하는 오류 0건 (판매가 0원·원가 단위·미래 날짜 등)",

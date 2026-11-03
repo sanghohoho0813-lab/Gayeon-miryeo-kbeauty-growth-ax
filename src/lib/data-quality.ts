@@ -53,7 +53,7 @@ export function checkDataQuality(s: DataSnapshot, today: string, opts: { allowPr
   add({ id: "dup-sales", level: "확인", title: "같은 날·상품·채널·수량·매출의 판매가 여러 건", why: "같은 파일을 두 번 올렸을 수 있습니다. 실제로 같은 주문이 여러 번이면 정상이니 지우지 마세요.", href: "/ax/data", fix: { label: `중복분 ${extra.length}건 삭제 (각 1건 남김)`, rowIds: extra } }, [...seen.entries()].filter(([, n]) => n > 1).map(([k, n]) => { const [d, pid, , u] = k.split("|"); return `${d} ${name.get(pid) ?? ""} ${u}개 × ${n}건`; }));
 
   const sold = new Set(s.sales.filter((x) => x.saleDate > `${today.slice(0, 4)}-00`).map((x) => x.productId));
-  add({ id: "no-inventory", level: "확인", title: "재고가 입력되지 않은 상품", why: "재고일수·품절 위험·생산 착수 마감을 계산할 수 없습니다.", href: "/ax/products?tab=inventory" }, s.products.filter((p) => !s.inventory.some((i) => i.productId === p.id)).map((p) => p.name));
+  add({ id: "no-inventory", level: "확인", title: "재고가 입력되지 않은 상품", why: "재고일수·품절 위험·생산 착수 마감을 계산할 수 없습니다.", href: "/ax/products?tab=inventory&stocktake=1" }, s.products.filter((p) => !s.inventory.some((i) => i.productId === p.id)).map((p) => p.name));
   add({ id: "no-cost", level: "확인", title: "원가가 없는 상품", why: "월별 이익·매출총이익률 계산에서 빠집니다.", href: "/ax/data?tab=products" }, s.products.filter((p) => p.cost == null).map((p) => p.name));
   add({ id: "no-leadtime", level: "확인", title: "판매 중인데 OEM 생산기간이 없는 상품", why: "생산 착수 마감일을 계산하지 못하고 6주 예측으로만 추천합니다.", href: "/ax/data?tab=products" }, s.products.filter((p) => p.leadTimeDays == null && sold.has(p.id)).map((p) => p.name));
   add({ id: "no-link", level: "확인", title: "고객 화면에 공개했지만 구매 링크가 없는 상품", why: "고객이 구매처로 이동하지 못하고 '연결 예정' 안내를 봅니다.", href: "/ax/data?tab=products" }, s.products.filter((p) => p.isPublished && !p.purchaseLinks.some((l) => l.url)).map((p) => p.name));
