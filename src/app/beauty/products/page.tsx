@@ -8,6 +8,7 @@ import { useBeautyData } from "@/components/beauty/BeautyDataProvider";
 import { BeautyProductCard } from "@/components/beauty/BeautyProductCard";
 import { CONCERNS } from "@/components/beauty/concerns";
 import type { SkinConcern } from "@/lib/types";
+import { rememberListScroll, useRestoreListScroll } from "@/lib/use-list-scroll";
 
 const SORTS = ["추천순", "신제품순", "낮은 가격순", "높은 가격순"] as const;
 // 최근 검색어 (PASS 37, D-138) — 이 기기에만 저장, 최대 6개. 서버로 보내지 않음
@@ -35,7 +36,9 @@ function ProductsInner() {
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (focusSearch) searchRef.current?.focus(); }, [focusSearch]);
 
-  const { products } = useBeautyData();
+  const { products, status } = useBeautyData();
+  // 제품을 보고 '뒤로' 오면 보던 위치로 (PASS 39, D-143)
+  useRestoreListScroll(status === "ready");
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   // 검색 제안 (PASS 37, D-138): 빈 검색칸을 누르면 최근 검색어 · 자주 찾는 고민
   const [focused, setFocused] = useState(false);   // 검색칸 또는 제안 안에 초점
@@ -206,7 +209,8 @@ function ProductsInner() {
         </label>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-7 @xl:grid-cols-3 @3xl:grid-cols-4 @3xl:gap-x-5 @3xl:gap-y-9">
+      <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-7 @xl:grid-cols-3 @3xl:grid-cols-4 @3xl:gap-x-5 @3xl:gap-y-9"
+        onClickCapture={(e) => { if ((e.target as HTMLElement).closest('a[href^="/beauty/products/"]')) rememberListScroll(); }}>
         {list.map((p) => <BeautyProductCard key={p.id} product={p} />)}
       </div>
       {list.length === 0 && (

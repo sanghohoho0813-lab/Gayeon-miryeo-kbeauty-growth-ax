@@ -16,6 +16,8 @@ import { ExportCenter } from "@/components/ax/ExportCenter";
 import { TransferCard } from "@/components/ax/TransferCard";
 import { DataQualityCard } from "@/components/ax/DataQualityCard";
 import { buildTransfer } from "@/lib/transfer";
+import { useBackupState } from "@/components/ax/BackupNudge";
+import { deltaText } from "@/lib/backup-status";
 import { EmptyState } from "@/components/ax/States";
 import { DataFreshness } from "@/components/ax/DataFreshness";
 import { toast } from "@/components/ax/Toast";
@@ -63,15 +65,17 @@ function Inner() {
     </div>
   );
 }
-/* Demo 주소에 실데이터를 넣었다면: 이 브라우저에만 있으니 백업 파일을 받아 두라는 안내 */
+/* Demo 주소에 실데이터를 넣었다면: 이 브라우저에만 있으니 백업 파일을 받아 두라는 안내.
+   PASS 39(D-142)부터 받은 뒤 그대로면 숨기고, 받은 뒤 바뀌었으면 무엇이 바뀌었는지 함께 */
 function BackupReminder() {
   const m = useModel();
   const { role } = useSession();
+  const { need } = useBackupState();
   const { summary } = buildTransfer(m.snapshot, "demo");
-  if (!can(role, "view_financials") || summary.products + summary.sales + summary.settlements === 0) return null;
+  if (!can(role, "view_financials") || !need) return null;
   return (
-    <p className="mb-4 rounded-xl border p-3 text-[0.88rem]" style={{ borderColor: "var(--warning)" }} data-testid="backup-reminder">
-      직접 입력한 실데이터(상품 {summary.products} · 판매 {summary.sales.toLocaleString()} · 정산 {summary.settlements})가 이 브라우저에만 있습니다. <Link className="font-semibold underline" href="/ax/data?tab=export#transfer">백업 파일 받기</Link> — 브라우저 데이터를 지우면 사라지며, Supabase 연결 후 이 파일로 그대로 옮길 수 있습니다.
+    <p className="mb-4 rounded-xl border p-3 text-[0.88rem]" style={{ borderColor: "var(--warning)" }} data-testid="backup-reminder" data-kind={need.kind}>
+      직접 입력한 실데이터(상품 {summary.products} · 판매 {summary.sales.toLocaleString()} · 정산 {summary.settlements})가 이 브라우저에만 있습니다{need.kind === "changed" ? ` — 마지막 백업 뒤 ${deltaText(need.delta)}` : ""}. <Link className="font-semibold underline" href="/ax/data?tab=export#transfer">백업 파일 받기</Link> — 브라우저 데이터를 지우면 사라지며, Supabase 연결 후 이 파일로 그대로 옮길 수 있습니다.
     </p>
   );
 }

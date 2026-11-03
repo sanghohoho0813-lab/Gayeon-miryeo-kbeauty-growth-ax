@@ -11,9 +11,11 @@ PASS 35부터는 다시 만든 검수를 이 폴더에 두고, 회차마다 `pas
 | `pass35.mjs` | PASS 35 기능 검수 (D-127 ~ D-131) |
 | `pass36.mjs` | PASS 36 기능 검수 (D-132 ~ D-135, D-127 보완) |
 | `pass37.mjs` | PASS 37 기능 검수 (D-136 ~ D-138) |
+| `pass39.mjs` | PASS 39 기능 검수 (D-142 · D-143) |
 | `perf.mjs` | 첫 화면 성능 — 화면별 첫 로드 JS 크기·차트·Supabase 포함 여부·기준선, 휴대폰 조건 FCP·LCP·CLS·TBT (PASS 38, D-139 ~ D-141). `PERF_ONLY=size`면 크기만 |
 | `unit35.mjs` | 단위 — 생산 일정 협의 요청 글 계산 (`src/lib/production-request.ts`, 브라우저 불필요) |
 | `unit37.mjs` | 단위 — 지난 확인 이후 비교 (`src/lib/since-last.ts`, 브라우저 불필요) |
+| `unit39.mjs` | 단위 — Demo 실데이터 백업 상태 (`src/lib/backup-status.ts`, 브라우저 불필요) |
 
 ## 실행
 ```bash
@@ -23,11 +25,13 @@ npm run build && npx next start -p 3100          # Demo 빌드를 띄운다 (다
 #   axe-core:  작업 폴더에서 npm install axe-core@4.10.2 → AXE_PATH=…/node_modules/axe-core/axe.min.js
 node qa/unit35.mjs
 node qa/unit37.mjs
+node qa/unit39.mjs
 node qa/sweep.mjs
 AXE_PATH=… node qa/a11y.mjs
 AXE_PATH=… node qa/pass35.mjs
 AXE_PATH=… node qa/pass36.mjs
 AXE_PATH=… node qa/pass37.mjs
+AXE_PATH=… node qa/pass39.mjs
 node qa/perf.mjs
 ```
 - 모두 Demo 모드(브라우저 저장)에서 돈다. 검수 중 저장한 값은 그 브라우저 문맥에만 남는다.

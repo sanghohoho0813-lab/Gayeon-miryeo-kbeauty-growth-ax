@@ -8,8 +8,8 @@ import { useData, useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { isLive } from "@/lib/config";
-import { todayISO } from "@/lib/date";
 import { DemoStorageMeter } from "./DemoRecovery";
+import { BackupLastLine, downloadBackup } from "./BackupNudge";
 import { applyTransfer, buildTransfer, parseTransfer, planTransfer, type TransferFile, type TransferPlan } from "@/lib/transfer";
 import { useLeaveGuard } from "@/lib/use-leave-guard";
 
@@ -28,18 +28,8 @@ export function TransferCard() {
   const plan: TransferPlan | null = useMemo(() => (file ? planTransfer(file.data, m.snapshot) : null), [file, m.snapshot]);
   const hasReal = summary.products + summary.sales + summary.settlements > 0;
 
-  const download = () => {
-    const { file: f } = buildTransfer(m.snapshot, isLive ? "live" : "demo");
-    const blob = new Blob([JSON.stringify(f)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `miryeo_transfer_${todayISO()}${isLive ? "" : "_DEMO"}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
+  // 받은 때를 기록 — 대시보드 백업 알림이 '그 뒤 바뀐 것'을 셈 (PASS 39, D-142)
+  const download = () => downloadBackup(m.snapshot);
 
   const onFile = async (f?: File) => {
     if (!f) return;
@@ -75,6 +65,7 @@ export function TransferCard() {
           <div className="rounded-xl border p-3.5" style={{ borderColor: "var(--border)" }}>
             <div className="flex items-center gap-2 font-semibold"><DatabaseBackup size={17} aria-hidden /> 백업 파일 받기</div>
             <p className="mt-1 text-[0.84rem] tabular" data-testid="transfer-summary">실데이터: 상품 {summary.products} · 채널 {summary.channels} · 재고 {summary.inventory} · 판매 {summary.sales.toLocaleString()} · 정산 {summary.settlements} · 월 목표 {summary.targets}{summary.skippedDemoSales ? ` (Demo 상품 판매 ${summary.skippedDemoSales.toLocaleString()}건 제외)` : ""}{summary.skippedPractice ? ` · 샘플 연습 자료 ${summary.skippedPractice.toLocaleString()}건 제외` : ""}</p>
+            <BackupLastLine />
             <DemoStorageMeter />
             <button className="btn-secondary mt-2 !min-h-[40px] text-[0.86rem]" disabled={!canExport || !hasReal} onClick={download} data-testid="transfer-download">백업 파일(.json) 받기</button>
             {!canExport && <p className="mt-1 text-[0.78rem] text-ink-soft">대표·관리자 권한</p>}

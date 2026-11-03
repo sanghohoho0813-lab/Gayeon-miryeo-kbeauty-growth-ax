@@ -23,6 +23,7 @@ import { receivableAging, summarizeReceivables } from "@/lib/settlements";
 import { AgingMiniBar } from "@/components/ax/AgingBar";
 import { CalendarRange, Presentation, Wallet } from "lucide-react";
 import { useModel } from "@/components/providers/DataProvider";
+import { BackupNudge } from "@/components/ax/BackupNudge";
 import { daysBetween, formatDateKR, formatDateTimeKR } from "@/lib/date";
 import { parseSnapshot, sinceLines, takeSnapshot, type SeenSnapshot, type SinceInput } from "@/lib/since-last";
 import { useSession } from "@/components/providers/SessionProvider";
@@ -73,6 +74,7 @@ export default function DashboardPage() {
       <LaggingChannels />
       <TodayLine fin={fin} />
       <SinceLastCard fin={fin} />
+      {!isLive && <BackupNudge />}
 
       {/* 핵심 숫자 7개를 한 패널로 묶음 — 최근 4주 | 이번 달 (PASS 21, D-075) */}
       <section aria-label="핵심 숫자" className="ax-card p-2 @md:p-2.5" data-tour="kpis">
