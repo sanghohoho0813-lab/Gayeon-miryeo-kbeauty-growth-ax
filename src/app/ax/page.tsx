@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowUpRight, Banknote, ChevronRight, Globe2, Heart, Lightbulb, ListChecks, Tags, Users } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
@@ -23,7 +23,8 @@ import { receivableAging, summarizeReceivables } from "@/lib/settlements";
 import { AgingMiniBar } from "@/components/ax/AgingBar";
 import { CalendarRange, Presentation, Wallet } from "lucide-react";
 import { useModel } from "@/components/providers/DataProvider";
-import { daysBetween, formatDateKR } from "@/lib/date";
+import { daysBetween, formatDateKR, formatDateTimeKR } from "@/lib/date";
+import { parseSnapshot, sinceLines, takeSnapshot, type SeenSnapshot, type SinceInput } from "@/lib/since-last";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
 import { isLive } from "@/lib/config";
@@ -71,6 +72,7 @@ export default function DashboardPage() {
       )}
       <LaggingChannels />
       <TodayLine fin={fin} />
+      <SinceLastCard fin={fin} />
 
       {/* 핵심 숫자 7개를 한 패널로 묶음 — 최근 4주 | 이번 달 (PASS 21, D-075) */}
       <section aria-label="핵심 숫자" className="ax-card p-2 @md:p-2.5" data-tour="kpis">
@@ -307,6 +309,61 @@ const LINE_TONE: Record<BriefTone, { bg: string; fg: string }> = {
   good: { bg: "var(--success-soft)", fg: "var(--success)" },
   info: { bg: "var(--surface)", fg: "var(--text-secondary)" },
 };
+/* 지난 확인 이후 (PASS 37, D-136) — 지난번 '확인했어요'를 누른 뒤 새로 생긴 일만. 기준은 이 브라우저에 저장(기기마다 따로).
+   처음 열면 기준만 저장하고 보이지 않음 · 바뀐 것이 없으면 보이지 않음 · 매출·받을 돈은 재무 권한이 있을 때만 */
+const SEEN_KEY = (org: string) => `miryeo-seen:${isLive ? "live" : "demo"}:${org}`;
+function SinceLastCard({ fin }: { fin: boolean }) {
+  const m = useModel();
+  const key = SEEN_KEY(m.snapshot.org.name);
+  const input = useMemo<SinceInput>(() => ({
+    at: new Date().toISOString(),
+    today: m.today,
+    actions: m.actions.map((a) => ({ id: a.id, status: a.status, title: a.title })),
+    openStatuses: OPEN_STATUSES,
+    settlements: m.snapshot.settlements,
+    risk: m.snapshot.products.filter((p) => { const st = m.metrics.get(p.id)?.stockStatus; return st === "품절위험" || st === "부족주의"; }).map((p) => ({ id: p.id, name: p.name })),
+    products: m.snapshot.products,
+    salesRows: m.snapshot.sales.length,
+    salesAsOf: m.salesAsOf ?? null,
+  }), [m]);
+  const [prev, setPrev] = useState<SeenSnapshot | null>(null);
+  const [first, setFirst] = useState(false); // 기준이 없던 첫 방문
+  useEffect(() => {
+    let p: SeenSnapshot | null = null;
+    try { p = parseSnapshot(localStorage.getItem(key)); } catch { /* 저장소를 못 쓰면 카드 없음 */ }
+    setPrev(p); setFirst(!p);
+  }, [key]);
+  // 첫 방문: 화면을 여는 동안 계속 지금 상태를 기준으로 저장 — 열자마자 저장하면 RULE Action이 만들어지기 전이라
+  // 다음 방문에 모든 Action이 '새 Action'으로 보였다 (PASS 37 검수에서 발견)
+  useEffect(() => { if (first) { try { localStorage.setItem(key, JSON.stringify(takeSnapshot(input))); } catch { /* noop */ } } }, [first, key, input]);
+  if (!prev) return null;
+  const lines = sinceLines(prev, input).filter((l) => fin || !l.fin);
+  if (!lines.length) return null;
+  const confirm = () => { const now = takeSnapshot({ ...input, at: new Date().toISOString() }); try { localStorage.setItem(key, JSON.stringify(now)); } catch { /* noop */ } setPrev(now); };
+  const TONE = { attention: "var(--warning)", good: "var(--success)", info: "var(--text-secondary)" } as const;
+  return (
+    <section aria-labelledby="since-title" className="ax-card mb-4 p-4 @md:px-5" data-testid="since-last">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h2 id="since-title" className="text-[1rem] font-bold">지난 확인 이후 <span className="tabular text-[0.82rem] font-semibold text-ink-soft">{formatDateTimeKR(prev.at)} 확인</span></h2>
+        <button type="button" className="btn-secondary !min-h-[36px] !px-3 text-[0.84rem]" onClick={confirm} data-testid="since-confirm">확인했어요</button>
+      </div>
+      <ul className="mt-2 grid gap-1 @3xl:grid-cols-2 @3xl:gap-x-4">
+        {lines.map((l) => (
+          <li key={l.key}>
+            <Link href={l.href} className="row-hover flex min-h-[44px] items-center justify-between gap-2 rounded-lg px-2 py-1.5" data-since={l.key}>
+              <span className="flex min-w-0 items-start gap-2">
+                <span className="mt-[0.45rem] h-2 w-2 shrink-0 rounded-full" style={{ background: TONE[l.tone] }} aria-hidden />
+                <span className="min-w-0"><span className="block text-[0.92rem] font-semibold">{l.text}</span>{l.detail && <span className="line-clamp-2 block text-[0.8rem] text-ink-soft">{l.detail}</span>}</span>
+              </span>
+              <ChevronRight size={16} className="shrink-0 text-ink-soft" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function TodayLine({ fin }: { fin: boolean }) {
   const m = useModel();
   const b = buildBriefing(m, { financial: fin });

@@ -9,7 +9,7 @@ import { formatKRW, formatPrice } from "@/lib/analytics";
 import { monthLabel } from "@/lib/monthly";
 import { BASELINE_SOURCE_LABEL, formatKpiValue } from "@/lib/evidence";
 import { downloadCSV } from "@/lib/export";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { buildBusinessReport, businessReportRows, REPORT_PERIODS, type ReportPeriod, type Share } from "@/lib/business-report";
 
 /* 사업화 실적 자료 — 정책자금·보증·벤처 신청서에 첨부할 '시스템 기록 근거'. 인쇄·PDF·CSV.
@@ -22,6 +22,42 @@ export function BusinessReportView() {
   const r = buildBusinessReport(m.snapshot, m.today, isLive, period);
   const max = Math.max(1, ...r.sales.monthly.map((x) => x.revenue));
   const empty = r.coverage.salesRows === 0;
+  // 모바일 목차 (PASS 37, D-137) — 자료가 화면 6개 길이라 절을 바로 오가게. 지금 보는 절을 표시하고, 인쇄에는 나오지 않음
+  const toc = empty ? TOC.filter((x) => x.n >= 4) : TOC;
+  const [active, setActive] = useState(toc[0].n);
+  // 지금 절 = 위가 목차 줄 아래(150px)를 지난 마지막 절. 맨 아래까지 내리면 마지막 절 (짧아서 위까지 못 올라옴)
+  useEffect(() => {
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const els = [...document.querySelectorAll<HTMLElement>("[data-biz-section]")];
+      if (!els.length) return;
+      const atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      const passed = els.filter((el) => el.getBoundingClientRect().top <= 150);
+      const pick = atEnd ? els[els.length - 1] : passed[passed.length - 1] ?? els[0];
+      setActive(Number(pick.dataset.bizSection));
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { window.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, [empty]);
+  // 지금 보는 절의 칩이 목차 줄 밖이면 목차 줄만 옆으로 넘김 (scrollIntoView는 화면 스크롤을 건드릴 수 있어 쓰지 않음)
+  useEffect(() => {
+    const chip = document.querySelector<HTMLElement>(`[data-toc="${active}"]`);
+    const rail = chip?.parentElement;
+    if (!chip || !rail || rail.scrollWidth <= rail.clientWidth) return;
+    const pad = 16, left = chip.offsetLeft, right = left + chip.offsetWidth;
+    const to = left - pad < rail.scrollLeft ? left - pad : right + pad > rail.scrollLeft + rail.clientWidth ? right + pad - rail.clientWidth : null;
+    if (to !== null) rail.scrollTo({ left: Math.max(0, to), behavior: "auto" });
+  }, [active]);
+  const go = (n: number) => {
+    const el = document.getElementById(`biz-${n}`); if (!el) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    el.querySelector<HTMLElement>("h3")?.focus({ preventScroll: true });
+    setActive(n);
+  };
 
   return (
     <div>
@@ -37,6 +73,16 @@ export function BusinessReportView() {
           <button className="btn-primary !min-h-[40px] text-[0.88rem]" onClick={() => window.print()}><Printer size={15} aria-hidden /> 인쇄 / PDF 저장</button>
         </div>
       </div>
+
+      <nav aria-label="자료 목차" data-print="hide" className="chip-rail sticky top-[65px] z-10 -mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4 py-2 backdrop-blur @3xl:hidden" style={{ background: "color-mix(in srgb, var(--bg) 92%, transparent)" }} data-testid="business-toc">
+        {toc.map((x) => (
+          <button key={x.n} type="button" onClick={() => go(x.n)} aria-current={active === x.n ? "true" : undefined} data-toc={x.n}
+            className="pressable inline-flex min-h-[36px] shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-3 text-[0.82rem] font-semibold"
+            style={active === x.n ? { background: "var(--primary)", color: "#fff", borderColor: "var(--primary)" } : { borderColor: "var(--border)", color: "var(--text-secondary)", background: "var(--surface)" }}>
+            <span className="tabular">{x.n}</span> {x.label}
+          </button>
+        ))}
+      </nav>
 
       <article data-testid="business-report" className="ax-card p-6 @3xl:p-9 print:!border-0 print:!p-0">
         <header className="border-b pb-5" style={{ borderColor: "var(--border)" }}>
@@ -154,10 +200,12 @@ export function BusinessReportView() {
   );
 }
 
+const TOC = [{ n: 1, label: "매출" }, { n: 2, label: "채널·B2B·수출" }, { n: 3, label: "제품" }, { n: 4, label: "고객 반응" }, { n: 5, label: "AX 운영" }, { n: 6, label: "출처·범위" }];
+
 function Section({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
-    <section className="print-break-avoid mt-7">
-      <h3 className="mb-3 text-[1.1rem] font-bold"><span className="tabular text-ink-soft">{n}.</span> {title}</h3>
+    <section id={`biz-${n}`} data-biz-section={n} className="print-break-avoid mt-7 scroll-mt-[120px]">
+      <h3 tabIndex={-1} className="mb-3 text-[1.1rem] font-bold outline-none"><span className="tabular text-ink-soft">{n}.</span> {title}</h3>
       {children}
     </section>
   );

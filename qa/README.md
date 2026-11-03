@@ -10,7 +10,9 @@ PASS 35부터는 다시 만든 검수를 이 폴더에 두고, 회차마다 `pas
 | `a11y.mjs` | 접근성 회귀 — axe(WCAG 2.1 A·AA): AX 전 화면 × 7테마(1440) + AX·고객·심사 화면 390 |
 | `pass35.mjs` | PASS 35 기능 검수 (D-127 ~ D-131) |
 | `pass36.mjs` | PASS 36 기능 검수 (D-132 ~ D-135, D-127 보완) |
+| `pass37.mjs` | PASS 37 기능 검수 (D-136 ~ D-138) |
 | `unit35.mjs` | 단위 — 생산 일정 협의 요청 글 계산 (`src/lib/production-request.ts`, 브라우저 불필요) |
+| `unit37.mjs` | 단위 — 지난 확인 이후 비교 (`src/lib/since-last.ts`, 브라우저 불필요) |
 
 ## 실행
 ```bash
@@ -19,10 +21,12 @@ npm run build && npx next start -p 3100          # Demo 빌드를 띄운다 (다
 #   Playwright: 기본 /opt/node-tools/node_modules (다르면 QA_NODE_MODULES=…/node_modules/)
 #   axe-core:  작업 폴더에서 npm install axe-core@4.10.2 → AXE_PATH=…/node_modules/axe-core/axe.min.js
 node qa/unit35.mjs
+node qa/unit37.mjs
 node qa/sweep.mjs
 AXE_PATH=… node qa/a11y.mjs
 AXE_PATH=… node qa/pass35.mjs
 AXE_PATH=… node qa/pass36.mjs
+AXE_PATH=… node qa/pass37.mjs
 ```
 - 모두 Demo 모드(브라우저 저장)에서 돈다. 검수 중 저장한 값은 그 브라우저 문맥에만 남는다.
 - Live(Supabase) 흐름은 `supabase/tests/live-e2e/run.sh` (SETUP.md §E).
