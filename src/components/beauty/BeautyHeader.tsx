@@ -26,7 +26,7 @@ function DemoControlBar() {
   }, []);
   if (!operator) return null;
   return (
-    <div className="border-b text-[0.8rem]" style={{ background: "#171B20", borderColor: "#000", color: "#E5E7EB" }}>
+    <aside aria-label="시연 모드 도구" className="border-b text-[0.8rem]" style={{ background: "#171B20", borderColor: "#000", color: "#E5E7EB" }}>
       <div className="mx-auto flex min-h-[44px] w-full max-w-[1240px] items-center gap-3 px-4 md:px-6">
         <span className="font-semibold">{isLive ? "운영자 보기" : "DEMO 시연 모드"}</span>
         <span className="hidden text-[#AEB7C3] sm:inline">고객 행동은 Business AX 고객 인사이트로 즉시 전달됩니다</span>
@@ -36,7 +36,7 @@ function DemoControlBar() {
           <LayoutDashboard size={15} aria-hidden /> Business AX 보기
         </Link>
       </div>
-    </div>
+    </aside>
   );
 }
 

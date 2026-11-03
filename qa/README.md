@@ -12,6 +12,7 @@ PASS 35부터는 다시 만든 검수를 이 폴더에 두고, 회차마다 `pas
 | `pass36.mjs` | PASS 36 기능 검수 (D-132 ~ D-135, D-127 보완) |
 | `pass37.mjs` | PASS 37 기능 검수 (D-136 ~ D-138) |
 | `pass39.mjs` | PASS 39 기능 검수 (D-142 · D-143) |
+| `pass40.mjs` | PASS 40 검수 — 화면 제목 · 본문으로 건너뛰기 · 제목 단계 · 랜드마크 · 초점 표시 (D-145) |
 | `perf.mjs` | 첫 화면 성능 — 화면별 첫 로드 JS 크기·차트·Supabase 포함 여부·기준선, 휴대폰 조건 FCP·LCP·CLS·TBT (PASS 38, D-139 ~ D-141). `PERF_ONLY=size`면 크기만 |
 | `unit35.mjs` | 단위 — 생산 일정 협의 요청 글 계산 (`src/lib/production-request.ts`, 브라우저 불필요) |
 | `unit37.mjs` | 단위 — 지난 확인 이후 비교 (`src/lib/since-last.ts`, 브라우저 불필요) |
@@ -32,6 +33,7 @@ AXE_PATH=… node qa/pass35.mjs
 AXE_PATH=… node qa/pass36.mjs
 AXE_PATH=… node qa/pass37.mjs
 AXE_PATH=… node qa/pass39.mjs
+AXE_PATH=… node qa/pass40.mjs
 node qa/perf.mjs
 ```
 - 모두 Demo 모드(브라우저 저장)에서 돈다. 검수 중 저장한 값은 그 브라우저 문맥에만 남는다.

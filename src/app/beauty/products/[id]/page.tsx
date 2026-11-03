@@ -1,6 +1,7 @@
 "use client";
 
 import { isLive } from "@/lib/config";
+import { useDocumentTitle } from "@/lib/use-document-title";
 import Link from "next/link";
 import { use, useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, ExternalLink, Heart, ShoppingBag, Sparkles } from "lucide-react";
@@ -35,6 +36,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [notice, setNotice] = useState<string | null>(null);
   const [myReason, setMyReason] = useState<string | null>(null);
   const viewed = useRef("");
+  // 제품 이름을 탭 제목에 (PASS 40, D-145) — 자료를 불러온 뒤 정해지므로 화면에서 지정
+  useDocumentTitle(product ? `${product.name} · MIRYEO AI Beauty` : null);
 
   useEffect(() => {
     if (!product || viewed.current === product.id) return;

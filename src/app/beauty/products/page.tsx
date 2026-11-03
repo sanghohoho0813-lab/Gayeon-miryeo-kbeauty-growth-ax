@@ -209,6 +209,8 @@ function ProductsInner() {
         </label>
       </div>
 
+      {/* 제목 단계: h1 제품 → h2 목록 → h3 제품 이름 (PASS 40, D-145) */}
+      <h2 className="sr-only">제품 목록</h2>
       <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-7 @xl:grid-cols-3 @3xl:grid-cols-4 @3xl:gap-x-5 @3xl:gap-y-9"
         onClickCapture={(e) => { if ((e.target as HTMLElement).closest('a[href^="/beauty/products/"]')) rememberListScroll(); }}>
         {list.map((p) => <BeautyProductCard key={p.id} product={p} />)}

@@ -368,3 +368,8 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
   .present-print-page:last-child { break-after: auto; }
 }
 @page slides { size: A4 landscape; margin: 10mm; }
+
+/* 본문으로 건너뛰기 (PASS 40, D-145) — 평소에는 숨기고, Tab으로 초점이 오면 왼쪽 위에 보임 */
+.skip-link { position: absolute; left: -9999px; top: 8px; z-index: 300; padding: 10px 16px; border-radius: 10px; background: #fff; color: #111;
+  font-weight: 700; font-size: 0.95rem; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.skip-link:focus, .skip-link:focus-visible { left: 12px; }

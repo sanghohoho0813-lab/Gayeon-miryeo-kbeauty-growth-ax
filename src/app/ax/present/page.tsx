@@ -148,6 +148,8 @@ function DeckInner() {
           if (Math.abs(dx) > 60) go(dx < 0 ? i + 1 : i - 1);
         }}
       >
+        {/* 이 화면의 제목 (PASS 40, D-145) — 슬라이드 제목은 h2 */}
+        <h1 className="sr-only">대표 보고 모드</h1>
         <p className="sr-only" aria-live="polite">{`슬라이드 ${i + 1} / ${n}: ${cur.title}`}</p>
         <div ref={stage} className={narrow ? "flex-1 overflow-y-auto p-3" : "relative flex-1 overflow-hidden"}>
           {narrow ? (
