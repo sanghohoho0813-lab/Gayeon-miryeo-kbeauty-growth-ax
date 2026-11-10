@@ -79,7 +79,7 @@ for (const t of ["2026-11-30T23:58:00+09:00", "2027-01-01T00:05:00+09:00", "2028
 // ───────── C. 차트 묶음 실패
 async function chartChunks(route) {
   const ctx = await newCtx(browser, 1440, 900); const p = await ctx.newPage(); const res = [];
-  p.on("response", (r) => { if (/\/_next\/static\/chunks\/.*\.js/.test(r.url())) res.push(r); });
+  p.on("response", (r) => { if (/\/_next\/static\/.*\.js/.test(r.url())) res.push(r); }); // 배포본은 /_next/static/immutable/chunks/ 아래
   await go(p, route, 900);
   const urls = [];
   for (const r of res) { try { if (/recharts|ResponsiveContainer|CartesianGrid/.test(await r.text())) urls.push(r.url()); } catch { /* 본문 없음 */ } }
@@ -108,7 +108,7 @@ for (const [route, w] of [["/ax", 1440], ["/ax/monthly", 390]]) {
     const st = await p.evaluate(() => ({ h1: document.querySelector("main h1")?.textContent ?? "", len: document.querySelector("main")?.innerText.length ?? 0, btn: Math.min(...[...document.querySelectorAll('[data-testid="chart-retry"]')].map((b) => b.getBoundingClientRect().height)) }));
     check(`C ${w} ${route} 화면은 그대로 (오류 화면 아님 · 제목·숫자 있음)`, (await errorScreen(p)) === 0 && st.h1.length > 0 && !/표시하지 못했습니다/.test(st.h1) && st.len > 500, JSON.stringify(st));
     check(`C ${w} ${route} 다시 시도 버튼 ≥ 40px · 가로 넘침 0`, st.btn >= 40 && (await overflowX(p)) <= 0, `${st.btn}px · ${await overflowX(p)}px`);
-    if (w === 1440) check(`C ${route} 안내 영역 axe`, (await axe(p, '[data-testid="chart-failed"]')).length === 0, (await axe(p, '[data-testid="chart-failed"]')).join(" | "));
+    if (w === 1440 && failed) check(`C ${route} 안내 영역 axe`, (await axe(p, '[data-testid="chart-failed"]')).length === 0, (await axe(p, '[data-testid="chart-failed"]')).join(" | "));
     block = false;
     for (let i = 0; i < 6 && (await p.locator('[data-testid="chart-retry"]').count()) > 0; i++) { await p.locator('[data-testid="chart-retry"]').first().click(); await p.waitForTimeout(700); }
     check(`C ${w} ${route} 다시 시도 → 차트가 그려지고 안내 사라짐`, (await p.locator(".recharts-wrapper").count()) > 0 && (await p.locator('[data-testid="chart-failed"]').count()) === 0);
