@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
+import { isChunkLoadError, reloadOnceForChunk } from "@/lib/chunk-error";
 
 /* 최상위 레이아웃까지 실패했을 때 (PASS 28, D-088) — 앱 글꼴·스타일이 없을 수 있어 글자와 버튼만. 영어 기본 화면 대신 한국어 안내 */
 export default function GlobalError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
-  useEffect(() => { console.error("[MIRYEO] global error", error); }, [error]);
+  useEffect(() => {
+    console.error("[MIRYEO] global error", error);
+    if (isChunkLoadError(error)) reloadOnceForChunk(); // 화면 코드 묶음을 못 받은 것은 한 번 자동 새로고침 (PASS 41, D-148)
+  }, [error]);
   return (
     <html lang="ko">
       <body style={{ margin: 0, fontFamily: "system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif", background: "#F6F6F8", color: "#1B1C22" }}>

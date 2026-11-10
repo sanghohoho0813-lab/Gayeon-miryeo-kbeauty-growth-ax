@@ -7,10 +7,12 @@ import { PageHeader } from "@/components/ax/PageHeader";
 import { Fold } from "@/components/ax/InfoTip";
 import { DataCard } from "@/components/ax/Cards";
 import { PermissionNotice } from "@/components/ax/PermissionNotice";
+import { ErrorLogCard } from "@/components/ax/ErrorLog";
 import { toast } from "@/components/ax/Toast";
 import { useModel } from "@/components/providers/DataProvider";
 import { useSession } from "@/components/providers/SessionProvider";
 import { can } from "@/lib/permissions";
+import { BUILD_AT, BUILD_ID } from "@/lib/build-version";
 import { isLive } from "@/lib/config";
 import { getSupabase } from "@/lib/data/supabase";
 import { formatDateTimeKR } from "@/lib/date";
@@ -123,6 +125,9 @@ export default function SystemCheckPage() {
         );
       })}
       <p className="break-any mt-6 text-[0.84rem] text-ink-soft">설치 순서는 SETUP.md §B, 새 Supabase 프로젝트는 <code>supabase/setup_all.sql</code> 한 번 실행으로 데이터베이스가 준비됩니다. 실제 자료 입력 순서는 <Link className="underline" href="/ax/start">시작 가이드</Link>를 보세요.</p>
+      <ErrorLogCard />
+      {/* 이 화면이 어느 버전인지 (PASS 42, D-151) — 문의·확인할 때 */}
+      {BUILD_ID && <p className="tabular mt-2 text-[0.8rem] text-ink-soft" data-testid="build-version">이 화면의 버전 {BUILD_ID}{BUILD_AT ? ` · ${formatDateTimeKR(BUILD_AT)} 빌드` : ""}</p>}
     </div>
   );
 }

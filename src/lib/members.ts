@@ -62,7 +62,11 @@ const demoSeed = (): Member[] => {
 function readDemo(): Member[] {
   try {
     const raw = localStorage.getItem(DEMO_MEMBERS_KEY);
-    if (raw) return JSON.parse(raw) as Member[];
+    if (raw) {
+      // 형태 확인 (PASS 41, D-149) — 목록이 아니거나 구성원 모양이 아니면 시연 구성원으로
+      const v: unknown = JSON.parse(raw);
+      if (Array.isArray(v) && v.length > 0 && v.every((m) => m && typeof m === "object" && typeof m.userId === "string" && typeof m.email === "string" && ["OWNER", "ADMIN", "STAFF"].includes(m.role))) return v as Member[];
+    }
   } catch { /* noop */ }
   return demoSeed();
 }

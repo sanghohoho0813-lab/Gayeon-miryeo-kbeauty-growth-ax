@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useBusy } from "@/lib/use-busy";
 import { useSearchParams } from "next/navigation";
 import { Check, Copy, Plus, Search, Wallet, X } from "lucide-react";
 import { DataCard, KpiCard, StatusBadge, type Tone } from "./Cards";
@@ -263,6 +264,7 @@ function CounterpartyCard({ onPick }: { onPick: (name: string) => void }) {
 function SettlementModal({ value, onClose }: { value: Settlement; onClose: () => void }) {
   const m = useModel();
   const { run } = useData();
+  const { busy, once } = useBusy(); // 두 번 누름에 같은 청구가 두 건 생기지 않게 (D-150)
   const [s, setS] = useState<Settlement>(value);
   const isNew = value.id.startsWith("new-");
   const options = s.kind === "B2B" ? m.snapshot.b2b.map((b) => ({ id: b.id, name: b.name })) : s.kind === "CHANNEL" ? m.snapshot.channels.map((c) => ({ id: c.id, name: c.name })) : [];
@@ -286,11 +288,11 @@ function SettlementModal({ value, onClose }: { value: Settlement; onClose: () =>
       {errors.length > 0 && <p className="mt-2 text-[0.85rem]" style={{ color: "var(--danger)" }}>{errors.join(" · ")}</p>}
       <div className="mt-4 flex justify-end gap-2">
         <button className="btn-secondary" onClick={onClose}>취소</button>
-        <button className="btn-primary" disabled={errors.length > 0} onClick={async () => {
+        <button className="btn-primary" disabled={errors.length > 0 || busy} data-testid="settlement-save" onClick={() => once(async () => {
           const next = { ...s, counterparty: s.counterparty.trim(), description: s.description?.trim() || null };
           next.status = statusFor(next);
           try { await run((src) => src.upsertSettlement(next)); toast("정산 내역을 저장했습니다"); onClose(); } catch (e) { toast(e instanceof Error ? e.message : "실패", "error"); }
-        }}>저장</button>
+        })}>저장</button>
       </div>
     </Modal>
   );
@@ -299,6 +301,7 @@ function SettlementModal({ value, onClose }: { value: Settlement; onClose: () =>
 function PaymentModal({ value, onClose }: { value: Settlement; onClose: () => void }) {
   const m = useModel();
   const { run } = useData();
+  const { busy, once } = useBusy();
   const remain = outstanding(value);
   const [amount, setAmount] = useState(String(remain));
   const [date, setDate] = useState(m.today);
@@ -314,11 +317,11 @@ function PaymentModal({ value, onClose }: { value: Settlement; onClose: () => vo
       {!ok && <p className="mt-2 text-[0.85rem]" style={{ color: "var(--danger)" }}>입금액은 0보다 크고 잔액 이하여야 합니다.</p>}
       <div className="mt-4 flex justify-end gap-2">
         <button className="btn-secondary" onClick={onClose}>취소</button>
-        <button className="btn-primary" disabled={!ok} onClick={async () => {
+        <button className="btn-primary" disabled={!ok || busy} data-testid="payment-save" onClick={() => once(async () => {
           const next = { ...value, paidAmount: value.paidAmount + n, paidOn: date };
           next.status = statusFor(next);
           try { await run((src) => src.upsertSettlement(next)); toast(next.status === "PAID" ? "완납 처리했습니다" : "부분 입금을 기록했습니다"); onClose(); } catch (e) { toast(e instanceof Error ? e.message : "실패", "error"); }
-        }}>입금 기록</button>
+        })}>입금 기록</button>
       </div>
     </Modal>
   );

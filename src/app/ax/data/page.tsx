@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
@@ -87,9 +87,12 @@ export default function DataPage() {
 function useSave() {
   const { run } = useData();
   const [busy, setBusy] = useState(false);
+  const lock = useRef(false); // 같은 순간의 두 번째 누름은 화면 상태(busy)가 반영되기 전이라 ref로 막는다 (D-150)
   const save = async (label: string, fn: Parameters<typeof run>[0]) => {
+    if (lock.current) return false;
+    lock.current = true;
     setBusy(true);
-    try { await run(fn); toast(label); return true; } catch (e) { toast(e instanceof Error ? e.message : "저장 실패", "error"); return false; } finally { setBusy(false); }
+    try { await run(fn); toast(label); return true; } catch (e) { toast(e instanceof Error ? e.message : "저장 실패", "error"); return false; } finally { lock.current = false; setBusy(false); }
   };
   return { busy, save };
 }

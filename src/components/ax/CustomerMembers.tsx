@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useBusy } from "@/lib/use-busy";
 import { Plus } from "lucide-react";
 import { DataCard, StatusBadge } from "./Cards";
 import { EmptyState } from "./States";
@@ -104,6 +105,7 @@ export function CustomerMembers() {
 }
 
 function StaffPurchaseModal({ account, onClose }: { account: CustomerAccount; onClose: () => void }) {
+  const { busy, once } = useBusy(); // 두 번 누름에 같은 구매 기록이 두 건 생기지 않게 (D-150)
   const m = useModel();
   const { run } = useData();
   const [v, setV] = useState({ productId: m.snapshot.products[0]?.id ?? "", purchasedOn: m.today, quantity: "1", channelLabel: "", note: "" });
@@ -121,10 +123,10 @@ function StaffPurchaseModal({ account, onClose }: { account: CustomerAccount; on
       </div>
       <div className="mt-4 flex justify-end gap-2">
         <button className="btn-secondary" onClick={onClose}>취소</button>
-        <button className="btn-primary" disabled={!ok} onClick={async () => {
+        <button className="btn-primary" disabled={!ok || busy} data-testid="staff-purchase-save" onClick={() => once(async () => {
           try { await run((s) => s.addStaffPurchase({ customerUserId: account.userId, productId: v.productId, quantity: q, purchasedOn: v.purchasedOn, channelLabel: v.channelLabel.trim() || null, note: v.note.trim() || null })); toast("구매 기록을 추가했습니다"); onClose(); }
           catch (e) { toast(e instanceof Error ? e.message : "실패", "error"); }
-        }}>저장</button>
+        })}>저장</button>
       </div>
     </Modal>
   );

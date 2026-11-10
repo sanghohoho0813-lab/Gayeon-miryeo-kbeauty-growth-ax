@@ -5,6 +5,8 @@ import { MobileBottomNav } from "@/components/ax/MobileBottomNav";
 import { Tutorial } from "@/components/ax/Tutorial";
 import { AxGate } from "@/components/ax/AxGate";
 import { ToastHost } from "@/components/ax/Toast";
+import { NewVersionBanner } from "@/components/ax/NewVersionBanner";
+import { ErrorLogInstaller } from "@/components/ax/ErrorLog";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { DataProvider } from "@/components/providers/DataProvider";
 
@@ -25,12 +27,15 @@ export default function AxLayout({ children }: { children: React.ReactNode }) {
           <div className="lg:pl-[280px] print:!pl-0">
             <UtilityHeader />
             <main id="main" tabIndex={-1} className="@container px-4 pb-24 pt-6 outline-none lg:px-8 lg:pb-12 print:!p-0">
+              {/* 화면을 옮겨도 유지되도록 레이아웃에 둔다 (template은 화면마다 새로 만들어짐) */}
+              <NewVersionBanner />
               <AxGate>{children}</AxGate>
             </main>
           </div>
           <MobileBottomNav />
           <Tutorial />
           <ToastHost />
+          <ErrorLogInstaller />
         </div>
       </DataProvider>
     </SessionProvider>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getLastResult, getRecentlyViewed, getSavedConcerns, getWishlist } from "@/lib/beauty-store";
 import type { BeautyRecommendation, SkinConcern } from "@/lib/types";
 import { useCustomerSession } from "./CustomerSession";
+import { TIME_ZONE } from "@/lib/date";
 
 /* 고객 앱 개인화의 근거 — 실제로 저장된 것만 (Finder 결과·찜·최근 본·회원 정보). 없으면 비워 두고 가짜 개인화를 만들지 않는다. (D-073) */
 export interface BeautyMemory {
@@ -33,7 +34,9 @@ export function useBeautyMemory(): BeautyMemory {
 /** 루틴 단계 이름 (Product.routineStep) */
 export const STEP_LABEL: Record<number, string> = { 1: "클렌징 · 토너", 2: "에센스 · 앰플", 3: "크림", 4: "선케어" };
 
+const KR_DAY = new Intl.DateTimeFormat("ko-KR", { timeZone: TIME_ZONE, month: "long", day: "numeric" });
+/** '11월 10일' — 기기 시간대가 아니라 한국 날짜 (PASS 41). 읽을 수 없는 값이면 빈 글자 */
 export function formatDay(iso: string) {
   const d = new Date(iso);
-  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+  return Number.isNaN(d.getTime()) ? "" : KR_DAY.format(d);
 }

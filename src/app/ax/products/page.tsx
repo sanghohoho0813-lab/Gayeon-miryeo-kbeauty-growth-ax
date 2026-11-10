@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import { useBusy } from "@/lib/use-busy";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, Copy, ListChecks, Pencil, Search, X } from "lucide-react";
@@ -253,6 +254,7 @@ const INV_STATUSES = ["전체", "품절위험", "부족주의", "안정", "과�
 function InventoryTab({ onSelect, initialStatus }: { onSelect: (p: Product) => void; initialStatus?: string | null }) {
   const m = useModel();
   const { run } = useData();
+  const saving = useBusy(); // 두 번 누름에 같은 저장이 두 번 실행되지 않게 (D-150)
   const { role } = useSession();
   const [status, setStatus] = useState(() => (initialStatus && (initialStatus === RISK || INV_STATUSES.includes(initialStatus)) ? initialStatus : "전체"));
   const [q, setQ] = useState("");
@@ -420,9 +422,9 @@ function InventoryTab({ onSelect, initialStatus }: { onSelect: (p: Product) => v
       </DataCard>
       {canEdit && stocktake && <StocktakeDrawer open onClose={closeStocktake} />}
       {edit && (
-        <InventoryEditModal key={edit.product.id} product={edit.product} inv={edit.inv} onClose={() => setEdit(null)} onSave={async (next) => {
+        <InventoryEditModal key={edit.product.id} product={edit.product} inv={edit.inv} onClose={() => setEdit(null)} onSave={(next) => void saving.once(async () => {
           try { await run((s) => s.upsertInventory(next)); toast("재고를 저장했습니다"); setEdit(null); } catch (e) { toast(e instanceof Error ? e.message : "저장 실패", "error"); }
-        }} />
+        })} />
       )}
     </>
   );

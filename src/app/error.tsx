@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { isChunkLoadError, reloadOnceForChunk } from "@/lib/chunk-error";
+import { BUILD_ID } from "@/lib/build-version";
+import { recordError } from "@/lib/error-log";
 
 // 복구 버튼은 Demo 저장소 코드를 쓰므로, 이 파일(모든 화면 묶음에 들어감)에는 싣지 않고 AX 오류 때만 불러온다
 // — 공개 심사 페이지 번들에 데모 DB 코드가 실리지 않게 (D-068)
@@ -14,7 +17,24 @@ const DemoRecoveryActions = dynamic(() => import("@/components/ax/DemoRecovery")
 export default function RootSegmentError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   const path = usePathname() ?? "/";
   const ax = path.startsWith("/ax");
-  useEffect(() => { console.error("[MIRYEO] segment error", error); }, [error]);
+  useEffect(() => { console.error("[MIRYEO] segment error", error); if (ax) recordError("screen", error, BUILD_ID); }, [error, ax]);
+  // 화면 코드 묶음을 못 받은 것은 한 번 자동 새로고침 (PASS 41, D-148)
+  const chunk = isChunkLoadError(error);
+  const [reloading, setReloading] = useState(chunk);
+  useEffect(() => { if (chunk) setReloading(reloadOnceForChunk()); }, [chunk]);
+  if (reloading) return <main className="px-5 pt-[20vh] text-center text-[0.95rem] text-ink-soft" role="status" data-testid="chunk-reloading">새 버전을 불러오는 중입니다…</main>;
+  if (chunk) {
+    return (
+      <main className="mx-auto max-w-lg px-5 pb-16 pt-[12vh] text-center" role="alert" data-testid="app-chunk-error">
+        <RefreshCw size={30} className="mx-auto" aria-hidden />
+        <h1 className="mt-3 text-[1.45rem] font-extrabold tracking-[-0.02em]">화면을 새로 불러와야 합니다</h1>
+        <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-soft">새 버전이 나왔거나 연결이 잠깐 끊겼습니다. 새로고침하면 이어서 쓸 수 있습니다.</p>
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          <button className="btn-primary" onClick={() => window.location.reload()}><RefreshCw size={16} aria-hidden /> 새로고침</button>
+        </div>
+      </main>
+    );
+  }
   return (
     <main className="mx-auto max-w-lg px-5 pb-16 pt-[12vh] text-center" role="alert" data-testid="app-error">
       <AlertTriangle size={30} className="mx-auto" style={{ color: "var(--danger)" }} aria-hidden />

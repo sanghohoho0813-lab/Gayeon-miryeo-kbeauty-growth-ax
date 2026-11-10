@@ -48,7 +48,15 @@ export function relativeKR(iso: string, now: number = Date.now()): string {
 }
 
 /** 최근 28일 / 이전 28일 기간 라벨 */
-export function periodLabel(): string {
-  const t = todayISO();
+export function periodLabel(today: string = todayISO()): string {
+  const t = today;
   return `${formatDateKR(addDaysISO(t, -27))} ~ ${formatDateKR(t)}`;
+}
+
+const DAY_MS = 86_400_000;
+const KST_OFFSET_MS = 9 * 3_600_000; // 한국은 서머타임이 없다
+
+/** 다음 한국 자정까지 남은 시간(ms) — 켜 둔 화면의 날짜 넘김 (PASS 41, D-147) */
+export function msToNextDay(now: number = Date.now()): number {
+  return DAY_MS - ((now + KST_OFFSET_MS) % DAY_MS);
 }

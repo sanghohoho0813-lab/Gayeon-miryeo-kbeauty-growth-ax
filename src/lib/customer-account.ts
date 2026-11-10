@@ -57,7 +57,8 @@ function savePending(c: ConsentInput) {
   try { localStorage.setItem(PENDING_KEY, JSON.stringify({ ...c, agreedAt: new Date().toISOString() })); } catch { /* noop */ }
 }
 function readPending(): (ConsentInput & { agreedAt: string }) | null {
-  try { const raw = localStorage.getItem(PENDING_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  // 저장된 값의 형태를 확인 (PASS 41, D-149) — 객체가 아니면 없는 것으로
+  try { const v: unknown = JSON.parse(localStorage.getItem(PENDING_KEY) ?? "null"); return typeof v === "object" && v !== null && !Array.isArray(v) ? (v as ConsentInput & { agreedAt: string }) : null; } catch { return null; }
 }
 function clearPending() { try { localStorage.removeItem(PENDING_KEY); } catch { /* noop */ } }
 

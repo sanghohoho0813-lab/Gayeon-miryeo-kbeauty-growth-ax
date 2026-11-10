@@ -2,6 +2,7 @@
 
 import { ActionOutcomeView } from "@/components/ax/ActionOutcomeView";
 import { useState } from "react";
+import { useBusy } from "@/lib/use-busy";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, ChevronDown, ExternalLink, FileText, Lock, Plus, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/ax/PageHeader";
@@ -35,6 +36,7 @@ const PLAN = [
 export default function ReportsPage() {
   const m = useModel();
   const { run } = useData();
+  const saving = useBusy(); // 두 번 누름에 같은 저장이 두 번 실행되지 않게 (D-150)
   const { role, actorName } = useSession();
   const [manual, setManual] = useState(false);
   const [lockKpi, setLockKpi] = useState<MoneyKpiMeasure | null>(null);
@@ -160,9 +162,9 @@ export default function ReportsPage() {
         {proofs.length === 0 ? (
           <EmptyState title="아직 Proof Event가 없습니다" desc="AI Growth Center에서 Action을 승인·실행하고 결과를 기록하면 자동으로 생성됩니다." action={<Link href="/ax/growth" className="btn-primary">Action 처리하러 가기</Link>} />
         ) : (
-          <ul className="stagger space-y-3">{proofs.map((p) => <ProofItem key={p.id} p={p} canConfirm={can(role, "confirm_proof")} onStatus={async (status) => {
+          <ul className="stagger space-y-3">{proofs.map((p) => <ProofItem key={p.id} p={p} canConfirm={can(role, "confirm_proof")} onStatus={(status) => void saving.once(async () => {
             try { await run((s) => s.updateProof(p.id, { status, resultConfirmedAt: status === "RESULT_CONFIRMED" ? new Date().toISOString() : null })); toast(status === "RESULT_CONFIRMED" ? "결과를 확정했습니다" : "반려했습니다"); } catch (e) { toast(e instanceof Error ? e.message : "실패", "error"); }
-          }} />)}</ul>
+          })} />)}</ul>
         )}
       </DataCard>
 
@@ -209,9 +211,9 @@ export default function ReportsPage() {
       </details>
 
       {lockKpi && <BaselineLockModal kpi={lockKpi} range={range} onClose={() => setLockKpi(null)} />}
-      {manual && <ManualProof onClose={() => setManual(false)} onSave={async (p) => {
+      {manual && <ManualProof onClose={() => setManual(false)} onSave={(p) => void saving.once(async () => {
         try { await run((s) => s.createProof({ ...p, actorName, dataSource: "MANUAL", status: "RECORDED" })); toast("수동 Proof를 기록했습니다"); setManual(false); } catch (e) { toast(e instanceof Error ? e.message : "실패", "error"); }
-      }} />}
+      })} />}
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { useData } from "@/components/providers/DataProvider";
 import { ROLE_LABEL } from "@/lib/permissions";
 import { isLive } from "@/lib/config";
 import { formatDateTimeKR, periodLabel } from "@/lib/date";
+import { useToday } from "@/lib/use-today";
 import type { Role } from "@/lib/types";
 
 function useClickOutside<T extends HTMLElement>(open: boolean, close: () => void) {
@@ -92,6 +93,7 @@ export function RoleMenu({ inline = false }: { inline?: boolean }) {
 
 export function UtilityHeader() {
   const pathname = usePathname();
+  const today = useToday(); // 빌드한 날이 아니라 여는 날 (D-146)
   const { model, refresh } = useData();
   const [themeOpen, setThemeOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -115,7 +117,7 @@ export function UtilityHeader() {
 
         <div className="ml-1 hidden @md:block"><LiveClock compact /></div>
         <div className="ml-3 hidden rounded-xl border px-3 py-1.5 text-[0.8rem] @5xl:block" style={{ borderColor: "var(--border)" }}>
-          <span className="text-ink-soft">분석 기준</span> <span className="tabular font-semibold">최근 4주 · {periodLabel()}</span>
+          <span className="text-ink-soft">분석 기준</span> <span className="tabular font-semibold" data-testid="header-period">최근 4주 · {today ? periodLabel(today) : <span aria-hidden className="inline-block w-[21ch]" />}</span>
         </div>
         <span className="badge ml-1 hidden @2xl:inline-flex" style={isLive ? { background: "var(--success-soft)", color: "var(--success)" } : { background: "var(--warning-soft)", color: "var(--warning)" }}>
           {isLive ? "LIVE" : "DEMO"}
